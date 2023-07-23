@@ -1,0 +1,243 @@
+#include <errno.h>
+#include <string.h>
+#include <stdio.h>
+
+#ifndef _HTTP_RESPONSE
+    #define _HTTP_RESPONSE 1
+
+enum _http_internal_header_type {
+    HEADER_NAME_VALUE,
+    HEADER_ONLY_NAME,
+};
+
+enum _http_internal_response_parser_state {
+    PARSE_HTTP_VERSION,
+    PARSE_HTTP_STATUS,
+    PARSE_HTTP_STATUS_NAME,
+    PARSE_HTTP_HEADER_NAME,
+    PARSE_HTTP_HEADER_SEPARATOR,
+    PARSE_HTTP_HEADER_VALUE,
+    PARSE_HTTP_BODY,
+};
+
+struct http_header {    
+    char *name;
+    char *value;
+    int type;
+};
+
+struct http_data {
+    char *data;
+    int length;
+};
+
+struct http_response {
+    int response_code;
+    char *response_description;
+    int num_headers;
+    struct http_header *headers;
+    struct http_data response_body;
+    int is_chunked;
+    int is_html;
+    int content_length;
+    int error;
+};
+
+// error codes:
+/*
+0: no error
+1: malformed http response
+2: HTTP version did not match
+3: malformed http status
+4: URL parse error
+5: Failed to lookup host
+6: Error while obtaining host IP
+*/
+
+/*
+A content length of -1 indicates an error.
+A content length of -2 indicates a response where the Content-Length header was not present (possibly chunked).
+*/
+
+struct http_response parsePossiblyIncompleteHTTPResponse(struct http_data rawResponse, char *expectedVersion) {
+    struct http_response response;
+    response.error = 0;
+    response.is_chunked = 0;
+    response.is_html = 0;
+    response.content_length = -1;
+    
+    struct http_data response_body;
+    response_body.length = 0;
+    response_body.data = "";
+    
+    char *statusCode = (char *) calloc(5, sizeof(char));
+    char *statusName = (char *) calloc(rawResponse.length - 7, sizeof(char));
+    char *body = (char *) calloc(rawResponse.length - 7, sizeof(char));
+    int bodyLength = 0;
+    struct http_header *headers = (struct http_header *) calloc(0, sizeof(struct http_header));
+    
+    int currentState = PARSE_HTTP_VERSION;
+    int currentIndex = 0;
+    int numHeaders = 0;
+    int contentLengthNotReturned = 1;
+    for (int i = 0; i < rawResponse.length; i ++) {
+        char curChar = rawResponse.data[i];
+        
+        char nextChar;
+        if (i + 1 < rawResponse.length) {
+            nextChar = rawResponse.data[i + 1];
+        } else {
+            nextChar = '\0';
+        }
+        switch(currentState) {
+            case PARSE_HTTP_VERSION:
+                if (currentIndex == 0) {
+                    if (strncmp(rawResponse.data + i, "HTTP/", 5)) {
+                        response.error = 1;
+                        return response;
+                    } else {
+                        i += 5;
+                        currentIndex = 5;
+                    }
+                } else if (currentIndex == 5) {
+                    if (strncmp(rawResponse.data + i, expectedVersion, 3)) {
+                        response.error = 2;
+                        return response;
+                    } else {
+                        i += 3;
+                        currentIndex = 8;
+                    }
+                } else if (currentIndex == 8) {
+                    if (curChar != ' ') {
+                        response.error = 1;
+                        return response;
+                    } else {
+                        currentState = PARSE_HTTP_STATUS;
+                        currentIndex = 0;
+                    }
+                }
+                break;
+            case PARSE_HTTP_STATUS:
+                if (currentIndex == 4) {
+                    if (curChar == ' ') {
+                        currentState = PARSE_HTTP_STATUS_NAME;
+                        currentIndex = 0;
+                        break;
+                    } else {
+                        response.error = 3;
+                        return response;
+                    }
+                }
+                if (curChar < '0' || curChar > '9') {
+                    response.error = 3;
+                    return response;
+                }
+                statusCode[strlen(statusCode)] = curChar;
+                break;
+            case PARSE_HTTP_STATUS_NAME:
+                if (curChar == '\n') {
+                    currentState = PARSE_HTTP_HEADER_NAME;
+                    currentIndex = 0;
+                    break;
+                }
+                statusName[strlen(statusName)] = curChar;
+                break;
+            case PARSE_HTTP_HEADER_NAME:
+                if (curChar == '\r' && nextChar == '\n') {
+                    if (currentIndex == 1) {
+                        currentState = PARSE_HTTP_BODY;
+                        currentIndex = 0;
+                        i ++; // CR+LF
+                        break;
+                    } else {
+                        headers[numHeaders - 1].type = HEADER_ONLY_NAME;
+                        currentState = PARSE_HTTP_HEADER_NAME;
+                        currentIndex = 0;
+                        i ++;
+                        break;
+                    }
+                }
+                if (curChar == ':') {
+                    headers[numHeaders - 1].type = HEADER_NAME_VALUE;
+                    currentState = PARSE_HTTP_HEADER_SEPARATOR;
+                    currentIndex = 0;
+                    break;
+                }
+                int header_index = numHeaders - 1;
+                if (currentIndex == 1) {
+                    numHeaders ++;
+                    header_index = numHeaders - 1;
+                    headers = (struct http_header *) realloc(headers, sizeof(struct http_header) * numHeaders);
+                    headers[header_index].name = (char *) calloc(rawResponse.length - 7, sizeof(char));
+                }
+                char *nameString = headers[header_index].name;
+                nameString[strlen(nameString)] = curChar;
+                //nameString[1] = 'h';
+                //printf("name string: %c%c%c (%d %d %d), %ld\n", nameString[0], nameString[1], nameString[2], nameString[0], nameString[1], nameString[2], strlen(nameString));
+                break;
+            case PARSE_HTTP_HEADER_SEPARATOR:
+                if (curChar == ' ') {
+                    currentState = PARSE_HTTP_HEADER_SEPARATOR;
+                    // setting currentindex is unnecessary here
+                } else {
+                    i = i - 1;
+                    currentState = PARSE_HTTP_HEADER_VALUE;
+                    currentIndex = 0;
+                }
+                break;
+            case PARSE_HTTP_HEADER_VALUE:
+                if (curChar == '\r' && nextChar == '\n') {
+                    if (!strcmp(headers[numHeaders - 1].name, "Transfer-Encoding") && !strcmp(headers[numHeaders - 1].value, "chunked")) {
+                        response.is_chunked = 1;
+                    }
+                    if (!strcmp(headers[numHeaders - 1].name, "Content-Type") && !strncmp(headers[numHeaders - 1].value, "text/html", 9)) {
+                        response.is_html = 1;
+                    }
+                    if (!strcmp(headers[numHeaders - 1].name, "content-type") && !strncmp(headers[numHeaders - 1].value, "text/html", 9)) {
+                        response.is_html = 1;
+                    }
+                    if (!strcmp(headers[numHeaders - 1].name, "Content-Length")) {
+                        response.content_length = atoi(headers[numHeaders - 1].value);
+                        contentLengthNotReturned = 0;
+                    }
+                    if (!strcmp(headers[numHeaders - 1].name, "content-length")) {
+                        response.content_length = atoi(headers[numHeaders - 1].value);
+                        contentLengthNotReturned = 0;
+                    }
+                    currentState = PARSE_HTTP_HEADER_NAME;
+                    currentIndex = 0;
+                    i ++; // aaagh CR+LF
+                    break;
+                }
+                int value_index = numHeaders - 1;
+                if (currentIndex == 1) {
+                    headers[header_index].value = (char *) calloc(rawResponse.length - 7, sizeof(char));
+                }
+                char *valueString = headers[value_index].value;
+                valueString[strlen(valueString)] = curChar;
+                break;
+            case PARSE_HTTP_BODY:
+                body[bodyLength] = curChar;
+                bodyLength ++;
+                break;
+        }
+        currentIndex ++;
+    }
+    
+    response.response_code = atoi(statusCode);
+    response.response_description = statusName;
+    if (contentLengthNotReturned) {
+        response.content_length = -2;
+    }
+    response.headers = headers;
+    response.num_headers = numHeaders;
+    
+    
+    response_body.data = body;
+    response_body.length = bodyLength;
+    
+    response.response_body = response_body;
+    return response;
+}
+
+#endif
