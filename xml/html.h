@@ -481,6 +481,10 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                         return realResponse;
                     } else {
                         // AFAICS Chrome ignores these tags, so I do too
+                        currentElementNameUsage = 0;
+                        XML_clrStr(currentElementName);
+                        currentIndex = 0;
+                        currentState = PARSE_UNKNOWN;
                     }
                     break;
                 }
@@ -547,6 +551,14 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
         bytesParsed ++;
         isEscapeEnabled = 0;
     }
+
+    if (strlen(currentTextContent)) {
+        struct xml_node node = XML_createXMLText(XML_makeStrCpy(currentTextContent));
+        XML_appendChild(&response, node);
+        currentTextContentUsage = 0;
+        XML_clrStr(currentTextContent);
+    }
+
     struct xml_response realResponse;
     realResponse.error = 0;
     realResponse.bytesParsed = bytesParsed;
