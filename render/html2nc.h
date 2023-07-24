@@ -158,7 +158,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 if (!strcmp(lower, "li")) {
                     char *parentName = xml_toLowerCase(parent->name);
                     if (!strcmp(parentName, "ol")) {
-                        char *newBuffer = (char *) calloc(currentOrderedListNum + 1, sizeof(char));
+                        char *newBuffer = (char *) calloc(currentOrderedListNum + 5, sizeof(char));
                         sprintf(newBuffer, "\n%d. ", currentOrderedListNum);
                         strcat(alloc, newBuffer);
                         free(newBuffer);

@@ -378,6 +378,7 @@ struct http_response http_makeHTTPRequest(char *charURL, dataReceiveHandler chun
                 return errorResponse;
             }
 
+            free(parsedResponse.response_body.data);
             parsedResponse.response_body = chunkedResponse.current_parsed_data;
         }
         if (finishHandler != NULL) finishHandler(chunkArg);
