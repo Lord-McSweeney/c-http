@@ -11,14 +11,14 @@ int isBlock(struct xml_node *node) {
         return 1;
     }
     char *lower = xml_toLowerCase(node->name);
-    int res = !strcmp(lower, "div") || !strcmp(lower, "ul") || !strcmp(lower, "p") || !strcmp(lower, "hr") || !strcmp(lower, "header") || !strcmp(lower, "aside") || !strcmp(lower, "h1") || !strcmp(lower, "h2") || !strcmp(lower, "h3") || !strcmp(lower, "h4") || !strcmp(lower, "h5") || !strcmp(lower, "h6") || !strcmp(lower, "blockquote") || !strcmp(lower, "dt") || !strcmp(lower, "tspan") || !strcmp(lower, "desc");
+    int res = !strcmp(lower, "div") || !strcmp(lower, "p") || !strcmp(lower, "hr") || !strcmp(lower, "header") || !strcmp(lower, "aside") || !strcmp(lower, "h1") || !strcmp(lower, "h2") || !strcmp(lower, "h3") || !strcmp(lower, "h4") || !strcmp(lower, "h5") || !strcmp(lower, "h6") || !strcmp(lower, "blockquote") || !strcmp(lower, "dt") || !strcmp(lower, "tspan") || !strcmp(lower, "desc") || !strcmp(lower, "li");
     free(lower);
     return res;
 }
 
 int isInline(const char *nodeName) {
     char *lower = xml_toLowerCase(nodeName);
-    int res = !strcmp(lower, "a") || !strcmp(lower, "span") || !strcmp(lower, "font");
+    int res = !strcmp(lower, "a") || !strcmp(lower, "span") || !strcmp(lower, "font") || !strcmp(lower, "b") || !strcmp(lower, "i");
     free(lower);
     return res;
 }
@@ -96,6 +96,7 @@ char *getXMLTrimmedTextContent(const char *content, int removeStart) {
     int wasOnlyWhitespace = len == 0 ? 0 : 1;
     for (int i = 0; i < len; i ++) {
         if (textContent[i] == '\n') textContent[i] = ' ';
+        if (textContent[i] == '\t') textContent[i] = ' ';
         if ((alreadyEncounteredSpace == 0 && alreadyEncounteredText) || textContent[i] != ' ') {
             if (textContent[i] != ' ') {
                 alreadyEncounteredSpace = 0;
@@ -115,7 +116,6 @@ char *getXMLTrimmedTextContent(const char *content, int removeStart) {
 
 
 struct html2nc_state {
-    int hasBlocked;
     char *title;
 };
 
@@ -128,6 +128,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
     char *alloc = (char *) calloc(strlen(originalHTML) + 2, sizeof(char));
     int currentOrderedListNum = 1;
     int justHadInlineInsideBlockWithText = 0;
+    int hasBlocked = 0;
     for (int i = 0; i < xml.count; i ++) {
         struct xml_node node = xml.nodes[i];
         if (node.type == NODE_DOCTYPE) {
@@ -147,7 +148,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
             // ignore
         } else if (node.type == NODE_ELEMENT) {
             char *lower = xml_toLowerCase(node.name);
-            if (isBlock(&node) && !state->hasBlocked) {
+            if ((isBlock(&node) && !hasBlocked) || (!isBlock(&node) && hasBlocked)) {
                 strcat(alloc, "\n");
             }
             if (!strcmp(lower, "br")) {
@@ -155,18 +156,22 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
             } else if (!strcmp(lower, "hr")) {
                 strcat(alloc, "---------------------");
             } else if (shouldBeDisplayed(node.name)) {
-                if (!strcmp(lower, "li")) {
-                    char *parentName = xml_toLowerCase(parent->name);
-                    if (!strcmp(parentName, "ol")) {
-                        char *newBuffer = (char *) calloc(currentOrderedListNum + 5, sizeof(char));
-                        sprintf(newBuffer, "\n%d. ", currentOrderedListNum);
-                        strcat(alloc, newBuffer);
-                        free(newBuffer);
-                        currentOrderedListNum ++;
-                    } else {
+                if (!strcmp(lower, "li") && parent != NULL) {
+                    if (parent == NULL) {
                         strcat(alloc, "\n - ");
+                    } else {
+                        char *parentName = xml_toLowerCase(parent->name);
+                        if (!strcmp(parentName, "ol")) {
+                            char *newBuffer = (char *) calloc(currentOrderedListNum + 5, sizeof(char));
+                            sprintf(newBuffer, "%d. ", currentOrderedListNum);
+                            strcat(alloc, newBuffer);
+                            free(newBuffer);
+                            currentOrderedListNum ++;
+                        } else {
+                            strcat(alloc, " - ");
+                        }
+                        free(parentName);
                     }
-                    free(parentName);
                 }
 
                 int isSVG = 0;
@@ -181,6 +186,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     state->title = XML_makeStrCpy(text);
                     free(text);
                     free(lower);
+                    hasBlocked = 0;
                     continue;
                 }
                 
@@ -189,14 +195,18 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     free(text);
                     free(lower);
                     justHadInlineInsideBlockWithText = 1;
+
+                    hasBlocked = 0;
                     continue;
                 }
                 free(text);
             }
-            if (isBlock(&node) && !state->hasBlocked) {
+            if (isBlock(&node)) {
                 strcat(alloc, "\n");
+                hasBlocked = 1;
+            } else {
+                hasBlocked = 0;
             }
-            state->hasBlocked = 0;
             free(lower);
         }
         justHadInlineInsideBlockWithText = 0;
@@ -209,7 +219,6 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
 
 struct html2nc_result htmlToText(struct xml_list xml, char *originalHTML) {
     struct html2nc_state state;
-    state.hasBlocked = 1;
     state.title = NULL;
     
     struct html2nc_result result;
