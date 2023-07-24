@@ -16,10 +16,9 @@ int isBlock(struct xml_node *node) {
 
 int isInline(char *nodeName) {
     char *lower = xml_toLowerCase(nodeName);
-    return !strcmp(lower, "a") || !strcmp(lower, "span");
+    return !strcmp(lower, "a") || !strcmp(lower, "span") || !strcmp(lower, "font");
 }
 
-// NOTE: This will free() the `content` passed into it
 char *parseHTMLEscapes(const char *content) {
     char *allocated = (char *) calloc(strlen(content) + 1, sizeof(char));
     int len = strlen(content);
