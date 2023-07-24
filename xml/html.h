@@ -373,7 +373,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                 if (curChar == '>' && !isInsideString) {
                     if (startedParsingName) {
                         doneParsingName = 1;
-                        if (html_isClosingElement(currentElementName) && !strcmp(currentElementName, closingTag)) {
+                        if (html_isClosingElement(currentElementName) && html_isClosingElement(closingTag)) {
                             struct xml_response realResponse;
                             realResponse.error = 0;
                             realResponse.bytesParsed = bytesParsed - (strlen(currentElementName) + 1);

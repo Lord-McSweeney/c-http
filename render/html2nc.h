@@ -60,7 +60,7 @@ struct html2nc_result {
 };
 
 char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct html2nc_state *state, char *originalHTML) {
-    char *alloc = (char *) calloc(strlen(originalHTML), sizeof(char));
+    char *alloc = (char *) calloc(strlen(originalHTML) + 2, sizeof(char));
     int currentOrderedListNum = 1;
     int justHadInlineInsideBlockWithText = 0;
     for (int i = 0; i < xml.count; i ++) {
@@ -84,9 +84,10 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
             } else if (shouldBeDisplayed(node.name)) {
                 if (!strcmp(xml_toLowerCase(node.name), "li")) {
                     if (!strcmp(xml_toLowerCase(parent->name), "ol")) {
-                        strcat(alloc, "\n ");
-                        sprintf(alloc, "%d", currentOrderedListNum);
-                        strcat(alloc, ". ");
+                        char *newBuffer = (char *) calloc(currentOrderedListNum + 1, sizeof(char));
+                        sprintf(newBuffer, "\n%d. ", currentOrderedListNum);
+                        strcat(alloc, newBuffer);
+                        free(newBuffer);
                         currentOrderedListNum ++;
                     } else {
                         strcat(alloc, "\n - ");
@@ -110,6 +111,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
             }
             state->hasBlocked = 0;
         }
+        justHadInlineInsideBlockWithText = 0;
     }
     
     char *copy = XML_makeStrCpy(alloc);
