@@ -95,7 +95,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 }
                 
                 char *text = recursiveXMLToText(&node, node.children, state, originalHTML);
-                if (parent != NULL && !strcmp(xml_toLowerCase(parent->name), "head") && !strcmp(xml_toLowerCase(node.name), "title")) {
+                if (!strcmp(xml_toLowerCase(node.name), "title")) {
                     state->title = XML_makeStrCpy(text);
                     continue;
                 }
