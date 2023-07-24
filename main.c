@@ -56,6 +56,12 @@ char *downloadAndOpenPage(char *url) {
             return HTTP_makeStrCpy("No route to host.\n");
         } else if (parsedResponse.error == 199) {
             return HTTP_makeStrCpy("Invalid chunked response (possible memory corruption?).\n");
+        } else if (parsedResponse.error == 196) {
+            return HTTP_makeStrCpy("Read access denied.\n");
+        } else if (parsedResponse.error == 197) {
+            return HTTP_makeStrCpy("File is a directory.\n");
+        } else if (parsedResponse.error == 198) {
+            return HTTP_makeStrCpy("No such file or directory.\n");
         } else {
             return HTTP_makeStrCpy("Error while connecting to host or receiving data from host.\n");
         }

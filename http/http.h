@@ -194,7 +194,13 @@ struct http_url* http_url_from_string(char *string) {
             port = "80";
         }
     }
-    
+
+    if (!strcmp(protocol, "file")) {
+        port = "0";
+        hostname = HTTP_makeStrCpy("localhost");
+        printf("path: %s\n", path);
+    }
+
     result_mem->protocol = protocol;
     result_mem->hostname = HTTP_makeStrCpy(hostname);
     result_mem->port = atoi(port);
@@ -205,8 +211,64 @@ struct http_url* http_url_from_string(char *string) {
     return result_mem;
 }
 
+struct http_response http_readFileToHTTP(char *path) {
+    char *contents = (char *) calloc(1048576, sizeof(char));
+    errno = 0;
+    FILE *fp = fopen(path, "r");
+    if (errno == ENOENT) {
+        struct http_response err;
+        err.error = 198;
+        return err;
+    }
+    if (errno == EACCES) {
+        struct http_response err;
+        err.error = 196;
+        return err;
+    }
+
+    errno = 0;
+    unsigned int c = fgetc(fp);
+    if (errno == EISDIR) {
+        struct http_response err;
+        err.error = 197;
+        return err;
+    }
+
+    int i = 0;
+    while(c != EOF) {
+        contents[i] = c;
+        c = fgetc(fp);
+        i ++;
+        if (i > 1048574) {
+            break;
+        }
+    }
+
+    struct http_response result;
+    result.response_code = 200;
+    result.response_description = HTTP_makeStrCpy("OK");
+    result.num_headers = 0;
+    result.headers = NULL;
+    result.is_chunked = 0;
+    result.is_html = 0;
+    result.content_length = i;
+    result.error = 0;
+
+    struct http_data res;
+    res.length = i;
+    res.data = contents;
+    result.response_body = res;
+
+    return result;
+}
+
 struct http_response http_makeHTTPRequest(char *charURL) {
     struct http_url *url = http_url_from_string(charURL);
+
+    if (!strcmp(url->protocol, "file")) {
+        return http_readFileToHTTP(url->path);
+    }
+
     if (errno) {
         struct http_response failure;
         failure.error = 4;
