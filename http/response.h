@@ -223,19 +223,21 @@ struct http_response parsePossiblyIncompleteHTTPResponse(struct http_data rawRes
         }
         currentIndex ++;
     }
-    
+
     response.response_code = atoi(statusCode);
+    free(statusCode);
+
     response.response_description = statusName;
     if (contentLengthNotReturned) {
         response.content_length = -2;
     }
     response.headers = headers;
     response.num_headers = numHeaders;
-    
-    
+
+
     response_body.data = body;
     response_body.length = bodyLength;
-    
+
     response.response_body = response_body;
     return response;
 }

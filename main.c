@@ -66,10 +66,12 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
             return HTTP_makeStrCpy("Error while connecting to host or receiving data from host.\n");
         }
     }
-    
+
     if (!parsedResponse.is_html) {
         return parsedResponse.response_body.data;
     }
+
+    // todo: handle headers
 
     struct xml_response xml = XML_parseXmlNodes(
                                   XML_xmlDataFromString(
@@ -79,13 +81,22 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
     if (xml.error) {
         return HTTP_makeStrCpy("Encountered an error while parsing the page.");
     }
-    
-    // todo: handle headers
+
     struct html2nc_result result = htmlToText(xml.list, parsedResponse.response_body.data);
     char *total = (char *) calloc(strlen(result.text) + strlen(result.title) + 8, sizeof(char));
     strcpy(total, result.title);
     strcat(total, "\n\n");
     strcat(total, result.text);
+
+    free(parsedResponse.response_body.data);
+    for (int i = 0; i < parsedResponse.num_headers; i ++) {
+        free(parsedResponse.headers[i].name);
+        free(parsedResponse.headers[i].value);
+    }
+    free(parsedResponse.headers);
+    free(result.title);
+    free(result.text);
+    recursiveFreeXML(xml.list);
     return total;
     /*
     printf("response details:\n");
@@ -102,7 +113,7 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
 
 void onReceiveData(void *ptrState) {
     struct nc_state *state = (struct nc_state *) ptrState;
-    strcat(getTextByDescriptor(state, "documentText")->text, "\nReceived a data chunk.");
+    strcat(getTextByDescriptor(state, "documentText")->text, ".");
     render_nc(state);
 }
 
@@ -120,9 +131,11 @@ void ongotourl(void *state, char *_) {
     getButtonByDescriptor(realState, "gotobutton")->visible = 0;
     getTextByDescriptor(realState, "documentText")->visible = 1;
     
-    getTextByDescriptor(realState, "documentText")->text = nc_strcpy("The document is downloading...");
+    getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
+    strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");
     render_nc(realState);
     char *data = downloadAndOpenPage(state, getTextAreaByDescriptor(realState, "urltextarea")->currentText, onReceiveData, onFinishData);
+    free(getTextByDescriptor(realState, "documentText")->text);
     getTextByDescriptor(realState, "documentText")->text = data;
 }
 

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-int shouldBeDisplayed(char *nodeName) {
+int shouldBeDisplayed(const char *nodeName) {
     return strcmp(nodeName, "script") && strcmp(nodeName, "style");
 }
 
@@ -11,12 +11,16 @@ int isBlock(struct xml_node *node) {
         return 1;
     }
     char *lower = xml_toLowerCase(node->name);
-    return !strcmp(lower, "div") || !strcmp(lower, "ul") || !strcmp(lower, "p") || !strcmp(lower, "hr") || !strcmp(lower, "header") || !strcmp(lower, "aside") || !strcmp(lower, "h1") || !strcmp(lower, "h2") || !strcmp(lower, "h3") || !strcmp(lower, "h4") || !strcmp(lower, "h5") || !strcmp(lower, "h6") || !strcmp(lower, "blockquote") || !strcmp(lower, "dt") || !strcmp(lower, "tspan") || !strcmp(lower, "desc");
+    int res = !strcmp(lower, "div") || !strcmp(lower, "ul") || !strcmp(lower, "p") || !strcmp(lower, "hr") || !strcmp(lower, "header") || !strcmp(lower, "aside") || !strcmp(lower, "h1") || !strcmp(lower, "h2") || !strcmp(lower, "h3") || !strcmp(lower, "h4") || !strcmp(lower, "h5") || !strcmp(lower, "h6") || !strcmp(lower, "blockquote") || !strcmp(lower, "dt") || !strcmp(lower, "tspan") || !strcmp(lower, "desc");
+    free(lower);
+    return res;
 }
 
-int isInline(char *nodeName) {
+int isInline(const char *nodeName) {
     char *lower = xml_toLowerCase(nodeName);
-    return !strcmp(lower, "a") || !strcmp(lower, "span") || !strcmp(lower, "font");
+    int res = !strcmp(lower, "a") || !strcmp(lower, "span") || !strcmp(lower, "font");
+    free(lower);
+    return res;
 }
 
 char *parseHTMLEscapes(const char *content) {
@@ -79,7 +83,7 @@ char *parseHTMLEscapes(const char *content) {
     return newText;
 }
 
-char *getXMLTrimmedTextContent(char *content, int removeStart) {
+char *getXMLTrimmedTextContent(const char *content, int removeStart) {
     char *allocated = (char *) calloc(strlen(content) + 1, sizeof(char));
     char *textContent = XML_makeStrCpy(content);
     int len = strlen(textContent);
@@ -105,6 +109,7 @@ char *getXMLTrimmedTextContent(char *content, int removeStart) {
     }
     char *newText = XML_makeStrCpy(allocated);
     free(allocated);
+    free(textContent);
     return newText;
 }
 
@@ -131,24 +136,28 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
             // SVGs should not have text within them
             if (!isRenderingSVG) {
                 char *text = getXMLTrimmedTextContent(node.text_content, justHadInlineInsideBlockWithText);
-                strcat(alloc, parseHTMLEscapes(text));
+                char *allocated = parseHTMLEscapes(text);
+                strcat(alloc, allocated);
                 free(text);
+                free(allocated);
             }
             //printf(strcat(getTabsRepeated(depth), "text node (#%d). contents: '%s'\n"), i, node.text_content);
             //printf(strcat(getTabsRepeated(depth), "text node (#%d). contents: '...'\n"), i);
         } else if (node.type == NODE_COMMENT) {
             // ignore
         } else if (node.type == NODE_ELEMENT) {
+            char *lower = xml_toLowerCase(node.name);
             if (isBlock(&node) && !state->hasBlocked) {
                 strcat(alloc, "\n");
             }
-            if (!strcmp(xml_toLowerCase(node.name), "br")) {
+            if (!strcmp(lower, "br")) {
                 strcat(alloc, "\n");
-            } else if (!strcmp(xml_toLowerCase(node.name), "hr")) {
+            } else if (!strcmp(lower, "hr")) {
                 strcat(alloc, "---------------------");
             } else if (shouldBeDisplayed(node.name)) {
-                if (!strcmp(xml_toLowerCase(node.name), "li")) {
-                    if (!strcmp(xml_toLowerCase(parent->name), "ol")) {
+                if (!strcmp(lower, "li")) {
+                    char *parentName = xml_toLowerCase(parent->name);
+                    if (!strcmp(parentName, "ol")) {
                         char *newBuffer = (char *) calloc(currentOrderedListNum + 1, sizeof(char));
                         sprintf(newBuffer, "\n%d. ", currentOrderedListNum);
                         strcat(alloc, newBuffer);
@@ -157,31 +166,38 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     } else {
                         strcat(alloc, "\n - ");
                     }
+                    free(parentName);
                 }
 
                 int isSVG = 0;
-                if (!strcmp(xml_toLowerCase(node.name), "svg")) {
+                if (!strcmp(lower, "svg")) {
                     isSVG = 1;
                 }
                 char *text = recursiveXMLToText(&node, node.children, state, originalHTML, isSVG || isRenderingSVG);
                 isSVG = 0;
 
                 // Only the first <title> is taken into account- the rest are displayed
-                if (!strcmp(xml_toLowerCase(node.name), "title") && !strlen(state->title)) {
+                if (!strcmp(lower, "title") && state->title == NULL) {
                     state->title = XML_makeStrCpy(text);
+                    free(text);
+                    free(lower);
                     continue;
                 }
                 
                 strcat(alloc, text);
                 if (isInline(node.name) && strlen(text) && isBlock(parent)) {
+                    free(text);
+                    free(lower);
                     justHadInlineInsideBlockWithText = 1;
                     continue;
                 }
+                free(text);
             }
             if (isBlock(&node) && !state->hasBlocked) {
                 strcat(alloc, "\n");
             }
             state->hasBlocked = 0;
+            free(lower);
         }
         justHadInlineInsideBlockWithText = 0;
     }
@@ -194,15 +210,19 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
 struct html2nc_result htmlToText(struct xml_list xml, char *originalHTML) {
     struct html2nc_state state;
     state.hasBlocked = 1;
-    state.title = (char *) calloc(131072, sizeof(char));
+    state.title = NULL;
     
     struct html2nc_result result;
     result.text = recursiveXMLToText(NULL, xml, &state, originalHTML, 0);
-    result.title = state.title;
 
     // Default title, if title wasn't set
-    if (!strlen(state.title)) {
+    if (state.title == NULL) {
         result.title = XML_makeStrCpy("Page has no title");
+    } else {
+        result.title = XML_makeStrCpy(state.title);
     }
+
+    free(state.title);
+
     return result;
 }

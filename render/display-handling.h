@@ -292,11 +292,15 @@ void render_nc(struct nc_state *browserState) {
             if (browserState->text_areas[i].selected) {
                 attron(COLOR_PAIR(2));
             }
+
+            char *renderResult = getTextAreaRendered(browserState->text_areas[i]);
+
             mvprintw(
                 browserState->text_areas[i].y,
                 browserState->text_areas[i].x,
-                getTextAreaRendered(browserState->text_areas[i])
+                renderResult
             );
+            free(renderResult);
             attron(COLOR_PAIR(1));
             
             if (browserState->text_areas[i].selected) {

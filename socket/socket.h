@@ -72,10 +72,9 @@ struct socket_info rwsocket(char *address, int portnum, char *senddata, char *to
         errorStruct.error = -4;
         return errorStruct;
     }
-    
-    // `free`ing `server_reply` causes occasional heap metadata corruption, and i have *no* idea why.
+
     strcpy(towrite, server_reply);
-    //free(server_reply);
+    free(server_reply);
     
     struct socket_info returnValue;
     returnValue.descriptor = socket_desc;
@@ -96,9 +95,7 @@ struct socket_info rsocket(int descriptor, char *towrite, int amount) {
         printf("Error while recieving additional response from server. Error code: \"%d\"\n", errno);
         return errorStruct;
     }
-    
-    // `free`ing `server_reply` causes occasional heap metadata corruption, and i have *no* idea why.
-    //fprintf(stderr, "writing amount: %d\n", amount);
+
     strncpy(towrite, server_reply, amount);
     free(server_reply);
     

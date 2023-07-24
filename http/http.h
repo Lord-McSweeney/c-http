@@ -59,7 +59,7 @@ struct http_url* http_url_from_string(char *string) {
     
     char *protocol = (char *) calloc(urllen + numSpecial * 3 + 1, sizeof(char));
     char *hostname = (char *) calloc(urllen + numSpecial * 3 + 1, sizeof(char));
-    char *port = (char *) calloc(urllen + numSpecial * 3 + 1, sizeof(char));
+    char *port = (char *) calloc(urllen + numSpecial * 3 + 5, sizeof(char));
     char *path = (char *) calloc(urllen + numSpecial * 3 + 1, sizeof(char));
     char *fragment = (char *) calloc(urllen + numSpecial * 3, sizeof(char));
     
@@ -84,6 +84,7 @@ struct http_url* http_url_from_string(char *string) {
                 // Protocols cannot have periods inside them; if they do, turns out we were parsing a hostname 
                 if (curChar == '.') {
                     i = -1;
+                    free(protocol);
                     protocol = HTTP_makeStrCpy("http");
                     currentState = HTTP_HOSTNAME;
                     currentIndex = 0;
@@ -99,6 +100,7 @@ struct http_url* http_url_from_string(char *string) {
                     // turns out we started with the hostname, and this is the port
                     if (curChar >= '0' && curChar <= '9') {
                         i = -1;
+                        free(protocol);
                         protocol = HTTP_makeStrCpy("http");
                         currentState = HTTP_HOSTNAME;
                         currentIndex = 0;
@@ -181,6 +183,7 @@ struct http_url* http_url_from_string(char *string) {
     }
 
     if (strlen(path) == 0) {
+        free(path);
         path = HTTP_makeStrCpy("/");
     } else if (path[0] != '/') {
         memmove(path + 1, path, strlen(path));
@@ -189,16 +192,16 @@ struct http_url* http_url_from_string(char *string) {
 
     if (strlen(port) == 0) {
         if (!strcmp(protocol, "http")) {
-            port = "80";
+            strcpy(port, "80");
         } else if (!strcmp(protocol, "https")) {
-            port = "443";
+            strcpy(port, "443");
         } else {
-            port = "80";
+            strcpy(port, "80");
         }
     }
 
     if (!strcmp(protocol, "file")) {
-        port = "0";
+        strcpy(port, "0");
         hostname = HTTP_makeStrCpy("localhost");
         printf("path: %s\n", path);
     }
@@ -209,6 +212,7 @@ struct http_url* http_url_from_string(char *string) {
     result_mem->path = path;
     result_mem->fragment = fragment;
     free(hostname);
+    free(port);
 
     return result_mem;
 }
@@ -304,6 +308,12 @@ struct http_response http_makeHTTPRequest(char *charURL, dataReceiveHandler chun
     }
     struct socket_info tcpResult = rwsocket(ipBuffer, url->port, requestString, buffer, maxResponseSize);
     free(ipBuffer);
+    free(url->protocol);
+    free(url->hostname);
+    free(url->path);
+    free(url->fragment);
+    free(url);
+    free(requestString);
 
     if (chunkHandler != NULL) chunkHandler(chunkArg);
 
@@ -377,7 +387,11 @@ struct http_response http_makeHTTPRequest(char *charURL, dataReceiveHandler chun
         if (parsedResponse.content_length != parsedResponse.response_body.length) {
             int totalBytesRead = 0; // note; this implementation of a repeated read doesn't actually match up with the chunked response response length handling
             char *currentPosition;
+            char *extra = NULL;
+
             while (parsedResponse.content_length > parsedResponse.response_body.length) {
+                if (extra) free(extra);
+
                 currentPosition = buffer + totalBytesRead;
                 errno = 0;
                 tcpResult = rsocket(tcpResult.descriptor, currentPosition, 1048570 - totalBytesRead);
@@ -392,6 +406,7 @@ struct http_response http_makeHTTPRequest(char *charURL, dataReceiveHandler chun
 
                 memcpy(extra, parsedResponse.response_body.data, parsedResponse.response_body.length);
                 memcpy(extra + parsedResponse.response_body.length, initialHttpResponse.data, initialHttpResponse.length);
+                free(parsedResponse.response_body.data);
 
                 int newLength = parsedResponse.response_body.length + initialHttpResponse.length;
 

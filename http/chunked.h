@@ -121,7 +121,9 @@ struct chunked_response_state parseChunkedResponse(struct http_data body) {
             break;
         }
     }
-    
+
+    free(currentLength);
+
     currentParsedData.data = overallBody;
     currentParsedData.length = overallBodyLength;
     
