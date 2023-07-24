@@ -158,7 +158,8 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 }
                 
                 char *text = recursiveXMLToText(&node, node.children, state, originalHTML);
-                if (!strcmp(xml_toLowerCase(node.name), "title")) {
+                // Only the first <title> is taken into account- the rest are displayed
+                if (!strcmp(xml_toLowerCase(node.name), "title") && !strlen(state->title)) {
                     state->title = XML_makeStrCpy(text);
                     continue;
                 }
@@ -185,10 +186,15 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
 struct html2nc_result htmlToText(struct xml_list xml, char *originalHTML) {
     struct html2nc_state state;
     state.hasBlocked = 1;
-    state.title = XML_makeStrCpy("Page has no title");
+    state.title = (char *) calloc(131072, sizeof(char));
     
     struct html2nc_result result;
     result.text = recursiveXMLToText(NULL, xml, &state, originalHTML);
     result.title = state.title;
+
+    // Default title, if title wasn't set
+    if (!strlen(state.title)) {
+        result.title = XML_makeStrCpy("Page has no title");
+    }
     return result;
 }
