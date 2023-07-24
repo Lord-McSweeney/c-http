@@ -32,8 +32,8 @@ day 5: implement ncurses renderer
 7: Temporary error in name resolution
 */
 
-char *downloadAndOpenPage(char *url) {
-    struct http_response parsedResponse = http_makeHTTPRequest(url);
+char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler handler, dataReceiveHandler finishHandler) {
+    struct http_response parsedResponse = http_makeHTTPRequest(url, handler, finishHandler, (void *) state);
     
     if (parsedResponse.error) {
         if (parsedResponse.error == 4) {
@@ -100,16 +100,29 @@ char *downloadAndOpenPage(char *url) {
 
 // gets called with current state pointer and pressed button's descriptor
 
+void onReceiveData(void *ptrState) {
+    struct nc_state *state = (struct nc_state *) ptrState;
+    strcat(getTextByDescriptor(state, "documentText")->text, "\nReceived a data chunk.");
+    render_nc(state);
+}
+
+void onFinishData(void *ptrState) {
+    struct nc_state *state = (struct nc_state *) ptrState;
+    strcat(getTextByDescriptor(state, "documentText")->text, "\nDownloaded entire document.");
+    render_nc(state);
+}
+
 void ongotourl(void *state, char *_) {
     struct nc_state *realState = (struct nc_state *) state;
-    // TODO
     realState->currentPage = PAGE_DOCUMENT_LOADED;
     getTextByDescriptor(realState, "gotoURL")->visible = 0;
     getTextAreaByDescriptor(realState, "urltextarea")->visible = 0;
     getButtonByDescriptor(realState, "gotobutton")->visible = 0;
     getTextByDescriptor(realState, "documentText")->visible = 1;
     
-    char *data = downloadAndOpenPage(getTextAreaByDescriptor(realState, "urltextarea")->currentText);
+    getTextByDescriptor(realState, "documentText")->text = nc_strcpy("The document is downloading...");
+    render_nc(realState);
+    char *data = downloadAndOpenPage(state, getTextAreaByDescriptor(realState, "urltextarea")->currentText, onReceiveData, onFinishData);
     getTextByDescriptor(realState, "documentText")->text = data;
 }
 
@@ -287,7 +300,7 @@ int main(int argc, char **argv) {/*
         url = argv[1];
     }
 
-    struct http_response parsedResponse = http_makeHTTPRequest("www.google.com");
+    struct http_response parsedResponse = http_makeHTTPRequest("httpforever.com", NULL, NULL, NULL);
     
     if (parsedResponse.error) {
         if (parsedResponse.error == 4) {
@@ -309,17 +322,11 @@ int main(int argc, char **argv) {/*
     for (int i = 0; i < parsedResponse.num_headers; i ++) {
         printf("    header name: %s; header value: %s\n", parsedResponse.headers[i].name, parsedResponse.headers[i].value);
     }
+    printf("    body: %s\n", parsedResponse.response_body.data);
     
     char *xmlfortest = (
-"<p>I'm not actually saying your site should look like this. What I'm saying is that all the problems we have with websites are <strong>ones we create ourselves</strong>. Websites aren't broken by default, they are functional, high-performing, and accessible. You break them.</p>\n\
-        \n\
-        <blockquote cite=\"https://www.vitsoe.com/us/about/good-design\">\"Good design is as little design as possible.\"<br>\n\
-            - some German guy\n\
-        </blockquote>\n\
-    \n\
-    <hr>");
+"<p>TEXT!</w></p>DATA");
     
-    printf("    body: %s\n", parsedResponse.response_body.data);
     
     struct xml_response xml = XML_parseXmlNodes(
                                   XML_xmlDataFromString(

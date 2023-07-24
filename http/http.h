@@ -5,6 +5,8 @@
 #include "response.h"
 #include "chunked.h"
 
+typedef void (*dataReceiveHandler)(void *);
+
 #ifndef _HTTP_HTTP
     #define _HTTP_HTTP 1
     #define maxResponseSize 1048578
@@ -207,7 +209,7 @@ struct http_url* http_url_from_string(char *string) {
     result_mem->path = path;
     result_mem->fragment = fragment;
     free(hostname);
-    
+
     return result_mem;
 }
 
@@ -262,7 +264,7 @@ struct http_response http_readFileToHTTP(char *path) {
     return result;
 }
 
-struct http_response http_makeHTTPRequest(char *charURL) {
+struct http_response http_makeHTTPRequest(char *charURL, dataReceiveHandler chunkHandler, dataReceiveHandler finishHandler, void *chunkArg) {
     struct http_url *url = http_url_from_string(charURL);
 
     if (!strcmp(url->protocol, "file")) {
@@ -280,11 +282,11 @@ struct http_response http_makeHTTPRequest(char *charURL) {
     errno = 0;
     char *buffer = (char *) calloc(maxResponseSize, sizeof(char)); // this should be dynamically returned by rwsocket, but 1mb is probably good for now
     char *ipBuffer = (char *) calloc(4096, sizeof(char)); // this should be dynamic, but 4kb is probably good for now
-    
+
     char *baseString = "GET %s HTTP/1.1\nHost: %s\nUser-Agent: %s\n\n";
     char *requestString = (char *) calloc(strlen(baseString) + strlen(url->path) + strlen(url->hostname) + strlen("uqers") + 1, sizeof(char));
     sprintf(requestString, baseString, url->path, url->hostname, "uqers");
-    
+
     int res = lookupIP(url->hostname, ipBuffer);
     if (res) {
         if (res == HOST_NOT_FOUND) {
@@ -302,7 +304,9 @@ struct http_response http_makeHTTPRequest(char *charURL) {
     }
     struct socket_info tcpResult = rwsocket(ipBuffer, url->port, requestString, buffer, maxResponseSize);
     free(ipBuffer);
-    
+
+    if (chunkHandler != NULL) chunkHandler(chunkArg);
+
     if (tcpResult.error) {
         switch(errno) {
             case 101:
@@ -320,21 +324,21 @@ struct http_response http_makeHTTPRequest(char *charURL) {
         }
         //printf("error: %d\n", errno);
     }
-    
+
     // we can't realloc-shrink the buffer because it gets reused
-    
-    
+
+
     struct http_data initialHttpResponse;
     initialHttpResponse.length = tcpResult.bytesRead;
     initialHttpResponse.data = buffer;/*
     if (tcpResult.error) {
         printf("Error code: %d", tcpResult.error);
     }*/
-    
+
     struct http_response parsedResponse = parsePossiblyIncompleteHTTPResponse(initialHttpResponse, "1.1");
     if (parsedResponse.is_chunked) {
         int totalBytesRead = tcpResult.bytesRead;
-        
+
         struct chunked_response_state chunkedResponse = parseChunkedResponse(parsedResponse.response_body);
         if (chunkedResponse.error) {
             //fprintf(stderr, "Encountered error while parsing chunked response: %d\n", chunkedResponse.error);
@@ -342,7 +346,7 @@ struct http_response http_makeHTTPRequest(char *charURL) {
             return errorResponse;
         }
         parsedResponse.response_body = chunkedResponse.current_parsed_data;
-        
+
         char *currentPosition = buffer + totalBytesRead;
         while (!chunkedResponse.finished) {
             //fprintf(stderr, "Current position: %ld\n", (long) currentPosition);
@@ -350,20 +354,23 @@ struct http_response http_makeHTTPRequest(char *charURL) {
             errno = 0;
             tcpResult = rsocket(tcpResult.descriptor, currentPosition, 1048570 - totalBytesRead);
             totalBytesRead += tcpResult.bytesRead;
-        
+
+            if (chunkHandler != NULL) chunkHandler(chunkArg);
+
             initialHttpResponse.data = currentPosition;
             initialHttpResponse.length = tcpResult.bytesRead;
             //fprintf(stderr, "About to append chunk to body\n");
             appendChunkToBody(&chunkedResponse, initialHttpResponse);
             //fprintf(stderr, "Appended chunk to body\n");
-            
+
             if (chunkedResponse.error) {
                 errorResponse.error = 199;
                 return errorResponse;
             }
-            
+
             parsedResponse.response_body = chunkedResponse.current_parsed_data;
         }
+        if (finishHandler != NULL) finishHandler(chunkArg);
     } else if (parsedResponse.content_length == -2) {
         puts("WARNING: Content-Length header was not returned, assuming that that was the whole response");
     } else {
@@ -375,17 +382,19 @@ struct http_response http_makeHTTPRequest(char *charURL) {
                 errno = 0;
                 tcpResult = rsocket(tcpResult.descriptor, currentPosition, 1048570 - totalBytesRead);
                 totalBytesRead += tcpResult.bytesRead;
-            
+
+                if (chunkHandler != NULL) chunkHandler(chunkArg);
+
                 initialHttpResponse.data = currentPosition;
                 initialHttpResponse.length = tcpResult.bytesRead;
-                
+
                 char *extra = (char *) calloc(totalBytesRead + parsedResponse.response_body.length + 2, sizeof(char));
 
                 memcpy(extra, parsedResponse.response_body.data, parsedResponse.response_body.length);
                 memcpy(extra + parsedResponse.response_body.length, initialHttpResponse.data, initialHttpResponse.length);
-                
+
                 int newLength = parsedResponse.response_body.length + initialHttpResponse.length;
-                
+
                 struct http_data newData;
                 newData.data = extra;
                 newData.length = newLength;
@@ -393,10 +402,11 @@ struct http_response http_makeHTTPRequest(char *charURL) {
                 parsedResponse.response_body = newData;
             }
         }
+        if (finishHandler != NULL) finishHandler(chunkArg);
     }
-    
+
     free(buffer);
-    
+
     return parsedResponse;
 }
 
