@@ -119,7 +119,7 @@ struct html2nc_result {
     char *title;
 };
 
-char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct html2nc_state *state, char *originalHTML) {
+char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct html2nc_state *state, char *originalHTML, int isRenderingSVG) {
     char *alloc = (char *) calloc(strlen(originalHTML) + 2, sizeof(char));
     int currentOrderedListNum = 1;
     int justHadInlineInsideBlockWithText = 0;
@@ -128,9 +128,12 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
         if (node.type == NODE_DOCTYPE) {
             // ignore
         } else if (node.type == NODE_TEXT) {
-            char *text = getXMLTrimmedTextContent(node.text_content, justHadInlineInsideBlockWithText);
-            strcat(alloc, parseHTMLEscapes(text));
-            free(text);
+            // SVGs should not have text within them
+            if (!isRenderingSVG) {
+                char *text = getXMLTrimmedTextContent(node.text_content, justHadInlineInsideBlockWithText);
+                strcat(alloc, parseHTMLEscapes(text));
+                free(text);
+            }
             //printf(strcat(getTabsRepeated(depth), "text node (#%d). contents: '%s'\n"), i, node.text_content);
             //printf(strcat(getTabsRepeated(depth), "text node (#%d). contents: '...'\n"), i);
         } else if (node.type == NODE_COMMENT) {
@@ -155,8 +158,14 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                         strcat(alloc, "\n - ");
                     }
                 }
-                
-                char *text = recursiveXMLToText(&node, node.children, state, originalHTML);
+
+                int isSVG = 0;
+                if (!strcmp(xml_toLowerCase(node.name), "svg")) {
+                    isSVG = 1;
+                }
+                char *text = recursiveXMLToText(&node, node.children, state, originalHTML, isSVG || isRenderingSVG);
+                isSVG = 0;
+
                 // Only the first <title> is taken into account- the rest are displayed
                 if (!strcmp(xml_toLowerCase(node.name), "title") && !strlen(state->title)) {
                     state->title = XML_makeStrCpy(text);
@@ -188,7 +197,7 @@ struct html2nc_result htmlToText(struct xml_list xml, char *originalHTML) {
     state.title = (char *) calloc(131072, sizeof(char));
     
     struct html2nc_result result;
-    result.text = recursiveXMLToText(NULL, xml, &state, originalHTML);
+    result.text = recursiveXMLToText(NULL, xml, &state, originalHTML, 0);
     result.title = state.title;
 
     // Default title, if title wasn't set
