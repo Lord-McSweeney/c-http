@@ -158,6 +158,7 @@ void openGotoPageDialog(struct nc_state *state) {
     textarea->visible = 1;
     getButtonByDescriptor(state, "gotobutton")->visible = 1;
     getTextByDescriptor(state, "documentText")->visible = 0;
+    state->selectableIndex = 0;
     
     int curlen = strlen(textarea->currentText);
     while(curlen > 0) {
