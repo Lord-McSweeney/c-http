@@ -10,6 +10,8 @@ day 2: implement basic http response parsing
 day 3: implement http chunked response parsing
 day 4: implement xml parser
 day 5: implement ncurses renderer
+day 6: fix various rendering issues
+day 7: minor HTTP-related fix
 */
 
 #include <stdlib.h>

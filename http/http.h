@@ -287,7 +287,7 @@ struct http_response http_makeHTTPRequest(char *charURL, dataReceiveHandler chun
     char *buffer = (char *) calloc(maxResponseSize, sizeof(char)); // this should be dynamically returned by rwsocket, but 1mb is probably good for now
     char *ipBuffer = (char *) calloc(4096, sizeof(char)); // this should be dynamic, but 4kb is probably good for now
 
-    char *baseString = "GET %s HTTP/1.1\nHost: %s\nUser-Agent: %s\n\n";
+    char *baseString = "GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\n\r\n";
     char *requestString = (char *) calloc(strlen(baseString) + strlen(url->path) + strlen(url->hostname) + strlen("uqers") + 1, sizeof(char));
     sprintf(requestString, baseString, url->path, url->hostname, "uqers");
 
