@@ -18,7 +18,7 @@ int isBlock(struct xml_node *node) {
 
 int isInline(const char *nodeName) {
     char *lower = xml_toLowerCase(nodeName);
-    int res = !strcmp(lower, "a") || !strcmp(lower, "span") || !strcmp(lower, "font") || !strcmp(lower, "b") || !strcmp(lower, "i");
+    int res = !strcmp(lower, "a") || !strcmp(lower, "span") || !strcmp(lower, "font") || !strcmp(lower, "b") || !strcmp(lower, "i") || !strcmp(lower, "img");
     free(lower);
     return res;
 }
@@ -178,6 +178,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 if (!strcmp(lower, "svg")) {
                     isSVG = 1;
                 }
+
                 char *text = recursiveXMLToText(&node, node.children, state, originalHTML, isSVG || isRenderingSVG);
                 isSVG = 0;
 
@@ -189,13 +190,20 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     hasBlocked = 0;
                     continue;
                 }
+
+                if (!strcmp(lower, "img")) {
+                    strcat(alloc, "[IMAGE]");
+                    free(text);
+                    free(lower);
+                    hasBlocked = 0;
+                    continue;
+                }
                 
                 strcat(alloc, text);
                 if (isInline(node.name) && strlen(text) && isBlock(parent)) {
                     free(text);
                     free(lower);
                     justHadInlineInsideBlockWithText = 1;
-
                     hasBlocked = 0;
                     continue;
                 }
