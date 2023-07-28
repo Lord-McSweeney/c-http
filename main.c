@@ -234,25 +234,23 @@ void onKeyPress(struct nc_state *browserState, char ch) {
             textarea->currentText[2] = 0;*/
         }
     } else if (browserState->currentPage == PAGE_DOCUMENT_LOADED) {
+        struct nc_text *documentText = getTextByDescriptor(browserState, "documentText");
         if (ch == 3) {
-            if (getTextByDescriptor(browserState, "documentText")->y < 0) {
-               getTextByDescriptor(browserState, "documentText")->y ++;
+            if (documentText->y < 0) {
+               documentText->y ++;
             }
-        }
-        if (ch == 2) {
+        } else if (ch == 2) {
             if (/*todo: make sure the page doesn't scroll too far down*/true) {
-                getTextByDescriptor(browserState, "documentText")->y --;
+                documentText->y --;
             }
-        }
-        if (ch == 4) {
+        } else if (ch == 4) {
             // left
-            if (getTextByDescriptor(browserState, "documentText")->x < 0) {
-               getTextByDescriptor(browserState, "documentText")->x ++;
+            if (documentText->x < 0) {
+               documentText->x ++;
             }
-        }
-        if (ch == 5) {
+        } else if (ch == 5) {
             if (/*todo: make sure the page doesn't scroll too far right*/true) {
-                getTextByDescriptor(browserState, "documentText")->x --;
+                documentText->x --;
             }
         }
     }

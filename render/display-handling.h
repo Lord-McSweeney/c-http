@@ -244,7 +244,7 @@ void printText(int y, int x, char *text) {
     int minX = x;
     int len = strlen(text);
     for (int i = 0; i < len; i ++) {
-        if (realPosY >= 0 && realPosX >= 0) {
+        if (realPosY >= 0 && realPosX >= 0 && realPosY < my) {
             mvaddch(realPosY, realPosX, text[i]);
         }
         realPosX ++;
