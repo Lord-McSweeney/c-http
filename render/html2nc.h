@@ -124,7 +124,7 @@ struct html2nc_result {
     char *title;
 };
 
-char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct html2nc_state *state, char *originalHTML, int isRenderingSVG) {
+char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct html2nc_state *state, char *originalHTML, int isAvoidingDisplay) {
     char *alloc = (char *) calloc(strlen(originalHTML) + 2, sizeof(char));
     int currentOrderedListNum = 1;
     int justHadInlineInsideBlockWithText = 0;
@@ -135,7 +135,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
             // ignore
         } else if (node.type == NODE_TEXT) {
             // SVGs should not have text within them
-            if (!isRenderingSVG) {
+            if (!isAvoidingDisplay) {
                 char *text = getXMLTrimmedTextContent(node.text_content, justHadInlineInsideBlockWithText);
                 char *allocated = parseHTMLEscapes(text);
                 strcat(alloc, allocated);
@@ -174,13 +174,13 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     }
                 }
 
-                int isSVG = 0;
-                if (!strcmp(lower, "svg")) {
-                    isSVG = 1;
+                int avoidDisplay = 0;
+                if (!strcmp(lower, "svg") || !strcmp(lower, "select")) {
+                    avoidDisplay = 1;
                 }
 
-                char *text = recursiveXMLToText(&node, node.children, state, originalHTML, isSVG || isRenderingSVG);
-                isSVG = 0;
+                char *text = recursiveXMLToText(&node, node.children, state, originalHTML, avoidDisplay || isAvoidingDisplay);
+                avoidDisplay = 0;
 
                 // Only the first <title> is taken into account- the rest are displayed
                 if (!strcmp(lower, "title") && state->title == NULL) {
@@ -193,6 +193,14 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
 
                 if (!strcmp(lower, "img")) {
                     strcat(alloc, "[IMAGE]");
+                    free(text);
+                    free(lower);
+                    hasBlocked = 0;
+                    continue;
+                }
+
+                if (!strcmp(lower, "select")) {
+                    strcat(alloc, "[SELECT]");
                     free(text);
                     free(lower);
                     hasBlocked = 0;
