@@ -34,7 +34,10 @@ day 7: minor HTTP-related fix
 7: Temporary error in name resolution
 */
 
-char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler handler, dataReceiveHandler finishHandler) {
+char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler handler, dataReceiveHandler finishHandler, int redirect_depth) {
+    if (redirect_depth > 15) {
+        return HTTP_makeStrCpy("Too many redirects (>15)");
+    }
     struct http_response parsedResponse = http_makeHTTPRequest(url, handler, finishHandler, (void *) state);
     
     if (parsedResponse.error) {
@@ -56,20 +59,30 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
             return HTTP_makeStrCpy("Connection refused.\n");
         } else if (parsedResponse.error == 113) {
             return HTTP_makeStrCpy("No route to host.\n");
-        } else if (parsedResponse.error == 199) {
-            return HTTP_makeStrCpy("Invalid chunked response (possible memory corruption?).\n");
+        } else if (parsedResponse.error == 195) {
+            return HTTP_makeStrCpy("Invalid HTTP response (possibly HTTPS).\n");
         } else if (parsedResponse.error == 196) {
             return HTTP_makeStrCpy("Read access denied.\n");
         } else if (parsedResponse.error == 197) {
             return HTTP_makeStrCpy("File is a directory.\n");
         } else if (parsedResponse.error == 198) {
             return HTTP_makeStrCpy("No such file or directory.\n");
+        } else if (parsedResponse.error == 199) {
+            return HTTP_makeStrCpy("Invalid chunked response (possible memory corruption?).\n");
         } else {
             return HTTP_makeStrCpy("Error while connecting to host or receiving data from host.\n");
         }
     }
 
+    if (parsedResponse.do_redirect) {
+        strcat(getTextByDescriptor(state, "documentText")->text, "\nEncountered redirect.");
+        render_nc(state);
+        return downloadAndOpenPage(state, parsedResponse.redirect, handler, finishHandler, redirect_depth + 1);
+    }
+
     if (!parsedResponse.is_html) {
+        free(parsedResponse.headers);
+        free(parsedResponse.response_description);
         return parsedResponse.response_body.data;
     }
 
@@ -152,9 +165,12 @@ void ongotourl(void *state, char *_) {
     getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
     strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");
     render_nc(realState);
-    char *data = downloadAndOpenPage(state, getTextAreaByDescriptor(realState, "urltextarea")->currentText, onReceiveData, onFinishData);
+    char *data = downloadAndOpenPage(state, getTextAreaByDescriptor(realState, "urltextarea")->currentText, onReceiveData, onFinishData, 0);
     free(getTextByDescriptor(realState, "documentText")->text);
     getTextByDescriptor(realState, "documentText")->text = data;
+    if (data == NULL) {
+        getTextByDescriptor(realState, "documentText")->text = HTTP_makeStrCpy("ERROR: Serialized document was NULL!");
+    }
 }
 
 void initializeDisplayObjects(struct nc_state *state) {

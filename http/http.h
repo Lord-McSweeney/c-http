@@ -346,6 +346,12 @@ struct http_response http_makeHTTPRequest(char *charURL, dataReceiveHandler chun
     }*/
 
     struct http_response parsedResponse = parsePossiblyIncompleteHTTPResponse(initialHttpResponse, "1.1");
+
+    if (parsedResponse.error) {
+        errorResponse.error = parsedResponse.error;
+        return errorResponse;
+    }
+
     if (parsedResponse.is_chunked) {
         int totalBytesRead = tcpResult.bytesRead;
 
@@ -383,7 +389,8 @@ struct http_response http_makeHTTPRequest(char *charURL, dataReceiveHandler chun
         }
         if (finishHandler != NULL) finishHandler(chunkArg);
     } else if (parsedResponse.content_length == -2) {
-        puts("WARNING: Content-Length header was not returned, assuming that that was the whole response");
+        // puts("WARNING: Content-Length header was not returned, assuming that that was the whole response");
+        // This is pretty normal, no reason to warn
     } else {
         if (parsedResponse.content_length != parsedResponse.response_body.length) {
             int totalBytesRead = 0; // note; this implementation of a repeated read doesn't actually match up with the chunked response response length handling
