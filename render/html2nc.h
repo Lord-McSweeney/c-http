@@ -148,7 +148,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
             // ignore
         } else if (node.type == NODE_ELEMENT) {
             char *lower = xml_toLowerCase(node.name);
-            if ((isBlock(&node) && !hasBlocked) || (!isBlock(&node) && hasBlocked)) {
+            if ((isBlock(&node) && (!hasBlocked || !strcmp(lower, "p"))) || (!isBlock(&node) && hasBlocked)) {
                 strcat(alloc, "\n");
             }
             if (!strcmp(lower, "br")) {
