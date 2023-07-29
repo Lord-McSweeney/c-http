@@ -5,6 +5,7 @@ typedef void (*clickHandler)(void *, char *);
 enum nc_page {
     PAGE_DOCUMENT_LOADED,
     PAGE_GOTO_DIALOG,
+    PAGE_GOTO_OVER_DOCUMENT,
     PAGE_EMPTY,
 };
 
@@ -35,6 +36,7 @@ struct nc_button {
     clickHandler onclick;
     char *descriptor;
     int selected;
+    int enabled;
 };
 
 struct nc_text {
@@ -83,7 +85,7 @@ struct nc_state {
 
 struct nc_text_area *getCurrentSelectedTextarea(struct nc_state *state) {
     for (int i = 0; i < state->numTextAreas; i ++) {
-        if (state->text_areas[i].selected) {
+        if (state->text_areas[i].selected && state->text_areas[i].visible) {
             return &state->text_areas[i];
         }
     }
@@ -92,11 +94,22 @@ struct nc_text_area *getCurrentSelectedTextarea(struct nc_state *state) {
 
 struct nc_button *getCurrentSelectedButton(struct nc_state *state) {
     for (int i = 0; i < state->numButtons; i ++) {
-        if (state->buttons[i].selected) {
+        if (state->buttons[i].selected && state->buttons[i].visible && state->buttons[i].enabled) {
             return &state->buttons[i];
         }
     }
     return NULL;
+}
+
+int isSelectable(struct nc_selected selectable) {
+    if (selectable.button != NULL) {
+        return selectable.button->visible && selectable.button->enabled;
+    } else if (selectable.textarea != NULL) {
+        return selectable.textarea->visible;
+    } else {
+        // Somehow both are none???
+        return 0;
+    }
 }
 
 struct nc_button *getButtonByDescriptor(struct nc_state *state, char *descriptor) {
@@ -145,6 +158,7 @@ struct nc_button createNewButton(struct nc_state *state, int x, int y, char *tex
     button.y = y;
     button.visible = 1;
     button.selected = 0;
+    button.enabled = 1;
     button.text = text;
     button.onclick = onclick;
     button.descriptor = nc_strcpy(descriptor);
@@ -220,6 +234,10 @@ void updateFocus_nc(struct nc_state *state) {
     }
     for (int i = 0; i < numTextAreas; i ++) {
         state->text_areas[i].selected = 0;
+    }
+    if (state->selectableIndex == -1) {
+        // no selectable
+        return;
     }
     struct nc_selected curSelected = state->selectables[state->selectableIndex];
     if (curSelected.textarea == NULL) {

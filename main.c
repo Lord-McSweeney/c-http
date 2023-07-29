@@ -112,6 +112,19 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
     }*/
 }
 
+void freeButtons(struct nc_state *state) {
+    // there is only "1" builtin button, the "OK" when opening a page
+    //                                       |
+    //                                       V
+    for (int i = state->numButtons - 1; i >= 1; i --) {
+        state->buttons[i].descriptor = NULL;
+        state->buttons[i].text = NULL;
+        state->buttons[i].visible = 0;
+        state->buttons[i].enabled = 0;
+        state->numButtons --;
+    }
+}
+
 // gets called with current state pointer and pressed button's descriptor
 
 void onReceiveData(void *ptrState) {
@@ -129,6 +142,8 @@ void onFinishData(void *ptrState) {
 void ongotourl(void *state, char *_) {
     struct nc_state *realState = (struct nc_state *) state;
     realState->currentPage = PAGE_DOCUMENT_LOADED;
+    getTextByDescriptor(state, "documentText")->x = 0;
+    getTextByDescriptor(state, "documentText")->y = 0;
     getTextByDescriptor(realState, "gotoURL")->visible = 0;
     getTextAreaByDescriptor(realState, "urltextarea")->visible = 0;
     getButtonByDescriptor(realState, "gotobutton")->visible = 0;
@@ -144,7 +159,7 @@ void ongotourl(void *state, char *_) {
 
 void initializeDisplayObjects(struct nc_state *state) {
     createNewText(state, 1, 1, "Go to a URL:", "gotoURL");
-    createNewText(state, 0, 0, "Document is loading...", "documentText");
+    createNewText(state, 0, 0, "No document loaded", "documentText");
     createNewTextarea(state, 1, 3, 29, 1, "urltextarea");
     createNewButton(state, 1, 5, "OK", ongotourl, "gotobutton");
     getTextByDescriptor(state, "gotoURL")->visible = 0;
@@ -155,7 +170,11 @@ void initializeDisplayObjects(struct nc_state *state) {
 
 void openGotoPageDialog(struct nc_state *state) {
     struct nc_text_area *textarea = getTextAreaByDescriptor(state, "urltextarea");
-    state->currentPage = PAGE_GOTO_DIALOG;
+    if (state->currentPage == PAGE_DOCUMENT_LOADED) {
+        state->currentPage = PAGE_GOTO_OVER_DOCUMENT;
+    } else {
+        state->currentPage = PAGE_GOTO_DIALOG;
+    }
     getTextByDescriptor(state, "gotoURL")->visible = 1;
     textarea->visible = 1;
     getButtonByDescriptor(state, "gotobutton")->visible = 1;
@@ -167,15 +186,20 @@ void openGotoPageDialog(struct nc_state *state) {
         textarea->currentText[curlen - 1] = '\0';
         curlen = strlen(textarea->currentText);
     }
+    textarea->scrolledAmount = 0;
 }
 
 void closeGotoPageDialog(struct nc_state *state) {
-    state->currentPage = PAGE_EMPTY;
+    if (state->currentPage == PAGE_GOTO_OVER_DOCUMENT) {
+        state->currentPage = PAGE_DOCUMENT_LOADED;
+        getTextByDescriptor(state, "documentText")->visible = 1;
+    } else {
+        getTextByDescriptor(state, "documentText")->visible = 0;
+        state->currentPage = PAGE_EMPTY;
+    }
     getTextByDescriptor(state, "gotoURL")->visible = 0;
     getTextAreaByDescriptor(state, "urltextarea")->visible = 0;
     getButtonByDescriptor(state, "gotobutton")->visible = 0;
-    
-    struct nc_text_area *textarea = getTextAreaByDescriptor(state, "urltextarea");
 }
 
 void closeDocumentPage(struct nc_state *state) {
@@ -185,6 +209,7 @@ void closeDocumentPage(struct nc_state *state) {
 
 void closeCurrentWindow(struct nc_state *state) {
     switch(state->currentPage) {
+        case PAGE_GOTO_OVER_DOCUMENT:
         case PAGE_GOTO_DIALOG:
             closeGotoPageDialog(state);
             break;
@@ -207,6 +232,19 @@ void onKeyPress(struct nc_state *browserState, char ch) {
             browserState->selectableIndex ++;
             if (browserState->selectableIndex >= browserState->numSelectables) {
                 browserState->selectableIndex = 0;
+            }
+            int i = 0;
+            while(!isSelectable(browserState->selectables[browserState->selectableIndex])) {
+                browserState->selectableIndex ++;
+                if (browserState->selectableIndex >= browserState->numSelectables) {
+                    browserState->selectableIndex = 0;
+                }
+                i ++;
+                if (i > browserState->numSelectables + 1) {
+                    // all selectables are disabled
+                    browserState->selectableIndex = -1;
+                    break;
+                }
             }
             break;
         case 24: // CTRL+X
@@ -270,11 +308,6 @@ void eventLoop(struct nc_state *browserState) {
         render_nc(browserState);
         if (ch = getch()) {
             onKeyPress(browserState, ch);
-        }
-        
-        switch(browserState->currentPage) {
-            case PAGE_DOCUMENT_LOADED:
-                break;
         }
     }
 }
