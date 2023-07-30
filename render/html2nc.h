@@ -220,7 +220,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 }
                 
                 strcat(alloc, text);
-                if (isInline(node.name) && strlen(text) && isBlock(parent)) {
+                if (isInline(node.name) && strlen(text)) {
                     free(text);
                     free(lower);
                     justHadInlineInsideBlockWithText = 1;
