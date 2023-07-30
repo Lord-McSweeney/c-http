@@ -167,6 +167,7 @@ void ongotourl(void *state, char *_) {
     getTextAreaByDescriptor(realState, "urltextarea")->visible = 0;
     getButtonByDescriptor(realState, "gotobutton")->visible = 0;
     getTextByDescriptor(realState, "documentText")->visible = 1;
+    getTextByDescriptor(state, "helpText")->visible = 0;
     
     getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
     strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");
@@ -182,12 +183,14 @@ void ongotourl(void *state, char *_) {
 void initializeDisplayObjects(struct nc_state *state) {
     createNewText(state, 1, 1, "Go to a URL:", "gotoURL");
     createNewText(state, 0, 0, "No document loaded", "documentText");
+    createNewText(state, 0, 0, "This is the browser's home page.\n\nNavigation tools:\nCTRL+O: Go to site\nCTRL+X: Close current page\nUp/Down arrows: scroll current document\nTab: Cycle through buttons/text fields\nEnter: Click current button\n\n\nCreated by uqers.", "helpText");
     createNewTextarea(state, 1, 3, 29, 1, "urltextarea");
     createNewButton(state, 1, 5, "OK", ongotourl, "gotobutton");
     getTextByDescriptor(state, "gotoURL")->visible = 0;
     getButtonByDescriptor(state, "gotobutton")->visible = 0;
     getTextAreaByDescriptor(state, "urltextarea")->visible = 0;
     getTextByDescriptor(state, "documentText")->visible = 0;
+    getTextByDescriptor(state, "helpText")->visible = 1;
 }
 
 void openGotoPageDialog(struct nc_state *state) {
@@ -197,6 +200,7 @@ void openGotoPageDialog(struct nc_state *state) {
     } else {
         state->currentPage = PAGE_GOTO_DIALOG;
     }
+    getTextByDescriptor(state, "helpText")->visible = 0;
     getTextByDescriptor(state, "gotoURL")->visible = 1;
     textarea->visible = 1;
     getButtonByDescriptor(state, "gotobutton")->visible = 1;
@@ -218,6 +222,7 @@ void closeGotoPageDialog(struct nc_state *state) {
     } else {
         getTextByDescriptor(state, "documentText")->visible = 0;
         state->currentPage = PAGE_EMPTY;
+        getTextByDescriptor(state, "helpText")->visible = 1;
     }
     getTextByDescriptor(state, "gotoURL")->visible = 0;
     getTextAreaByDescriptor(state, "urltextarea")->visible = 0;
@@ -226,6 +231,7 @@ void closeGotoPageDialog(struct nc_state *state) {
 
 void closeDocumentPage(struct nc_state *state) {
     state->currentPage = PAGE_EMPTY;
+    getTextByDescriptor(state, "helpText")->visible = 1;
     getTextByDescriptor(state, "documentText")->visible = 0;
 }
 
