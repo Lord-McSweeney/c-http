@@ -81,6 +81,10 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
     }
 
     if (!parsedResponse.is_html) {
+        for (int i = 0; i < parsedResponse.num_headers; i ++) {
+            free(parsedResponse.headers[i].name);
+            free(parsedResponse.headers[i].value);
+        }
         free(parsedResponse.headers);
         free(parsedResponse.response_description);
         return parsedResponse.response_body.data;
