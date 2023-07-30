@@ -38,7 +38,9 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
     if (redirect_depth > 15) {
         return HTTP_makeStrCpy("Too many redirects (>15)");
     }
-    struct http_response parsedResponse = http_makeHTTPRequest(url, handler, finishHandler, (void *) state);
+
+    char *userAgent = getTextAreaByDescriptor(state, "userAgent")->currentText;
+    struct http_response parsedResponse = http_makeHTTPRequest(url, userAgent, handler, finishHandler, (void *) state);
     
     if (parsedResponse.error) {
         if (parsedResponse.error == 4) {
@@ -166,6 +168,8 @@ void ongotourl(void *state, char *_) {
     getTextByDescriptor(realState, "gotoURL")->visible = 0;
     getTextAreaByDescriptor(realState, "urltextarea")->visible = 0;
     getButtonByDescriptor(realState, "gotobutton")->visible = 0;
+    getTextByDescriptor(state, "userAgentDetail")->visible = 0;
+    getTextAreaByDescriptor(state, "userAgent")->visible = 0;
     getTextByDescriptor(realState, "documentText")->visible = 1;
     getTextByDescriptor(state, "helpText")->visible = 0;
     
@@ -185,12 +189,16 @@ void initializeDisplayObjects(struct nc_state *state) {
     createNewText(state, 0, 0, "No document loaded", "documentText");
     createNewText(state, 0, 0, "This is the browser's home page.\n\nNavigation tools:\nCTRL+O: Go to site\nCTRL+X: Close current page\nUp/Down arrows: scroll current document\nTab: Cycle through buttons/text fields\nEnter: Click current button\n\n\nCreated by uqers.", "helpText");
     createNewTextarea(state, 1, 3, 29, 1, "urltextarea");
+    createNewText(state, 1, 13, "Use a custom user agent", "userAgentDetail");
     createNewButton(state, 1, 5, "OK", ongotourl, "gotobutton");
+    createNewTextarea(state, 1, 14, 29, 1, "userAgent");
     getTextByDescriptor(state, "gotoURL")->visible = 0;
     getButtonByDescriptor(state, "gotobutton")->visible = 0;
     getTextAreaByDescriptor(state, "urltextarea")->visible = 0;
     getTextByDescriptor(state, "documentText")->visible = 0;
     getTextByDescriptor(state, "helpText")->visible = 1;
+    getTextByDescriptor(state, "userAgentDetail")->visible = 0;
+    getTextAreaByDescriptor(state, "userAgent")->visible = 0;
 }
 
 void openGotoPageDialog(struct nc_state *state) {
@@ -205,6 +213,8 @@ void openGotoPageDialog(struct nc_state *state) {
     textarea->visible = 1;
     getButtonByDescriptor(state, "gotobutton")->visible = 1;
     getTextByDescriptor(state, "documentText")->visible = 0;
+    getTextByDescriptor(state, "userAgentDetail")->visible = 1;
+    getTextAreaByDescriptor(state, "userAgent")->visible = 1;
     state->selectableIndex = 0;
     
     int curlen = strlen(textarea->currentText);
@@ -227,6 +237,8 @@ void closeGotoPageDialog(struct nc_state *state) {
     getTextByDescriptor(state, "gotoURL")->visible = 0;
     getTextAreaByDescriptor(state, "urltextarea")->visible = 0;
     getButtonByDescriptor(state, "gotobutton")->visible = 0;
+    getTextByDescriptor(state, "userAgentDetail")->visible = 0;
+    getTextAreaByDescriptor(state, "userAgent")->visible = 0;
 }
 
 void closeDocumentPage(struct nc_state *state) {
@@ -425,7 +437,7 @@ int main(int argc, char **argv) {/*
     browserState.numTexts = 0;
     browserState.selectables = (struct nc_selected *) calloc(0, sizeof(struct nc_selected));
     browserState.numSelectables = 0;
-    browserState.selectableIndex = 0;
+    browserState.selectableIndex = -1;
     initWindow(&browserState);
     initializeDisplayObjects(&browserState);
     eventLoop(&browserState);

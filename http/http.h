@@ -267,7 +267,7 @@ struct http_response http_readFileToHTTP(char *path) {
     return result;
 }
 
-struct http_response http_makeNetworkHTTPRequest(struct http_url *url, dataReceiveHandler chunkHandler, dataReceiveHandler finishHandler, void *chunkArg) {
+struct http_response http_makeNetworkHTTPRequest(struct http_url *url, char *userAgent, dataReceiveHandler chunkHandler, dataReceiveHandler finishHandler, void *chunkArg) {
     struct http_response errorResponse;
     errorResponse.error = 1;
 
@@ -275,8 +275,8 @@ struct http_response http_makeNetworkHTTPRequest(struct http_url *url, dataRecei
     char *ipBuffer = (char *) calloc(4096, sizeof(char)); // this should be dynamic, but 4kb is probably good for now
 
     char *baseString = "GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\n\r\n";
-    char *requestString = (char *) calloc(strlen(baseString) + strlen(url->path) + strlen(url->hostname) + strlen("uqers") + 1, sizeof(char));
-    sprintf(requestString, baseString, url->path, url->hostname, "uqers");
+    char *requestString = (char *) calloc(strlen(baseString) + strlen(url->path) + strlen(url->hostname) + strlen(userAgent) + 1, sizeof(char));
+    sprintf(requestString, baseString, url->path, url->hostname, userAgent);
 
     int res = lookupIP(url->hostname, ipBuffer);
     if (res) {
@@ -420,7 +420,7 @@ struct http_response http_makeNetworkHTTPRequest(struct http_url *url, dataRecei
     return parsedResponse;
 }
 
-struct http_response http_makeHTTPRequest(char *charURL, dataReceiveHandler chunkHandler, dataReceiveHandler finishHandler, void *chunkArg) {
+struct http_response http_makeHTTPRequest(char *charURL, char *userAgent, dataReceiveHandler chunkHandler, dataReceiveHandler finishHandler, void *chunkArg) {
     struct http_url *url = http_url_from_string(charURL);
 
     if (errno) {
@@ -431,7 +431,7 @@ struct http_response http_makeHTTPRequest(char *charURL, dataReceiveHandler chun
 
     if (!strcmp(url->protocol, "https") || !strcmp(url->protocol, "http")) {
         // Following code handles this
-        return http_makeNetworkHTTPRequest(url, chunkHandler, finishHandler, chunkArg);
+        return http_makeNetworkHTTPRequest(url, userAgent, chunkHandler, finishHandler, chunkArg);
     } else if (!strcmp(url->protocol, "file")) {
         return http_readFileToHTTP(url->path);
     } else {
