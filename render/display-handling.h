@@ -316,9 +316,10 @@ void render_nc(struct nc_state *browserState) {
     for (int i = 0; i < numTexts; i ++) {
         if (browserState->texts[i].visible) {
             printText(browserState->texts[i].y, browserState->texts[i].x, browserState->texts[i].text);
-            curs_set(0);
         }
     }
+    curs_set(0);
+
     for (int i = 0; i < numButtons; i ++) {
         if (browserState->buttons[i].visible) {
             attron(COLOR_PAIR(1));

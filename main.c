@@ -162,6 +162,7 @@ void onFinishData(void *ptrState) {
 
 void ongotourl(void *state, char *_) {
     struct nc_state *realState = (struct nc_state *) state;
+    realState->selectableIndex = -1;
     realState->currentPage = PAGE_DOCUMENT_LOADED;
     getTextByDescriptor(state, "documentText")->x = 0;
     getTextByDescriptor(state, "documentText")->y = 0;
@@ -189,8 +190,8 @@ void initializeDisplayObjects(struct nc_state *state) {
     createNewText(state, 0, 0, "No document loaded", "documentText");
     createNewText(state, 0, 0, "This is the browser's home page.\n\nNavigation tools:\nCTRL+O: Go to site\nCTRL+X: Close current page\nUp/Down arrows: scroll current document\nTab: Cycle through buttons/text fields\nEnter: Click current button\n\n\nCreated by uqers.", "helpText");
     createNewTextarea(state, 1, 3, 29, 1, "urltextarea");
-    createNewText(state, 1, 13, "Use a custom user agent", "userAgentDetail");
     createNewButton(state, 1, 5, "OK", ongotourl, "gotobutton");
+    createNewText(state, 1, 13, "Use a custom user agent", "userAgentDetail");
     createNewTextarea(state, 1, 14, 29, 1, "userAgent");
     getTextByDescriptor(state, "gotoURL")->visible = 0;
     getButtonByDescriptor(state, "gotobutton")->visible = 0;
@@ -199,9 +200,11 @@ void initializeDisplayObjects(struct nc_state *state) {
     getTextByDescriptor(state, "helpText")->visible = 1;
     getTextByDescriptor(state, "userAgentDetail")->visible = 0;
     getTextAreaByDescriptor(state, "userAgent")->visible = 0;
+    getTextAreaByDescriptor(state, "userAgent")->currentText = HTTP_makeStrCpy("uqers");
 }
 
 void openGotoPageDialog(struct nc_state *state) {
+    state->selectableIndex = -1;
     struct nc_text_area *textarea = getTextAreaByDescriptor(state, "urltextarea");
     if (state->currentPage == PAGE_DOCUMENT_LOADED) {
         state->currentPage = PAGE_GOTO_OVER_DOCUMENT;
@@ -226,6 +229,7 @@ void openGotoPageDialog(struct nc_state *state) {
 }
 
 void closeGotoPageDialog(struct nc_state *state) {
+    state->selectableIndex = -1;
     if (state->currentPage == PAGE_GOTO_OVER_DOCUMENT) {
         state->currentPage = PAGE_DOCUMENT_LOADED;
         getTextByDescriptor(state, "documentText")->visible = 1;
@@ -242,6 +246,7 @@ void closeGotoPageDialog(struct nc_state *state) {
 }
 
 void closeDocumentPage(struct nc_state *state) {
+    state->selectableIndex = -1;
     state->currentPage = PAGE_EMPTY;
     getTextByDescriptor(state, "helpText")->visible = 1;
     getTextByDescriptor(state, "documentText")->visible = 0;
