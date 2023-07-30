@@ -276,7 +276,7 @@ void onKeyPress(struct nc_state *browserState, char ch) {
     struct nc_text_area *textarea = getCurrentSelectedTextarea(browserState);
     if (textarea != NULL) {
         int curlen = strlen(textarea->currentText);
-        if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '.' || ch == '/' || ch == ':' || ch == '#' || ch == '-' || ch == '=' || ch == '?' || ch == '_') {
+        if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '.' || ch == '/' || ch == ':' || ch == '#' || ch == '-' || ch == '=' || ch == '?' || ch == '_' || ch == ',' || ch == '<' || ch == '>' || ch == '%') {
             if (curlen >= textarea->width) {
                 textarea->scrolledAmount ++;
             }
