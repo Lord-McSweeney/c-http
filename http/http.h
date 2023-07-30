@@ -96,19 +96,18 @@ struct http_url* http_url_from_string(char *string) {
                 if (curChar == '/') {
                     currentState = HTTP_PROTOCOL_2;
                     currentIndex = 0;
-                } else {
+                } else if (curChar >= '0' && curChar <= '9') {
                     // turns out we started with the hostname, and this is the port
-                    if (curChar >= '0' && curChar <= '9') {
-                        i = -1;
-                        free(protocol);
-                        protocol = HTTP_makeStrCpy("http");
-                        currentState = HTTP_HOSTNAME;
-                        currentIndex = 0;
-                        break;
-                    } else {
-                        errno = 2;
-                        return NULL;
-                    }
+                    i = -1;
+                    free(protocol);
+                    protocol = HTTP_makeStrCpy("http");
+                    currentState = HTTP_HOSTNAME;
+                    currentIndex = 0;
+                    break;
+                } else {
+                    // welp, turns out we had a [protocol]:[hostname] instead of [protocol]://[hostname]
+                    currentState = HTTP_HOSTNAME;
+                    currentIndex = 0;
                 }
                 break;
             case HTTP_PROTOCOL_2:
@@ -122,11 +121,11 @@ struct http_url* http_url_from_string(char *string) {
                 }
                 break;
             case HTTP_HOSTNAME:
-                // TODO: This is actually probably an IP address
                 if (currentIndex == 0 && curChar >= '0' && curChar <= '9') {
                     isIp = 1;
                 }
                 if (isIp && ((curChar >= 'a' && curChar <= 'z') || (curChar >= 'A' && curChar <= 'Z'))) {
+                    errno = 3;
                     return NULL;
                 }
                 if (curChar == ':') {
@@ -268,22 +267,10 @@ struct http_response http_readFileToHTTP(char *path) {
     return result;
 }
 
-struct http_response http_makeHTTPRequest(char *charURL, dataReceiveHandler chunkHandler, dataReceiveHandler finishHandler, void *chunkArg) {
-    struct http_url *url = http_url_from_string(charURL);
-
-    if (!strcmp(url->protocol, "file")) {
-        return http_readFileToHTTP(url->path);
-    }
-
-    if (errno) {
-        struct http_response failure;
-        failure.error = 4;
-        return failure;
-    }
+struct http_response http_makeNetworkHTTPRequest(struct http_url *url, dataReceiveHandler chunkHandler, dataReceiveHandler finishHandler, void *chunkArg) {
     struct http_response errorResponse;
     errorResponse.error = 1;
 
-    errno = 0;
     char *buffer = (char *) calloc(maxResponseSize, sizeof(char)); // this should be dynamically returned by rwsocket, but 1mb is probably good for now
     char *ipBuffer = (char *) calloc(4096, sizeof(char)); // this should be dynamic, but 4kb is probably good for now
 
@@ -294,18 +281,18 @@ struct http_response http_makeHTTPRequest(char *charURL, dataReceiveHandler chun
     int res = lookupIP(url->hostname, ipBuffer);
     if (res) {
         if (res == HOST_NOT_FOUND) {
-            //printf("Host not found\n");
             errorResponse.error = 5;
             return errorResponse;
         }
         if (res == TRY_AGAIN) {
-            //printf("Temporary error in name resolution\n");
             errorResponse.error = 7;
             return errorResponse;
         }
         errorResponse.error = 6;
         return errorResponse;
     }
+
+    errno = 0;
     struct socket_info tcpResult = rwsocket(ipBuffer, url->port, requestString, buffer, maxResponseSize);
     free(ipBuffer);
     free(url->protocol);
@@ -431,6 +418,28 @@ struct http_response http_makeHTTPRequest(char *charURL, dataReceiveHandler chun
     free(buffer);
 
     return parsedResponse;
+}
+
+struct http_response http_makeHTTPRequest(char *charURL, dataReceiveHandler chunkHandler, dataReceiveHandler finishHandler, void *chunkArg) {
+    struct http_url *url = http_url_from_string(charURL);
+
+    if (errno) {
+        struct http_response failure;
+        failure.error = 4;
+        return failure;
+    }
+
+    if (!strcmp(url->protocol, "https") || !strcmp(url->protocol, "http")) {
+        // Following code handles this
+        return http_makeNetworkHTTPRequest(url, chunkHandler, finishHandler, chunkArg);
+    } else if (!strcmp(url->protocol, "file")) {
+        return http_readFileToHTTP(url->path);
+    } else {
+        // Unsupported protocol
+        struct http_response errorResponse;
+        errorResponse.error = 194;
+        return errorResponse;
+    }
 }
 
 #endif

@@ -218,7 +218,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     hasBlocked = 0;
                     continue;
                 }
-                
+
                 strcat(alloc, text);
                 if (isInline(node.name) && strlen(text)) {
                     free(text);

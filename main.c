@@ -59,6 +59,8 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
             return HTTP_makeStrCpy("Connection refused.\n");
         } else if (parsedResponse.error == 113) {
             return HTTP_makeStrCpy("No route to host.\n");
+        } else if (parsedResponse.error == 194) {
+            return HTTP_makeStrCpy("Unsupported protocol.\n");
         } else if (parsedResponse.error == 195) {
             return HTTP_makeStrCpy("Invalid HTTP response (possibly HTTPS).\n");
         } else if (parsedResponse.error == 196) {
