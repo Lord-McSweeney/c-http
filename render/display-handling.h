@@ -331,16 +331,18 @@ void render_nc(struct nc_state *browserState) {
                 browserState->buttons[i].text
             );
             attron(COLOR_PAIR(1));
-            
-            if (browserState->buttons[i].selected) {
-                move(
-                    browserState->buttons[i].y,
-                    browserState->buttons[i].x
-                );
-            }
-            curs_set(0);
         }
     }
+    for (int i = 0; i < numButtons; i ++) {
+        if (browserState->buttons[i].selected) {
+            move(
+                browserState->buttons[i].y,
+                browserState->buttons[i].x
+            );
+        }
+        curs_set(0);
+    }
+
     for (int i = 0; i < numTextAreas; i ++) {
         if (browserState->text_areas[i].visible) {
             attron(COLOR_PAIR(1));
@@ -357,14 +359,15 @@ void render_nc(struct nc_state *browserState) {
             );
             free(renderResult);
             attron(COLOR_PAIR(1));
-            
-            if (browserState->text_areas[i].selected) {
-                move(
-                    browserState->text_areas[i].y,
-                    browserState->text_areas[i].x + strlen(browserState->text_areas[i].currentText) - browserState->text_areas[i].scrolledAmount
-                );
-                curs_set(1);
-            }
+        }
+    }
+    for (int i = 0; i < numTextAreas; i ++) {
+        if (browserState->text_areas[i].selected) {
+            move(
+                browserState->text_areas[i].y,
+                browserState->text_areas[i].x + strlen(browserState->text_areas[i].currentText) - browserState->text_areas[i].scrolledAmount
+            );
+            curs_set(1);
         }
     }
     refresh();
