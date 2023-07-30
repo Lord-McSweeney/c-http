@@ -252,6 +252,14 @@ void updateFocus_nc(struct nc_state *state) {
     }
 }
 
+char *repeatChar(char c, int times) {
+    char *mem = (char *) calloc(times + 1, sizeof(char));
+    for (int i = 0; i < times; i ++) {
+        mem[i] = c;
+    }
+    return mem;
+}
+
 void printText(int y, int x, char *text) {  
     int mx;
     int my;
@@ -261,9 +269,36 @@ void printText(int y, int x, char *text) {
     int realPosX = x;
     int minX = x;
     int len = strlen(text);
+    char *dashes = repeatChar('-', mx - 2);
+    char *horizontalRow = (char *) calloc(mx + 1, sizeof(char));
+    horizontalRow[0] = ' ';
+    strcat(horizontalRow, dashes);
+
+    int escapeModeEnabled = 0;
+    int italics = 0;
     for (int i = 0; i < len; i ++) {
+        if (text[i] == '\\' && !escapeModeEnabled) {
+            escapeModeEnabled = 1;
+            continue;
+        }
+        if (escapeModeEnabled) {
+            int doContinue = 0;
+            switch (text[i]) {
+                case 'h':
+                    mvaddstr(realPosY, realPosX, horizontalRow);
+                    realPosX = mx;
+                    break;
+                case '\\':
+                    doContinue = 1;
+            }
+            escapeModeEnabled = 0;
+            if (!doContinue) {
+                continue;
+            }
+        }
         if (realPosY >= 0 && realPosX >= 0 && realPosY < my) {
-            mvaddch(realPosY, realPosX, text[i]);
+            char toPrint = text[i];
+            mvaddch(realPosY, realPosX, toPrint);
         }
         realPosX ++;
         if (text[i] == '\n' || realPosX >= mx) {

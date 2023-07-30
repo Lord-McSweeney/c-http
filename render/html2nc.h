@@ -24,7 +24,14 @@ int isInline(const char *nodeName) {
 }
 
 char *parseHTMLEscapes(const char *content) {
-    char *allocated = (char *) calloc(strlen(content) + 1, sizeof(char));
+    int numSlashes = 0;
+    for (int i = 0; i < strlen(content); i ++) {
+        if (content[i] == '\\') {
+            numSlashes ++;
+        }
+    }
+
+    char *allocated = (char *) calloc(strlen(content) + numSlashes + 1, sizeof(char));
     int len = strlen(content);
     int realIndex = 0;
     for (int i = 0; i < len; i ++) {
@@ -73,6 +80,11 @@ char *parseHTMLEscapes(const char *content) {
                 allocated[realIndex] = curChar;
                 realIndex ++;
             }
+        } else if (curChar == '\\') {
+            allocated[realIndex] = curChar;
+            allocated[realIndex + 1] = curChar;
+            realIndex += 2;
+            i ++;
         } else {
             allocated[realIndex] = curChar;
             realIndex ++;
@@ -154,7 +166,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
             if (!strcmp(lower, "br")) {
                 strcat(alloc, "\n");
             } else if (!strcmp(lower, "hr")) {
-                strcat(alloc, "---------------------");
+                strcat(alloc, "\\h");
             } else if (shouldBeDisplayed(node.name)) {
                 if (!strcmp(lower, "li") && parent != NULL) {
                     if (parent == NULL) {
@@ -217,6 +229,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 }
                 free(text);
             }
+
             if (isBlock(&node)) {
                 strcat(alloc, "\n");
                 hasBlocked = 1;
