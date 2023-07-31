@@ -280,6 +280,8 @@ struct http_response http_makeNetworkHTTPRequest(struct http_url *url, char *use
 
     int res = lookupIP(url->hostname, ipBuffer);
     if (res) {
+        free(buffer);
+        free(ipBuffer);
         if (res == HOST_NOT_FOUND) {
             errorResponse.error = 5;
             return errorResponse;
@@ -309,14 +311,17 @@ struct http_response http_makeNetworkHTTPRequest(struct http_url *url, char *use
             case 101:
               //  printf("Network unreachable\n");
                 errorResponse.error = errno;
+                free(buffer);
                 return errorResponse;
             case 111:
               //  printf("Connection refused\n");
                 errorResponse.error = errno;
+                free(buffer);
                 return errorResponse;
             case 113:
                // printf("No route to host\n");
                 errorResponse.error = errno;
+                free(buffer);
                 return errorResponse;
         }
         //printf("error: %d\n", errno);
@@ -346,6 +351,7 @@ struct http_response http_makeNetworkHTTPRequest(struct http_url *url, char *use
         if (chunkedResponse.error) {
             //fprintf(stderr, "Encountered error while parsing chunked response: %d\n", chunkedResponse.error);
             errorResponse.error = 199;
+            free(buffer);
             return errorResponse;
         }
         parsedResponse.response_body = chunkedResponse.current_parsed_data;
