@@ -143,7 +143,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
     int hasBlocked = 0;
     for (int i = 0; i < xml.count; i ++) {
         struct xml_node node = xml.nodes[i];
-        if (node.type == NODE_DOCTYPE) {
+        if (node.type == NODE_DOCTYPE || node.type == NODE_COMMENT) {
             // ignore
         } else if (node.type == NODE_TEXT) {
             // SVGs should not have text within them
@@ -156,8 +156,6 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
             }
             //printf(strcat(getTabsRepeated(depth), "text node (#%d). contents: '%s'\n"), i, node.text_content);
             //printf(strcat(getTabsRepeated(depth), "text node (#%d). contents: '...'\n"), i);
-        } else if (node.type == NODE_COMMENT) {
-            // ignore
         } else if (node.type == NODE_ELEMENT) {
             char *lower = xml_toLowerCase(node.name);
             if ((isBlock(&node) && (!hasBlocked || !strcmp(lower, "p"))) || (!isBlock(&node) && hasBlocked)) {
