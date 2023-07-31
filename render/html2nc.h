@@ -11,7 +11,7 @@ int isBlock(struct xml_node *node) {
         return 1;
     }
     char *lower = xml_toLowerCase(node->name);
-    int res = !strcmp(lower, "div") || !strcmp(lower, "p") || !strcmp(lower, "hr") || !strcmp(lower, "header") || !strcmp(lower, "aside") || !strcmp(lower, "h1") || !strcmp(lower, "h2") || !strcmp(lower, "h3") || !strcmp(lower, "h4") || !strcmp(lower, "h5") || !strcmp(lower, "h6") || !strcmp(lower, "blockquote") || !strcmp(lower, "dt") || !strcmp(lower, "tspan") || !strcmp(lower, "desc") || !strcmp(lower, "li");
+    int res = !strcmp(lower, "div") || !strcmp(lower, "p") || !strcmp(lower, "hr") || !strcmp(lower, "header") || !strcmp(lower, "aside") || !strcmp(lower, "h1") || !strcmp(lower, "h2") || !strcmp(lower, "h3") || !strcmp(lower, "h4") || !strcmp(lower, "h5") || !strcmp(lower, "h6") || !strcmp(lower, "blockquote") || !strcmp(lower, "dt") || !strcmp(lower, "tspan") || !strcmp(lower, "desc") || !strcmp(lower, "li") || !strcmp(lower, "dd");
     free(lower);
     return res;
 }
@@ -163,11 +163,19 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
             if ((isBlock(&node) && (!hasBlocked || !strcmp(lower, "p"))) || (!isBlock(&node) && hasBlocked)) {
                 strcat(alloc, "\n");
             }
+
             if (!strcmp(lower, "br")) {
                 strcat(alloc, "\n");
             } else if (!strcmp(lower, "hr")) {
                 strcat(alloc, "\\h");
             } else if (shouldBeDisplayed(node.name)) {
+                if (!strcmp(lower, "dd")) {
+                    strcat(alloc, "\\t");
+                }
+                if (!strcmp(lower, "i") || !strcmp(lower, "em")) {
+                    strcat(alloc, "\\i");
+                }
+
                 if (!strcmp(lower, "li") && parent != NULL) {
                     if (parent == NULL) {
                         strcat(alloc, "\n - ");
@@ -220,6 +228,14 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 }
 
                 strcat(alloc, text);
+
+                if (!strcmp(lower, "i") || !strcmp(lower, "em")) {
+                    strcat(alloc, "\\j");
+                }
+                if (!strcmp(lower, "dd")) {
+                    strcat(alloc, "\\u");
+                }
+
                 if (isInline(node.name) && strlen(text)) {
                     free(text);
                     free(lower);

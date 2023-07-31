@@ -269,13 +269,17 @@ void printText(int y, int x, char *text) {
     int realPosX = x;
     int minX = x;
     int len = strlen(text);
-    char *dashes = repeatChar('-', mx - 2);
+    char *dashes = repeatChar('-', mx - mx/30);
+    char *spaces = repeatChar(' ', mx/60);
     char *horizontalRow = (char *) calloc(mx + 1, sizeof(char));
-    horizontalRow[0] = ' ';
+    strcpy(horizontalRow, spaces);
     strcat(horizontalRow, dashes);
+    free(dashes);
+    free(spaces);
 
     int escapeModeEnabled = 0;
     int italics = 0;
+    int doIndent = 0;
     for (int i = 0; i < len; i ++) {
         if (text[i] == '\\' && !escapeModeEnabled) {
             escapeModeEnabled = 1;
@@ -288,8 +292,35 @@ void printText(int y, int x, char *text) {
                     mvaddstr(realPosY, realPosX, horizontalRow);
                     realPosX = mx;
                     break;
+                case 'i':
+                    italics ++;
+                    if (italics > 1048576) {
+                        // This limit should never be reached, but let's just make sure.
+                        italics --;
+                    }
+                    break;
+                case 'j':
+                    if (italics > 0) {
+                        italics --;
+                    }
+                    break;
+                case 't':
+                    doIndent ++;
+                    if (doIndent > 1048576) {
+                        // This limit should never be reached, but let's just make sure.
+                        doIndent --;
+                    }
+                    mvaddstr(realPosY, realPosX, "    ");
+                    realPosX += 4;
+                    break;
+                case 'u':
+                    if (doIndent > 0) {
+                        doIndent --;
+                    }
+                    break;
                 case '\\':
                     doContinue = 1;
+                    break;
             }
             escapeModeEnabled = 0;
             if (!doContinue) {
@@ -297,15 +328,24 @@ void printText(int y, int x, char *text) {
             }
         }
         if (realPosY >= 0 && realPosX >= 0 && realPosY < my) {
-            char toPrint = text[i];
+            int toPrint = text[i];
+            if (italics) {
+                toPrint = toPrint | A_ITALIC;
+            }
             mvaddch(realPosY, realPosX, toPrint);
         }
         realPosX ++;
         if (text[i] == '\n' || realPosX >= mx) {
             realPosX = minX;
             realPosY ++;
+            if (doIndent) {
+                mvaddstr(realPosY, realPosX, "    ");
+                realPosX += 4;
+            }
         }
     }
+
+    free(horizontalRow);
 }
 
 void render_nc(struct nc_state *browserState) {
