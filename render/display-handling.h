@@ -279,6 +279,7 @@ void printText(int y, int x, char *text) {
 
     int escapeModeEnabled = 0;
     int italics = 0;
+    int bold = 0;
     int doIndent = 0;
     for (int i = 0; i < len; i ++) {
         if (text[i] == '\\' && !escapeModeEnabled) {
@@ -292,6 +293,20 @@ void printText(int y, int x, char *text) {
                     mvaddstr(realPosY, realPosX, horizontalRow);
                     realPosX = mx;
                     break;
+
+                case 'b':
+                    bold ++;
+                    if (bold > 1048576) {
+                        // This limit should never be reached, but let's just make sure.
+                        bold --;
+                    }
+                    break;
+                case 'c':
+                    if (bold > 0) {
+                        bold --;
+                    }
+                    break;
+
                 case 'i':
                     italics ++;
                     if (italics > 1048576) {
@@ -304,6 +319,7 @@ void printText(int y, int x, char *text) {
                         italics --;
                     }
                     break;
+
                 case 't':
                     doIndent ++;
                     if (doIndent > 1048576) {
@@ -318,6 +334,7 @@ void printText(int y, int x, char *text) {
                         doIndent --;
                     }
                     break;
+
                 case '\\':
                     doContinue = 1;
                     break;
@@ -331,6 +348,9 @@ void printText(int y, int x, char *text) {
             int toPrint = text[i];
             if (italics) {
                 toPrint = toPrint | A_ITALIC;
+            }
+            if (bold) {
+                toPrint = toPrint | A_BOLD;
             }
             mvaddch(realPosY, realPosX, toPrint);
         }

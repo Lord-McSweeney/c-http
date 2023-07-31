@@ -175,6 +175,9 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 if (!strcmp(lower, "i") || !strcmp(lower, "em")) {
                     strcat(alloc, "\\i");
                 }
+                if (!strcmp(lower, "b") || !strcmp(lower, "strong")) {
+                    strcat(alloc, "\\b");
+                }
 
                 if (!strcmp(lower, "li") && parent != NULL) {
                     if (parent == NULL) {
@@ -229,6 +232,9 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
 
                 strcat(alloc, text);
 
+                if (!strcmp(lower, "b") || !strcmp(lower, "strong")) {
+                    strcat(alloc, "\\c");
+                }
                 if (!strcmp(lower, "i") || !strcmp(lower, "em")) {
                     strcat(alloc, "\\j");
                 }
