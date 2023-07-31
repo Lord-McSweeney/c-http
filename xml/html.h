@@ -268,6 +268,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
     int doneParsingName = 0;
     int isEscapeEnabled = 0;
     int isInsideString = 0;
+    int isInsideSingleQuoteString = 0;
     
     int bytesParsed = 0;
     
@@ -371,7 +372,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                 }
                 
                 // TODO: this should parse attributes instead of just looking at quotes
-                if (curChar == '"') {
+                if (curChar == '"' && !isInsideSingleQuoteString) {
                     if (isInsideString) {
                         if (!isEscapeEnabled) {
                             isInsideString = 0;
@@ -380,6 +381,16 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                         isInsideString = 1;
                     }
                 }
+                if (curChar == '\'' && !isInsideString) {
+                    if (isInsideSingleQuoteString) {
+                        if (!isEscapeEnabled) {
+                            isInsideSingleQuoteString = 0;
+                        }
+                    } else {
+                        isInsideSingleQuoteString = 1;
+                    }
+                }
+
                 if (curChar == '\\' && !isEscapeEnabled) {
                     isEscapeEnabled = 1;
                 }
@@ -391,7 +402,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                     }
                     break;
                 }
-                if (curChar == '/' && !isInsideString) {
+                if (curChar == '/' && !isInsideString && !isInsideSingleQuoteString) {
                     if (startedParsingName) {
                         doneParsingName = 1;
                     } else {
@@ -402,7 +413,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                     }
                     currentState = PARSE_ELEMENT_END_SLASH;
                 }
-                if (curChar == '>' && !isInsideString) {
+                if (curChar == '>' && !isInsideString && !isInsideSingleQuoteString) {
                     if (startedParsingName) {
                         doneParsingName = 1;
                         if (html_isClosingElement(currentElementName) && html_isClosingElement(closingTag)) {
@@ -426,7 +437,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                             currentState = PARSE_UNKNOWN;
                             break;
                         }
-                        // ohhhh...dear. actual xml parsing. that will be fun.
+
                         struct xml_data newData;
                         newData.data = xml_string.data + i + 1;
                         newData.length = xml_string.length - i;
