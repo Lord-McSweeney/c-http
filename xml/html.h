@@ -65,6 +65,19 @@ char *xml_toLowerCase(const char *text) {
     return allocated;
 }
 
+char *xml_toUpperCase(const char *text) {
+    int len = strlen(text);
+    char *allocated = (char *) calloc(len + 1, sizeof(char));
+    for (int i = 0; i < len; i ++) {
+        if (text[i] >= 'a' && text[i] <= 'z') {
+            allocated[i] = text[i] - 32;
+        } else {
+            allocated[i] = text[i];
+        }
+    }
+    return allocated;
+}
+
 struct xml_node XML_createXMLElement(char *name) {
     struct xml_node node;
     node.name = name;
