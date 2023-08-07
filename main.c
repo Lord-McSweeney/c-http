@@ -123,15 +123,6 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
     free(result.text);
     recursiveFreeXML(xml.list);
     return total;
-    /*
-    printf("response details:\n");
-    printf("    code: %d\n", parsedResponse.response_code);
-    printf("    desc: %s\n", parsedResponse.response_description);
-    printf("    chunked: %d\n", parsedResponse.is_chunked);
-    printf("    content length: %d\n", parsedResponse.content_length);
-    for (int i = 0; i < parsedResponse.num_headers; i ++) {
-        printf("    header name: %s; header value: %s\n", parsedResponse.headers[i].name, parsedResponse.headers[i].value);
-    }*/
 }
 
 void freeButtons(struct nc_state *state) {
@@ -312,10 +303,6 @@ void onKeyPress(struct nc_state *browserState, char ch) {
             if (textarea->scrolledAmount > 0) {
                 textarea->scrolledAmount --;
             }
-        } else {/*
-            textarea->currentText[0] = ch/10 + 48;
-            textarea->currentText[1] = ch%10 + 48;//("ch: %d\n", ch);
-            textarea->currentText[2] = 0;*/
         }
     } else if (browserState->currentPage == PAGE_DOCUMENT_LOADED) {
         struct nc_text *documentText = getTextByDescriptor(browserState, "documentText");
@@ -438,7 +425,6 @@ int main(int argc, char **argv) {
     
     struct nc_state browserState;
     browserState.currentPage = PAGE_EMPTY;
-    //browserState.currentLoadedDOM = xml;
     browserState.numTextAreas = 0;
     browserState.numButtons = 0;
     browserState.numTexts = 0;
