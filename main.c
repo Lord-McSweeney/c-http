@@ -1,7 +1,7 @@
 // ncurses ref: https://www.sbarjatiya.com/notes_wiki/index.php/Using_ncurses_library_with_C
 // https://jbwyatt.com/ncurses.html is much better tho
 
-// using gcc, compile with -lncurses
+// using gcc, compile with -lncurses -lpthread
 
 /*
 timeline
@@ -17,6 +17,7 @@ day 7: minor HTTP-related fix
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <pthread.h>
 #include "http/http.h"
 #include "render/display-handling.h"
 #include "xml/html.h"
@@ -346,7 +347,8 @@ void onKeyPress(struct nc_state *browserState, char ch) {
     }
 }
 
-void eventLoop(struct nc_state *browserState) {
+void *eventLoop(void *state) {
+    struct nc_state *browserState = (struct nc_state *) state;
     while (1) {
         char ch;
         updateFocus_nc(browserState);
@@ -387,12 +389,12 @@ void recursiveDisplayXML(struct xml_list xml, int depth) {
     }
 }*/
 
-int main(int argc, char **argv) {/*
+int main(int argc, char **argv) {
     char *url = NULL;
     if (argc == 2) {
         url = argv[1];
     }
-
+/*
     struct http_response parsedResponse = http_makeHTTPRequest("httpforever.com", NULL, NULL, NULL);
     
     if (parsedResponse.error) {
@@ -443,14 +445,18 @@ int main(int argc, char **argv) {/*
     browserState.selectables = (struct nc_selected *) calloc(0, sizeof(struct nc_selected));
     browserState.numSelectables = 0;
     browserState.selectableIndex = -1;
+
     initWindow(&browserState);
     initializeDisplayObjects(&browserState);
-    eventLoop(&browserState);
-    /*
+
     if (url != NULL) {
         getTextAreaByDescriptor(&browserState, "urltextarea")->currentText = url;
         ongotourl(&browserState, "<unused>");
     }
-    */
+
+    pthread_t thread_id;
+    pthread_create(&thread_id, NULL, eventLoop, (void *) &browserState);
+
+    pthread_join(thread_id, NULL);
     return 0;
 }
