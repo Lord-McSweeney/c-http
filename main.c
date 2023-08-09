@@ -80,7 +80,13 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
     }
 
     if (parsedResponse.do_redirect) {
+        state->is_updating_render = 1;
         strcat(getTextByDescriptor(state, "documentText")->text, "\nEncountered redirect.");
+        state->is_updating_render = 0;
+
+        while (state->is_rendering) {
+            continue;
+        }
         render_nc(state);
         return downloadAndOpenPage(state, parsedResponse.redirect, handler, finishHandler, redirect_depth + 1);
     }
@@ -126,6 +132,7 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
 }
 
 void freeButtons(struct nc_state *state) {
+    state->is_updating_render = 1;
     // there is only "1" builtin button, the "OK" when opening a page
     //                                       |
     //                                       V
@@ -136,24 +143,41 @@ void freeButtons(struct nc_state *state) {
         state->buttons[i].enabled = 0;
         state->numButtons --;
     }
+    state->is_updating_render = 0;
 }
 
 // gets called with current state pointer and pressed button's descriptor
 
 void onReceiveData(void *ptrState) {
     struct nc_state *state = (struct nc_state *) ptrState;
+
+    state->is_updating_render = 1;
     strcat(getTextByDescriptor(state, "documentText")->text, ".");
+    state->is_updating_render = 0;
+
+    while (state->is_rendering) {
+        continue;
+    }
     render_nc(state);
 }
 
 void onFinishData(void *ptrState) {
     struct nc_state *state = (struct nc_state *) ptrState;
+
+    state->is_updating_render = 1;
     strcat(getTextByDescriptor(state, "documentText")->text, "\nDownloaded entire document.");
+    state->is_updating_render = 0;
+
+    while (state->is_rendering) {
+        continue;
+    }
     render_nc(state);
 }
 
 void ongotourl(void *state, char *_) {
     struct nc_state *realState = (struct nc_state *) state;
+
+    realState->is_updating_render = 1;
     realState->selectableIndex = -1;
     realState->currentPage = PAGE_DOCUMENT_LOADED;
     getTextByDescriptor(state, "documentText")->x = 0;
@@ -165,19 +189,24 @@ void ongotourl(void *state, char *_) {
     getTextAreaByDescriptor(state, "userAgent")->visible = 0;
     getTextByDescriptor(realState, "documentText")->visible = 1;
     getTextByDescriptor(state, "helpText")->visible = 0;
+    realState->is_updating_render = 0;
     
     getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
     strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");
     render_nc(realState);
     char *data = downloadAndOpenPage(state, getTextAreaByDescriptor(realState, "urltextarea")->currentText, onReceiveData, onFinishData, 0);
+
+    realState->is_updating_render = 1;
     free(getTextByDescriptor(realState, "documentText")->text);
     getTextByDescriptor(realState, "documentText")->text = data;
     if (data == NULL) {
         getTextByDescriptor(realState, "documentText")->text = HTTP_makeStrCpy("ERROR: Serialized document was NULL!");
     }
+    realState->is_updating_render = 0;
 }
 
 void initializeDisplayObjects(struct nc_state *state) {
+    state->is_updating_render = 1;
     createNewText(state, 1, 1, "Go to a URL:", "gotoURL");
     createNewText(state, 0, 0, "No document loaded", "documentText");
     createNewText(state, 0, 0, "This is the browser's home page.\n\nNavigation tools:\nCTRL+O: Go to site\nCTRL+X: Close current page\nUp/Down arrows: scroll current document\nTab: Cycle through buttons/text fields\nEnter: Click current button\n\n\nCreated by uqers.", "helpText");
@@ -193,9 +222,11 @@ void initializeDisplayObjects(struct nc_state *state) {
     getTextByDescriptor(state, "userAgentDetail")->visible = 0;
     getTextAreaByDescriptor(state, "userAgent")->visible = 0;
     getTextAreaByDescriptor(state, "userAgent")->currentText = HTTP_makeStrCpy("uqers");
+    state->is_updating_render = 0;
 }
 
 void openGotoPageDialog(struct nc_state *state) {
+    state->is_updating_render = 1;
     state->selectableIndex = -1;
     struct nc_text_area *textarea = getTextAreaByDescriptor(state, "urltextarea");
     if (state->currentPage == PAGE_DOCUMENT_LOADED) {
@@ -218,9 +249,11 @@ void openGotoPageDialog(struct nc_state *state) {
         curlen = strlen(textarea->currentText);
     }
     textarea->scrolledAmount = 0;
+    state->is_updating_render = 0;
 }
 
 void closeGotoPageDialog(struct nc_state *state) {
+    state->is_updating_render = 1;
     state->selectableIndex = -1;
     if (state->currentPage == PAGE_GOTO_OVER_DOCUMENT) {
         state->currentPage = PAGE_DOCUMENT_LOADED;
@@ -235,13 +268,16 @@ void closeGotoPageDialog(struct nc_state *state) {
     getButtonByDescriptor(state, "gotobutton")->visible = 0;
     getTextByDescriptor(state, "userAgentDetail")->visible = 0;
     getTextAreaByDescriptor(state, "userAgent")->visible = 0;
+    state->is_updating_render = 0;
 }
 
 void closeDocumentPage(struct nc_state *state) {
+    state->is_updating_render = 1;
     state->selectableIndex = -1;
     state->currentPage = PAGE_EMPTY;
     getTextByDescriptor(state, "helpText")->visible = 1;
     getTextByDescriptor(state, "documentText")->visible = 0;
+    state->is_updating_render = 0;
 }
 
 void closeCurrentWindow(struct nc_state *state) {
@@ -259,7 +295,16 @@ void closeCurrentWindow(struct nc_state *state) {
     }
 }
 
-void onKeyPress(struct nc_state *browserState, char ch) {
+struct key_press_data {
+    struct nc_state *browserState;
+    char ch;
+};
+
+void *onKeyPress(void *keyData) {
+    struct key_press_data kData = *((struct key_press_data *) keyData);
+    struct nc_state *browserState = kData.browserState;
+    char ch = kData.ch;
+
     int h, w;
     switch(ch) {
         case 15: // CTRL+O
@@ -332,17 +377,34 @@ void onKeyPress(struct nc_state *browserState, char ch) {
             button->onclick(browserState, button->descriptor);
         }
     }
+
+    return NULL;
 }
 
 void *eventLoop(void *state) {
     struct nc_state *browserState = (struct nc_state *) state;
     while (1) {
         char ch;
+        if (browserState->is_rendering) {
+            continue;
+        }
+        if (ch = getch()) {
+            if (ch != ERR) {
+                struct key_press_data keyData;
+                keyData.browserState = browserState;
+                keyData.ch = ch;
+                pthread_t thread_id;
+                pthread_create(&thread_id, NULL, onKeyPress, (void *) &keyData);
+            }
+        }
+    }
+}
+
+void *renderLoop(void *state) {
+    struct nc_state *browserState = (struct nc_state *) state;
+    while (1) {
         updateFocus_nc(browserState);
         render_nc(browserState);
-        if (ch = getch()) {
-            onKeyPress(browserState, ch);
-        }
     }
 }
 
@@ -424,6 +486,8 @@ int main(int argc, char **argv) {
     exit(0);*/
     
     struct nc_state browserState;
+    browserState.is_updating_render = 0;
+    browserState.is_rendering = 0;
     browserState.currentPage = PAGE_EMPTY;
     browserState.numTextAreas = 0;
     browserState.numButtons = 0;
@@ -440,9 +504,12 @@ int main(int argc, char **argv) {
         ongotourl(&browserState, "<unused>");
     }
 
+    pthread_t r_thread_id;
     pthread_t thread_id;
     pthread_create(&thread_id, NULL, eventLoop, (void *) &browserState);
+    pthread_create(&r_thread_id, NULL, renderLoop, (void *) &browserState);
 
     pthread_join(thread_id, NULL);
+    pthread_join(r_thread_id, NULL);
     return 0;
 }

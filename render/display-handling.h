@@ -68,6 +68,8 @@ struct nc_selected selectableFromTextarea(struct nc_text_area *textarea) {
 
 struct nc_state {
     enum nc_page currentPage;
+    int is_rendering; // whether the function render_nc is in the middle of being called
+    int is_updating_render;
     
     struct nc_text_area text_areas[256];
     struct nc_button buttons[256];
@@ -369,7 +371,21 @@ void printText(int y, int x, char *text) {
 }
 
 void render_nc(struct nc_state *browserState) {
-    clear();
+    while (browserState->is_updating_render) {
+        continue;
+    }
+
+    browserState->is_rendering = 1;
+    int mx;
+    int my;
+    getmaxyx(stdscr, my, mx);
+
+    for (int x = 0; x < mx; x ++) {
+        for (int y = 0; y < my; y ++) {
+            mvaddch(y, x, ' ');
+        }
+    }
+
     int numTexts = browserState->numTexts;
     int numTextAreas = browserState->numTextAreas;
     int numButtons = browserState->numButtons;
@@ -432,7 +448,7 @@ void render_nc(struct nc_state *browserState) {
         }
     }
     refresh();
-    // `refresh` is automatically called by getch, called after render_nc
+    browserState->is_rendering = 0;
 }
 
 void initWindow(struct nc_state *state) {
