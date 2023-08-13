@@ -74,21 +74,47 @@ char *parseHTMLEscapes(const char *content) {
                 i += 5;
                 realIndex ++;
                 if (content[i] != ';') i --;
+            } else if (!strncmp(content + i + 1, "quot", 4)) {
+                allocated[realIndex] = '"';
+                i += 5;
+                realIndex ++;
+                if (content[i] != ';') i --;
             } else if (!strncmp(content + i + 1, "#305", 4)) {
-                // display-handling doesn't support this, unfortunately
+                // display-handling doesn't support these, unfortunately
                 strcat(allocated, "ı");
                 i += 5;
                 realIndex += strlen("ı");
                 if (content[i] != ';') i --;
             } else if (!strncmp(content + i + 1, "copy", 4)) {
-                // display-handling doesn't support the actual non-ascii symbols (copyright), unfortunately
+                // display-handling doesn't support these, unfortunately, so use similar ascii symbols
                 allocated[realIndex] = 'C';
                 i += 5;
                 realIndex ++;
                 if (content[i] != ';') i --;
             } else if (!strncmp(content + i + 1, "raquo", 5)) {
-                // display-handling doesn't support these, unfortunately
-                allocated[realIndex] = 0xbb;
+                // display-handling doesn't support these, unfortunately, so use similar ascii symbols
+                allocated[realIndex] = '>';
+                allocated[realIndex + 1] = '>';
+                i += 6;
+                realIndex += 2;
+                if (content[i] != ';') i --;
+            } else if (!strncmp(content + i + 1, "#171", 4)) {
+                // display-handling doesn't support these, unfortunately, so use similar ascii symbols
+                allocated[realIndex] = '<';
+                allocated[realIndex + 1] = '<';
+                i += 5;
+                realIndex += 2;
+                if (content[i] != ';') i --;
+            } else if (!strncmp(content + i + 1, "#187", 4)) {
+                // display-handling doesn't support these, unfortunately, so use similar ascii symbols
+                allocated[realIndex] = '>';
+                allocated[realIndex + 1] = '>';
+                i += 5;
+                realIndex += 2;
+                if (content[i] != ';') i --;
+            } else if (!strncmp(content + i + 1, "#8211", 4)) {
+                // display-handling doesn't support this, unfortunately, so use similar ascii symbols
+                allocated[realIndex] = '-';
                 i += 6;
                 realIndex ++;
                 if (content[i] != ';') i --;
