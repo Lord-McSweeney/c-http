@@ -1,7 +1,7 @@
 // ncurses ref: https://www.sbarjatiya.com/notes_wiki/index.php/Using_ncurses_library_with_C
 // https://jbwyatt.com/ncurses.html is much better tho
 
-// using gcc, compile with -lncurses -lpthread
+// using gcc, compile with -lncurses
 
 /*
 timeline
@@ -17,7 +17,6 @@ day 7: minor HTTP-related fix
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
-#include <pthread.h>
 #include "http/http.h"
 #include "render/display-handling.h"
 #include "xml/html.h"
@@ -334,14 +333,13 @@ void onKeyPress(struct nc_state *browserState, char ch) {
     }
 }
 
-void *eventLoop(void *state) {
-    struct nc_state *browserState = (struct nc_state *) state;
+void *eventLoop(struct nc_state *state) {
     while (1) {
         char ch;
-        updateFocus_nc(browserState);
-        render_nc(browserState);
+        updateFocus_nc(state);
+        render_nc(state);
         if (ch = getch()) {
-            onKeyPress(browserState, ch);
+            onKeyPress(state, ch);
         }
     }
 }
@@ -440,9 +438,6 @@ int main(int argc, char **argv) {
         ongotourl(&browserState, "<unused>");
     }
 
-    pthread_t thread_id;
-    pthread_create(&thread_id, NULL, eventLoop, (void *) &browserState);
-
-    pthread_join(thread_id, NULL);
+    eventLoop(&browserState);
     return 0;
 }
