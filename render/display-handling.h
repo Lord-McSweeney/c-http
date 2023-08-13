@@ -352,7 +352,14 @@ void printText(int y, int x, char *text) {
             if (bold) {
                 toPrint = toPrint | A_BOLD;
             }
-            mvaddch(realPosY, realPosX, toPrint);
+            if (text[i] == (char) 0xc2 && text[i + 1] == (char) 0xbb) {
+                mvaddch(realPosY, realPosX, 0xc2);
+                mvaddch(realPosY, realPosX + 1, 0xbb);
+                i ++;
+                realPosX ++;
+            } else {
+                mvaddch(realPosY, realPosX, toPrint);
+            }
         }
         realPosX ++;
         if (text[i] == '\n' || realPosX >= mx) {

@@ -184,7 +184,7 @@ void ongotourl(void *state, char *_) {
 void initializeDisplayObjects(struct nc_state *state) {
     createNewText(state, 1, 1, "Go to a URL:", "gotoURL");
     createNewText(state, 0, 0, "No document loaded", "documentText");
-    createNewText(state, 0, 0, "This is the browser's home page.\n\nNavigation tools:\nCTRL+O: Go to site\nCTRL+X: Close current page\nUp/Down arrows: scroll current document\nTab: Cycle through buttons/text fields\nEnter: Click current button\n\n\nCreated by uqers.", "helpText");
+    createNewText(state, 0, 0, "»This is the browser's home page.\n\nNavigation tools:\nCTRL+O: Go to site\nCTRL+X: Close current page\nUp/Down arrows: scroll current document\nTab: Cycle through buttons/text fields\nEnter: Click current button\n\n\nCreated by uqers.", "helpText");
     createNewTextarea(state, 1, 3, 29, 1, "urltextarea");
     createNewButton(state, 1, 5, "OK", ongotourl, "gotobutton");
     createNewText(state, 1, 13, "Use a custom user agent", "userAgentDetail");
