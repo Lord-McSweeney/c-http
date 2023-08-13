@@ -23,6 +23,14 @@ int isInline(const char *nodeName) {
     return res;
 }
 
+char *HTML_getTabsRepeated(int amount) {
+    char *spaces = (char *) calloc(128 + (amount * 4), sizeof(char));
+    for (int i = 0; i < amount * 4; i ++) {
+        spaces[i] = ' ';
+    }
+    return spaces;
+}
+
 // 0: Not a header
 // 1: Bold
 // 2: Bold + uppercase
@@ -178,7 +186,7 @@ struct html2nc_result {
     char *title;
 };
 
-char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct html2nc_state *state, char *originalHTML, int isAvoidingDisplay, int uppercase) {
+char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct html2nc_state *state, char *originalHTML, int isAvoidingDisplay, int uppercase, int listNestAmount) {
     char *alloc = (char *) calloc(strlen(originalHTML) + 2, sizeof(char));
     int currentOrderedListNum = 1;
     int justHadInlineInsideBlockWithText = 0;
@@ -228,6 +236,9 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 }
 
                 if (!strcmp(lower, "li") && parent != NULL) {
+                    listNestAmount ++;
+                    char *tabs = HTML_getTabsRepeated(listNestAmount);
+                    strcat(alloc, tabs);
                     if (parent == NULL) {
                         strcat(alloc, "\n - ");
                     } else {
@@ -250,7 +261,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     avoidDisplay = 1;
                 }
 
-                char *text = recursiveXMLToText(&node, node.children, state, originalHTML, avoidDisplay || isAvoidingDisplay, (hLevel >= 2) || uppercase);
+                char *text = recursiveXMLToText(&node, node.children, state, originalHTML, avoidDisplay || isAvoidingDisplay, (hLevel >= 2) || uppercase, listNestAmount);
                 avoidDisplay = 0;
 
                 // Only the first <title> is taken into account- the rest are displayed
@@ -289,6 +300,9 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 if (!strcmp(lower, "dd")) {
                     strcat(alloc, "\\u");
                 }
+                if (!strcmp(lower, "li")) {
+                    listNestAmount --;
+                }
 
                 if (isInline(node.name) && strlen(text)) {
                     free(text);
@@ -321,7 +335,7 @@ struct html2nc_result htmlToText(struct xml_list xml, char *originalHTML) {
     state.title = NULL;
     
     struct html2nc_result result;
-    result.text = recursiveXMLToText(NULL, xml, &state, originalHTML, 0, 0);
+    result.text = recursiveXMLToText(NULL, xml, &state, originalHTML, 0, 0, 0);
 
     // Default title, if title wasn't set
     if (state.title == NULL) {
