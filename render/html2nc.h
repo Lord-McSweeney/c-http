@@ -18,7 +18,7 @@ int isBlock(struct xml_node *node) {
 
 int isInline(const char *nodeName) {
     char *lower = xml_toLowerCase(nodeName);
-    int res = !strcmp(lower, "a") || !strcmp(lower, "span") || !strcmp(lower, "font") || !strcmp(lower, "b") || !strcmp(lower, "i") || !strcmp(lower, "img");
+    int res = !strcmp(lower, "a") || !strcmp(lower, "span") || !strcmp(lower, "font") || !strcmp(lower, "b") || !strcmp(lower, "i") || !strcmp(lower, "img") || !strcmp(lower, "strong");
     free(lower);
     return res;
 }
@@ -176,6 +176,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 free(text);
                 free(allocated);
             }
+            hasBlocked = 0;
             //printf(strcat(getTabsRepeated(depth), "text node (#%d). contents: '%s'\n"), i, node.text_content);
             //printf(strcat(getTabsRepeated(depth), "text node (#%d). contents: '...'\n"), i);
         } else if (node.type == NODE_ELEMENT) {
