@@ -95,7 +95,6 @@ char *parseHTMLEscapes(const char *content) {
             allocated[realIndex] = curChar;
             allocated[realIndex + 1] = curChar;
             realIndex += 2;
-            i ++;
         } else {
             allocated[realIndex] = curChar;
             realIndex ++;
