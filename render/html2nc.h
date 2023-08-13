@@ -48,9 +48,9 @@ int HTML_headerLevel(const char *nodeName) {
 }
 
 char *parseHTMLEscapes(const char *content) {
-    int numEscapes = 11;
-    char entities[][8] =    {"lt", "gt", "amp", "nbsp", "quot", "copy", "raquo", "#039", "#171", "#187", "#8211"};
-    char replaceWith[][4] = {"<",  ">",  "&",   " ",    "\"",   "C",    ">>",    "'",    "<<",   ">>",   "-"};
+    int numEscapes = 17;
+    char entities[][8] =    {"lt", "gt", "amp", "nbsp", "quot", "copy", "raquo", "#039", "#91", "#93", "#160", "#171", "#187", "#8211", "#8212", "#8230", "#8260"};
+    char replaceWith[][4] = {"<",  ">",  "&",   " ",    "\"",   "C",    ">>",    "'",    "[",    "]",  " ",    "<<",   ">>",   "-",     "-",     "...",   "/"};
 
 
     int numSlashes = 0;
