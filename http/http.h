@@ -203,7 +203,6 @@ struct http_url* http_url_from_string(char *string) {
     if (!strcmp(protocol, "file")) {
         strcpy(port, "0");
         hostname = HTTP_makeStrCpy("localhost");
-        printf("path: %s\n", path);
     }
 
     result_mem->protocol = protocol;
@@ -259,6 +258,8 @@ struct http_response http_readFileToHTTP(char *path) {
     result.is_html = 0;
     result.content_length = i;
     result.error = 0;
+    result.redirect = NULL;
+    result.do_redirect = 0;
 
     struct http_data res;
     res.length = i;
