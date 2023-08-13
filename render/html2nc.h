@@ -192,6 +192,9 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 if (!strcmp(lower, "i") || !strcmp(lower, "em")) {
                     strcat(alloc, "\\i");
                 }
+                if (!strcmp(lower, "a")) {
+                    strcat(alloc, "\\4\\q");
+                }
                 if (!strcmp(lower, "b") || !strcmp(lower, "strong") || hLevel >= 1) {
                     strcat(alloc, "\\b");
                 }
@@ -262,6 +265,9 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 }
                 if (!strcmp(lower, "dd")) {
                     strcat(alloc, "\\u");
+                }
+                if (!strcmp(lower, "a")) {
+                    strcat(alloc, "\\r\\0");
                 }
                 if (!strcmp(lower, "li")) {
                     listNestAmount --;
