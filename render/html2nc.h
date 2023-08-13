@@ -48,6 +48,11 @@ int HTML_headerLevel(const char *nodeName) {
 }
 
 char *parseHTMLEscapes(const char *content) {
+    int numEscapes = 11;
+    char entities[][8] =    {"lt", "gt", "amp", "nbsp", "quot", "copy", "raquo", "#039", "#171", "#187", "#8211"};
+    char replaceWith[][4] = {"<",  ">",  "&",   " ",    "\"",   "C",    ">>",    "'",    "<<",   ">>",   "-"};
+
+
     int numSlashes = 0;
     for (int i = 0; i < strlen(content); i ++) {
         if (content[i] == '\\') {
@@ -58,75 +63,31 @@ char *parseHTMLEscapes(const char *content) {
     char *allocated = (char *) calloc(strlen(content) + numSlashes + 1, sizeof(char));
     int len = strlen(content);
     int realIndex = 0;
+    int foundEscape = 0;
     for (int i = 0; i < len; i ++) {
         char curChar = content[i];
 
         if (curChar == '&') {
-            if (!strncmp(content + i + 1, "lt", 2)) {
-                allocated[realIndex] = '<';
-                i += 3;
-                realIndex ++;
-                if (content[i] != ';') i --;
-            } else if (!strncmp(content + i + 1, "gt", 2)) {
-                allocated[realIndex] = '>';
-                i += 3;
-                realIndex ++;
-                if (content[i] != ';') i --;
-            } else if (!strncmp(content + i + 1, "amp", 3)) {
-                allocated[realIndex] = '&';
-                i += 4;
-                realIndex ++;
-                if (content[i] != ';') i --;
-            } else if (!strncmp(content + i + 1, "nbsp", 4)) {
-                allocated[realIndex] = ' ';
-                i += 5;
-                realIndex ++;
-                if (content[i] != ';') i --;
-            } else if (!strncmp(content + i + 1, "quot", 4)) {
-                allocated[realIndex] = '"';
-                i += 5;
-                realIndex ++;
-                if (content[i] != ';') i --;
-            } else if (!strncmp(content + i + 1, "#305", 4)) {
-                // display-handling doesn't support these, unfortunately
-                strcat(allocated, "ı");
-                i += 5;
-                realIndex += strlen("ı");
-                if (content[i] != ';') i --;
-            } else if (!strncmp(content + i + 1, "copy", 4)) {
-                // display-handling doesn't support these, unfortunately, so use similar ascii symbols
-                allocated[realIndex] = 'C';
-                i += 5;
-                realIndex ++;
-                if (content[i] != ';') i --;
-            } else if (!strncmp(content + i + 1, "raquo", 5)) {
-                // display-handling doesn't support these, unfortunately, so use similar ascii symbols
-                allocated[realIndex] = '>';
-                allocated[realIndex + 1] = '>';
-                i += 6;
-                realIndex += 2;
-                if (content[i] != ';') i --;
-            } else if (!strncmp(content + i + 1, "#171", 4)) {
-                // display-handling doesn't support these, unfortunately, so use similar ascii symbols
-                allocated[realIndex] = '<';
-                allocated[realIndex + 1] = '<';
-                i += 5;
-                realIndex += 2;
-                if (content[i] != ';') i --;
-            } else if (!strncmp(content + i + 1, "#187", 4)) {
-                // display-handling doesn't support these, unfortunately, so use similar ascii symbols
-                allocated[realIndex] = '>';
-                allocated[realIndex + 1] = '>';
-                i += 5;
-                realIndex += 2;
-                if (content[i] != ';') i --;
-            } else if (!strncmp(content + i + 1, "#8211", 4)) {
-                // display-handling doesn't support this, unfortunately, so use similar ascii symbols
-                allocated[realIndex] = '-';
-                i += 6;
-                realIndex ++;
-                if (content[i] != ';') i --;
-            } else {
+            foundEscape = 0;
+            for (int j = 0; j < numEscapes; j ++) {
+                int entLen = strlen(entities[j]);
+                // i + 1 to skip over the '&'
+                if (!strncmp(content + i + 1, entities[j], entLen)) {
+                    int replaceLength = strlen(replaceWith[j]);
+                    int k;
+                    for (k = 0; k < replaceLength; k ++) {
+                        allocated[realIndex + k] = replaceWith[j][0];
+                    }
+
+                    i += entLen + 1;
+                    realIndex += k;
+
+                    if (content[i] != ';') i --;
+                    foundEscape = 1;
+                }
+            }
+
+            if (!foundEscape) {
                 allocated[realIndex] = curChar;
                 realIndex ++;
             }
