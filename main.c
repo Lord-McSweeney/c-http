@@ -85,13 +85,18 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
     }
 
     if (!parsedResponse.is_html) {
-        for (int i = 0; i < parsedResponse.num_headers; i ++) {
-            free(parsedResponse.headers[i].name);
-            free(parsedResponse.headers[i].value);
+        char *lowerData = HTTP_toLowerCase(parsedResponse.response_body.data);
+        if (strncmp(lowerData, "<!doctype html", 14)) {
+            for (int i = 0; i < parsedResponse.num_headers; i ++) {
+                free(parsedResponse.headers[i].name);
+                free(parsedResponse.headers[i].value);
+            }
+            free(parsedResponse.headers);
+            free(parsedResponse.response_description);
+            free(lowerData);
+            return parsedResponse.response_body.data;
         }
-        free(parsedResponse.headers);
-        free(parsedResponse.response_description);
-        return parsedResponse.response_body.data;
+        free(lowerData);
     }
 
     // todo: handle headers
