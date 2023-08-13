@@ -5,11 +5,12 @@
 #include "response.h"
 #include "chunked.h"
 
-typedef void (*dataReceiveHandler)(void *);
-
 #ifndef _HTTP_HTTP
+
     #define _HTTP_HTTP 1
     #define maxResponseSize 1048578
+
+typedef void (*dataReceiveHandler)(void *);
 
 struct http_url {
     char *protocol;

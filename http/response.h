@@ -5,6 +5,19 @@
 #ifndef _HTTP_RESPONSE
     #define _HTTP_RESPONSE 1
 
+char *HTTP_toLowerCase(const char *text) {
+    int len = strlen(text);
+    char *allocated = (char *) calloc(len + 1, sizeof(char));
+    for (int i = 0; i < len; i ++) {
+        if (text[i] >= 'A' && text[i] <= 'Z') {
+            allocated[i] = text[i] + 32;
+        } else {
+            allocated[i] = text[i];
+        }
+    }
+    return allocated;
+}
+
 enum _http_internal_header_type {
     HEADER_NAME_VALUE,
     HEADER_ONLY_NAME,
@@ -196,27 +209,30 @@ struct http_response parsePossiblyIncompleteHTTPResponse(struct http_data rawRes
                 break;
             case PARSE_HTTP_HEADER_VALUE:
                 if (curChar == '\r' && nextChar == '\n') {
-                    if (!strcmp(headers[numHeaders - 1].name, "Transfer-Encoding") || !strcmp(headers[numHeaders - 1].name, "Transfer-Encoding")) {
+                    char *lowerName = HTTP_toLowerCase(headers[numHeaders - 1].name);
+
+                    if (!strcmp(lowerName, "transfer-encoding")) {
                         if (!strcmp(headers[numHeaders - 1].value, "chunked")) {
                             response.is_chunked = 1;
                         }
                     }
-                    if (!strcmp(headers[numHeaders - 1].name, "Content-Type") || !strcmp(headers[numHeaders - 1].name, "content-type")) {
+                    if (!strcmp(lowerName, "content-type")) {
                         if (!strncmp(headers[numHeaders - 1].value, "text/html", 9)) {
                             response.is_html = 1;
                         }
                     }
-                    if (!strcmp(headers[numHeaders - 1].name, "Content-Length") || !strcmp(headers[numHeaders - 1].name, "content-length")) {
+                    if (!strcmp(lowerName, "content-length")) {
                         response.content_length = atoi(headers[numHeaders - 1].value);
                         contentLengthNotReturned = 0;
                     }
-                    if (!strcmp(headers[numHeaders - 1].name, "Location") || !strcmp(headers[numHeaders - 1].name, "location")) {
+                    if (!strcmp(lowerName, "location")) {
                         int stat = atoi(statusCode);
                         if (stat == 301 || stat == 302 || stat == 303 || stat == 307 || stat == 308) {
                             response.redirect = headers[numHeaders - 1].value;
                             response.do_redirect = 1;
                         }
                     }
+                    free(lowerName);
                     currentState = PARSE_HTTP_HEADER_NAME;
                     currentIndex = 0;
                     i ++; // aaagh CR+LF
