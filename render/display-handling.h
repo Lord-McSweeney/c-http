@@ -260,6 +260,21 @@ char *repeatChar(char c, int times) {
     return mem;
 }
 
+int checkShouldWrap(char *text, int *iPtr, int mx, int curX) {
+    int i = *iPtr;
+    int b = 0;
+    for (int j = i; j < strlen(text); j ++) {
+        if (j != i && (text[j] == ' ' || text[j] == '\n')) {
+            return 0;
+        }
+        if (curX + b > mx) {
+            return 1;
+        }
+        b ++;
+    }
+    return 0;
+}
+
 void printText(int y, int x, char *text) {
     int mx;
     int my;
@@ -399,7 +414,7 @@ void printText(int y, int x, char *text) {
             mvaddch(realPosY, realPosX, toPrint);
         }
         realPosX ++;
-        if (text[i] == '\n' || realPosX >= mx) {
+        if (text[i] == '\n' || realPosX >= mx || checkShouldWrap(text, &i, mx, realPosX)) {
             realPosX = minX;
             realPosY ++;
             if (doIndent) {
