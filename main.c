@@ -439,7 +439,14 @@ int main(int argc, char **argv) {
     initializeDisplayObjects(&browserState);
 
     if (url != NULL) {
-        getTextAreaByDescriptor(&browserState, "urltextarea")->currentText = url;
+        int len = strlen(url);
+        struct nc_text_area *textarea = getTextAreaByDescriptor(&browserState, "urltextarea");
+        for (int i = 0; i < len; i ++) {
+            if (strlen(textarea->currentText) >= textarea->width) {
+                textarea->scrolledAmount ++;
+            }
+            textarea->currentText[strlen(textarea->currentText)] = url[i];
+        }
         ongotourl(&browserState, "<unused>");
     }
 
