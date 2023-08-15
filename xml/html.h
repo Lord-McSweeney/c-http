@@ -451,6 +451,11 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                         }
                         if (html_isVoidElement(currentElementName)) {
                             struct xml_node node = XML_createXMLElement(XML_makeStrCpy(currentElementName));
+                            node.attribute_content = XML_makeStrCpy(currentAttributeContent);
+
+                            currentAttributeContentUsage = 0;
+                            XML_clrStr(currentAttributeContent);
+
                             XML_appendChild(&response, node);
                             currentElementNameUsage = 0;
                             XML_clrStr(currentElementName);
@@ -531,9 +536,12 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                 break;
             case PARSE_ELEMENT_END_SLASH:
                 if (curChar == '>') {
-                    //i ++;
-                    //bytesParsed ++;
                     struct xml_node node = XML_createXMLElement(XML_makeStrCpy(currentElementName));
+
+                    node.attribute_content = XML_makeStrCpy(currentAttributeContent);
+                    currentAttributeContentUsage = 0;
+                    XML_clrStr(currentAttributeContent);
+
                     XML_appendChild(&response, node);
                     currentElementNameUsage = 0;
                     XML_clrStr(currentElementName);

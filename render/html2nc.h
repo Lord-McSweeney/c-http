@@ -273,7 +273,18 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 }
 
                 if (!strcmp(lower, "img")) {
-                    strcat(alloc, "[IMAGE]");
+                    char *altText = XML_getAttributeByName(attributes, "alt");
+                    if (altText) {
+                        if (strlen(altText)) {
+                            strcat(alloc, "[");
+                            strcat(alloc, altText);
+                            strcat(alloc, "]");
+                        }
+                        // DO NOT free(altText) here! getAttributeByName returns a reference to the attribute value,
+                        // not a copy of the attribute value! freeXMLAttributes will free it anyway!
+                    } else {
+                        strcat(alloc, "[IMAGE]");
+                    }
                     free(text);
                     free(lower);
                     freeXMLAttributes(attributes);
