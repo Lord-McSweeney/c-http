@@ -263,7 +263,13 @@ char *repeatChar(char c, int times) {
 int checkShouldWrap(char *text, int *iPtr, int mx, int curX) {
     int i = *iPtr;
     int b = 0;
+    int isEscaping = 0;
     for (int j = i; j < strlen(text); j ++) {
+        if (isEscaping) {
+            if (text[j] != '\\') {
+                b --;
+            }
+        }
         if (j != i && (text[j] == ' ' || text[j] == '\n')) {
             return 0;
         }
@@ -271,6 +277,13 @@ int checkShouldWrap(char *text, int *iPtr, int mx, int curX) {
             return 1;
         }
         b ++;
+        isEscaping = 0;
+        if (text[j] == '\\') {
+            if (!isEscaping) {
+                isEscaping = 1;
+                b --;
+            }
+        }
     }
     return 0;
 }
