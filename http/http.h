@@ -441,7 +441,14 @@ struct http_response http_makeHTTPRequest(char *charURL, char *userAgent, dataRe
         // Following code handles this
         return http_makeNetworkHTTPRequest(url, userAgent, chunkHandler, finishHandler, chunkArg);
     } else if (!strcmp(url->protocol, "file")) {
-        return http_readFileToHTTP(url->path);
+        free(url->hostname);
+        free(url->protocol);
+        struct http_response response = http_readFileToHTTP(url->path);
+        free(url->path);
+        free(url->fragment);
+        free(url);
+
+        return response;
     } else {
         // Unsupported protocol
         struct http_response errorResponse;

@@ -180,14 +180,14 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
             //printf(strcat(getTabsRepeated(depth), "text node (#%d). contents: '...'\n"), i);
         } else if (node.type == NODE_ELEMENT) {
             struct xml_attrib_result attrib_result = XML_parseAttributes(node.attribute_content);
-            struct xml_attributes attributes;
+            struct xml_attributes *attributes;
             if (attrib_result.error) {
                 attributes = XML_makeEmptyAttributes();
             } else {
                 attributes = attrib_result.attribs;
             }
 
-            struct xml_attributes parent_attributes;
+            struct xml_attributes *parent_attributes;
             if (parent == NULL) {
                 parent_attributes = XML_makeEmptyAttributes();
             } else {
@@ -320,8 +320,6 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     continue;
                 }
                 free(text);
-                freeXMLAttributes(attributes);
-                freeXMLAttributes(parent_attributes);
             }
 
             if (isBlock(&node)) {
@@ -331,6 +329,8 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 hasBlocked = 0;
             }
             free(lower);
+            freeXMLAttributes(attributes);
+            freeXMLAttributes(parent_attributes);
         }
         justHadInlineInsideBlockWithText = 0;
     }

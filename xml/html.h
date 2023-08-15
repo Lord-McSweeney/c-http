@@ -83,7 +83,7 @@ struct xml_node XML_createXMLElement(char *name) {
     struct xml_node node;
     node.name = name;
     node.text_content = NULL;
-    node.attribute_content = (char *) calloc(0, sizeof(char));
+    node.attribute_content = (char *) calloc(1, sizeof(char));
     
     struct xml_list children;
     children.count = 0;

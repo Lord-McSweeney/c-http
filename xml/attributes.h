@@ -11,29 +11,31 @@ struct xml_attributes {
 };
 
 struct xml_attrib_result {
-    struct xml_attributes attribs;
+    struct xml_attributes *attribs;
     int error;
 };
 
-char *XML_getAttributeByName(struct xml_attributes attribs, const char *name) {
+char *XML_getAttributeByName(struct xml_attributes *attribs, const char *name) {
     char *n = xml_toLowerCase(name);
-    for (int i = 0; i < attribs.count; i ++) {
-        if (!strcmp(attribs.attributes[i].name, n)) {
-            return attribs.attributes[i].value;
+    for (int i = 0; i < attribs->count; i ++) {
+        if (!strcmp(attribs->attributes[i].name, n)) {
+            free(n);
+            return attribs->attributes[i].value;
         }
     }
     return NULL;
 }
 
-struct xml_attributes XML_makeEmptyAttributes() {
-    struct xml_attributes empty;
-    empty.attributes = NULL;
-    empty.count = 0;
+struct xml_attributes *XML_makeEmptyAttributes() {
+    struct xml_attributes *empty = (struct xml_attributes *) calloc(1, sizeof(struct xml_attributes));
+    empty->attributes = NULL;
+    empty->count = 0;
+
     return empty;
 }
 
 void XML_appendAttribute(struct xml_attributes *attribs, struct xml_attribute attrib) {
-    if (XML_getAttributeByName(*attribs, attrib.name) != NULL) {
+    if (XML_getAttributeByName(attribs, attrib.name) != NULL) {
        return;
     }
 
@@ -57,11 +59,13 @@ enum _xml_internal_node_aparser_state {
     APARSE_UNKNOWN,
 };
 
-void freeXMLAttributes(struct xml_attributes attribs) {
-    for (int i = 0; i < attribs.count; i ++) {
-        free(attribs.attributes[i].name);
-        free(attribs.attributes[i].value);
+void freeXMLAttributes(struct xml_attributes *attribs) {
+    for (int i = 0; i < attribs->count; i ++) {
+        free(attribs->attributes[i].name);
+        free(attribs->attributes[i].value);
     }
+    free(attribs->attributes);
+    free(attribs);
 }
 
 // Error codes:
@@ -236,10 +240,13 @@ struct xml_attrib_result XML_parseAttributes(char *inputString) {
         }
     }
 
+    if (currentAttrib.name) free(currentAttrib.name);
+
     free(currentDataContent);
 
     struct xml_attrib_result successResult;
     successResult.error = 0;
-    successResult.attribs = attribs;
+    successResult.attribs = (struct xml_attributes *) calloc(1, sizeof(struct xml_attributes));
+    memcpy(successResult.attribs, &attribs, sizeof(struct xml_attributes));
     return successResult;
 }

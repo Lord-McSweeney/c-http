@@ -125,6 +125,8 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
     free(parsedResponse.response_description);
     free(result.title);
     free(result.text);
+    if (parsedResponse.redirect) free(parsedResponse.redirect);
+
     recursiveFreeXML(xml.list);
     return total;
 }
