@@ -296,10 +296,12 @@ void onKeyPress(struct nc_state *browserState, char ch) {
     if (textarea != NULL) {
         int curlen = strlen(textarea->currentText);
         if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '.' || ch == '/' || ch == ':' || ch == '#' || ch == '-' || ch == '=' || ch == '?' || ch == '_' || ch == ',' || ch == '<' || ch == '>' || ch == '%' || ch == '&' || ch == '+' || ch == ';' || ch == '~') {
-            if (curlen >= textarea->width) {
-                textarea->scrolledAmount ++;
+            if (curlen <= NC_TEXTAREA_ALLOC - 2) {
+                if (curlen >= textarea->width) {
+                    textarea->scrolledAmount ++;
+                }
+                textarea->currentText[curlen] = ch;
             }
-            textarea->currentText[curlen] = ch;
         } else if (ch == 7) {
             if (curlen > 0) {
                 textarea->currentText[curlen - 1] = '\0';
@@ -442,6 +444,9 @@ int main(int argc, char **argv) {
         int len = strlen(url);
         struct nc_text_area *textarea = getTextAreaByDescriptor(&browserState, "urltextarea");
         for (int i = 0; i < len; i ++) {
+            if (i > NC_TEXTAREA_ALLOC - 2) {
+                break;
+            }
             if (strlen(textarea->currentText) >= textarea->width) {
                 textarea->scrolledAmount ++;
             }

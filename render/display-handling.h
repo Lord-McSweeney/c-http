@@ -1,5 +1,7 @@
 #include <ncurses.h>
 
+#define NC_TEXTAREA_ALLOC 1024
+
 typedef void (*clickHandler)(void *, char *);
 
 enum nc_page {
@@ -183,7 +185,7 @@ struct nc_text_area createNewTextarea(struct nc_state *state, int x, int y, int 
     textarea.height = h;
     textarea.visible = 1;
     textarea.selected = 0;
-    textarea.currentText = (char *) calloc(1024, sizeof(char));
+    textarea.currentText = (char *) calloc(NC_TEXTAREA_ALLOC, sizeof(char));
     textarea.descriptor = nc_strcpy(descriptor);
     textarea.scrolledAmount = 0;
     state->text_areas[state->numTextAreas] = textarea;
