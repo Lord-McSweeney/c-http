@@ -1,4 +1,5 @@
 #include "../xml/html.h"
+#include "../xml/attributes.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -148,9 +149,13 @@ struct html2nc_result {
 
 char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct html2nc_state *state, char *originalHTML, int isAvoidingDisplay, int uppercase, int listNestAmount) {
     char *alloc = (char *) calloc(strlen(originalHTML) + 2, sizeof(char));
+
     int currentOrderedListNum = 1;
+
+    int alreadySetOrderedListNum = 0;
     int justHadInlineInsideBlockWithText = 0;
     int hasBlocked = 0;
+
     for (int i = 0; i < xml.count; i ++) {
         struct xml_node node = xml.nodes[i];
         if (node.type == NODE_DOCTYPE || node.type == NODE_COMMENT) {
@@ -174,6 +179,26 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
             //printf(strcat(getTabsRepeated(depth), "text node (#%d). contents: '%s'\n"), i, node.text_content);
             //printf(strcat(getTabsRepeated(depth), "text node (#%d). contents: '...'\n"), i);
         } else if (node.type == NODE_ELEMENT) {
+            struct xml_attrib_result attrib_result = XML_parseAttributes(node.attribute_content);
+            struct xml_attributes attributes;
+            if (attrib_result.error) {
+                attributes = XML_makeEmptyAttributes();
+            } else {
+                attributes = attrib_result.attribs;
+            }
+
+            struct xml_attributes parent_attributes;
+            if (parent == NULL) {
+                parent_attributes = XML_makeEmptyAttributes();
+            } else {
+                struct xml_attrib_result parent_attrib_result = XML_parseAttributes(parent->attribute_content);
+                if (parent_attrib_result.error) {
+                    parent_attributes = XML_makeEmptyAttributes();
+                } else {
+                    parent_attributes = parent_attrib_result.attribs;
+                }
+            }
+
             char *lower = xml_toLowerCase(node.name);
             int hLevel = HTML_headerLevel(node.name);
             if ((isBlock(&node) && (!hasBlocked || !strcmp(lower, "p") || hLevel)) || (!isBlock(&node) && hasBlocked)) {
@@ -209,6 +234,13 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     } else {
                         char *parentName = xml_toLowerCase(parent->name);
                         if (!strcmp(parentName, "ol")) {
+                            if (!alreadySetOrderedListNum) {
+                                char *startString = XML_getAttributeByName(parent_attributes, "start");
+                                if (startString != NULL) {
+                                    currentOrderedListNum = atoi(startString);
+                                }
+                                alreadySetOrderedListNum = 1;
+                            }
                             char *newBuffer = (char *) calloc(currentOrderedListNum + 5, sizeof(char));
                             sprintf(newBuffer, "%d. ", currentOrderedListNum);
                             strcat(alloc, newBuffer);
@@ -234,6 +266,8 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     state->title = XML_makeStrCpy(text);
                     free(text);
                     free(lower);
+                    freeXMLAttributes(attributes);
+                    freeXMLAttributes(parent_attributes);
                     hasBlocked = 0;
                     continue;
                 }
@@ -242,6 +276,8 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     strcat(alloc, "[IMAGE]");
                     free(text);
                     free(lower);
+                    freeXMLAttributes(attributes);
+                    freeXMLAttributes(parent_attributes);
                     hasBlocked = 0;
                     continue;
                 }
@@ -250,6 +286,8 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     strcat(alloc, "[SELECT]");
                     free(text);
                     free(lower);
+                    freeXMLAttributes(attributes);
+                    freeXMLAttributes(parent_attributes);
                     hasBlocked = 0;
                     continue;
                 }
@@ -275,11 +313,15 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 if (isInline(node.name) && strlen(text)) {
                     free(text);
                     free(lower);
+                    freeXMLAttributes(attributes);
+                    freeXMLAttributes(parent_attributes);
                     justHadInlineInsideBlockWithText = 1;
                     hasBlocked = 0;
                     continue;
                 }
                 free(text);
+                freeXMLAttributes(attributes);
+                freeXMLAttributes(parent_attributes);
             }
 
             if (isBlock(&node)) {
