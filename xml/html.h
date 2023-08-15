@@ -417,6 +417,19 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                 }
                 
                 if (curChar == ' ') {
+                    if (doneParsingName) {
+                        currentAttributeContentUsage ++;
+                        if (currentAttributeContentUsage > 16382) {
+                            free(currentTextContent);
+                            free(currentDoctypeContent);
+                            free(currentElementName);
+                            free(currentAttributeContent);
+
+                            error_xml.error = 2;
+                            return error_xml;
+                        }
+                        currentAttributeContent[strlen(currentAttributeContent)] = curChar;
+                    }
                     if (startedParsingName) {
                         doneParsingName = 1;
                     }
