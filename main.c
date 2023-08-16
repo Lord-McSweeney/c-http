@@ -275,7 +275,6 @@ void closeCurrentWindow(struct nc_state *state) {
 }
 
 void onKeyPress(struct nc_state *browserState, char ch) {
-    int h, w;
     switch(ch) {
         case 15: // CTRL+O
             openGotoPageDialog(browserState);
@@ -448,7 +447,7 @@ int main(int argc, char **argv) {
     browserState.numSelectables = 0;
     browserState.selectableIndex = -1;
 
-    initWindow(&browserState);
+    initWindow();
     initializeDisplayObjects(&browserState);
 
     if (url != NULL) {

@@ -479,7 +479,7 @@ void render_nc(struct nc_state *browserState) {
     // `refresh` is automatically called by getch, called after render_nc
 }
 
-void initWindow(struct nc_state *state) {
+void initWindow() {
     initscr();
     cbreak();
     noecho();

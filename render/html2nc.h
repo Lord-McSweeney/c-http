@@ -100,7 +100,7 @@ char *getXMLTrimmedTextContent(const char *content, int removeStart) {
     if (removeStart) {
         alreadyEncounteredText = 1;
     }
-    int wasOnlyWhitespace = len == 0 ? 0 : 1;
+
     for (int i = 0; i < len; i ++) {
         if (textContent[i] == '\n') textContent[i] = ' ';
         if (textContent[i] == '\t') textContent[i] = ' ';
