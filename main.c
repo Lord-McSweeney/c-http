@@ -79,7 +79,9 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
     }
 
     if (parsedResponse.do_redirect) {
-        strcat(getTextByDescriptor(state, "documentText")->text, "\nEncountered redirect.");
+        strcat(getTextByDescriptor(state, "documentText")->text, "\nEncountered redirect to \"");
+        strcat(getTextByDescriptor(state, "documentText")->text, parsedResponse.redirect);
+        strcat(getTextByDescriptor(state, "documentText")->text, "\".");
         render_nc(state);
         return downloadAndOpenPage(state, parsedResponse.redirect, handler, finishHandler, redirect_depth + 1);
     }
@@ -99,6 +101,8 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
         free(lowerData);
     }
 
+    strcat(getTextByDescriptor(state, "documentText")->text, "\nBeginning to parse page as HTML...");
+
     // todo: handle headers
 
     struct xml_response xml = XML_parseXmlNodes(
@@ -106,6 +110,9 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
                                       parsedResponse.response_body.data
                                   )
                               );
+
+    strcat(getTextByDescriptor(state, "documentText")->text, "\nDone parsing page as HTML.\nConverting HTML to rich text...");
+
     if (xml.error) {
         return HTTP_makeStrCpy("Encountered an error while parsing the page.");
     }
@@ -115,6 +122,8 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
     strcpy(total, result.title);
     strcat(total, "\n\n");
     strcat(total, result.text);
+
+    strcat(getTextByDescriptor(state, "documentText")->text, "\nDone parsing HTML as rich text.");
 
     free(parsedResponse.response_body.data);
     for (int i = 0; i < parsedResponse.num_headers; i ++) {
