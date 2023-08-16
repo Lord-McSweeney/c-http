@@ -1,5 +1,8 @@
 #include "html.h"
 
+#ifndef _XML_ATTRIBUTE
+    #define _XML_ATTRIBUTE 1
+
 struct xml_attribute {
     char *name;
     char *value;
@@ -250,3 +253,5 @@ struct xml_attrib_result XML_parseAttributes(char *inputString) {
     memcpy(successResult.attribs, &attribs, sizeof(struct xml_attributes));
     return successResult;
 }
+
+#endif

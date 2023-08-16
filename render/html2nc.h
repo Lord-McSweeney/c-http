@@ -1,27 +1,11 @@
 #include "../xml/html.h"
 #include "../xml/attributes.h"
+#include "../css/styles.h"
 #include <stdlib.h>
 #include <string.h>
 
 int shouldBeDisplayed(const char *nodeName) {
     return strcmp(nodeName, "script") && strcmp(nodeName, "style");
-}
-
-int isBlock(struct xml_node *node) {
-    if (node == NULL) {
-        return 1;
-    }
-    char *lower = xml_toLowerCase(node->name);
-    int res = !strcmp(lower, "div") || !strcmp(lower, "p") || !strcmp(lower, "hr") || !strcmp(lower, "header") || !strcmp(lower, "aside") || !strcmp(lower, "h1") || !strcmp(lower, "h2") || !strcmp(lower, "h3") || !strcmp(lower, "h4") || !strcmp(lower, "h5") || !strcmp(lower, "h6") || !strcmp(lower, "blockquote") || !strcmp(lower, "dt") || !strcmp(lower, "tspan") || !strcmp(lower, "desc") || !strcmp(lower, "li") || !strcmp(lower, "dd") || !strcmp(lower, "tr");
-    free(lower);
-    return res;
-}
-
-int isInline(const char *nodeName) {
-    char *lower = xml_toLowerCase(nodeName);
-    int res = !strcmp(lower, "a") || !strcmp(lower, "span") || !strcmp(lower, "font") || !strcmp(lower, "b") || !strcmp(lower, "i") || !strcmp(lower, "img") || !strcmp(lower, "strong") || !strcmp(lower, "em") || !strcmp(lower, "sup") || !strcmp(lower, "td");
-    free(lower);
-    return res;
 }
 
 char *HTML_getTabsRepeated(int amount) {
@@ -199,9 +183,11 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 }
             }
 
+            struct css_style elementStyling = CSS_getDefaultStylesFromElement(node, attributes);
+
             char *lower = xml_toLowerCase(node.name);
             int hLevel = HTML_headerLevel(node.name);
-            if ((isBlock(&node) && (!hasBlocked || !strcmp(lower, "p") || hLevel)) || (!isBlock(&node) && hasBlocked)) {
+            if ((CSS_isStyleBlock(elementStyling) && (!hasBlocked || !strcmp(lower, "p") || hLevel)) || (!CSS_isStyleBlock(elementStyling) && hasBlocked)) {
                 strcat(alloc, "\n");
             }
 
@@ -209,17 +195,25 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 strcat(alloc, "\n");
             } else if (!strcmp(lower, "hr")) {
                 strcat(alloc, "\\h");
-            } else if (shouldBeDisplayed(node.name)) {
-                if (!strcmp(lower, "dd")) {
+            } else if (!CSS_isStyleHidden(elementStyling)) {
+                if (elementStyling.tabbed) {
                     strcat(alloc, "\\t");
                 }
-                if (!strcmp(lower, "i") || !strcmp(lower, "em")) {
+                if (elementStyling.italic) {
                     strcat(alloc, "\\i");
                 }
-                if (!strcmp(lower, "a")) {
-                    strcat(alloc, "\\4\\q");
+                if (elementStyling.underline) {
+                    strcat(alloc, "\\q");
                 }
-                if (!strcmp(lower, "b") || !strcmp(lower, "strong") || hLevel >= 1) {
+                switch (elementStyling.color) {
+                    case CSS_COLOR_RED:
+                        // TODO: support
+                        break;
+                    case CSS_COLOR_BLUE:
+                        strcat(alloc, "\\4");
+                        break;
+                }
+                if (elementStyling.bold || hLevel >= 1) {
                     strcat(alloc, "\\b");
                 }
 
@@ -305,23 +299,31 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
 
                 strcat(alloc, text);
 
-                if (!strcmp(lower, "b") || !strcmp(lower, "strong") || hLevel >= 1) {
+                if (elementStyling.bold || hLevel >= 1) {
                     strcat(alloc, "\\c");
                 }
-                if (!strcmp(lower, "i") || !strcmp(lower, "em")) {
+                if (elementStyling.italic) {
                     strcat(alloc, "\\j");
                 }
-                if (!strcmp(lower, "dd")) {
+                if (elementStyling.tabbed) {
                     strcat(alloc, "\\u");
                 }
-                if (!strcmp(lower, "a")) {
-                    strcat(alloc, "\\r\\0");
+                switch (elementStyling.color) {
+                    case CSS_COLOR_RED:
+                        // TODO: support
+                        break;
+                    case CSS_COLOR_BLUE:
+                        strcat(alloc, "\\0");
+                        break;
+                }
+                if (elementStyling.underline) {
+                    strcat(alloc, "\\r");
                 }
                 if (!strcmp(lower, "li")) {
                     listNestAmount --;
                 }
 
-                if (isInline(node.name) && strlen(text)) {
+                if (CSS_isDefaultInline(node.name) && strlen(text)) {
                     free(text);
                     free(lower);
                     freeXMLAttributes(attributes);
@@ -331,9 +333,11 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     continue;
                 }
                 free(text);
+            } else {
+                fprintf(stderr, "Not rendering node with name %s\n", lower);
             }
 
-            if (isBlock(&node)) {
+            if (CSS_isStyleBlock(elementStyling)) {
                 strcat(alloc, "\n");
                 hasBlocked = 1;
             } else {
