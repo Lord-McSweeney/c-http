@@ -333,8 +333,6 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     continue;
                 }
                 free(text);
-            } else {
-                fprintf(stderr, "Not rendering node with name %s\n", lower);
             }
 
             if (CSS_isStyleBlock(elementStyling)) {

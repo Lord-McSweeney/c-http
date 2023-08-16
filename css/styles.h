@@ -101,7 +101,6 @@ struct css_style CSS_getDefaultStylesFromElement(struct xml_node node, struct xm
     // CSS styling comes next: TODO
     // ...
     char *attrib = XML_getAttributeByName(attribs, "style");
-    fprintf(stderr, "style attribute: |%s|\n", attrib);
     if (attrib != NULL && (!strcmp(attrib, "display: none") || !strcmp(attrib, "display: none;") || !strcmp(attrib, "display: none:") || !strcmp(attrib, "display:none"))) {
         styling.display = DISPLAY_NONE;
     }
