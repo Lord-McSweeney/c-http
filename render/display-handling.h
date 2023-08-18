@@ -479,7 +479,6 @@ void render_nc(struct nc_state *browserState) {
                 browserState->buttons[i].x
             );
         }
-        curs_set(0);
     }
 
     for (int i = 0; i < numTextAreas; i ++) {
