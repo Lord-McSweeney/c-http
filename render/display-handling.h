@@ -281,6 +281,7 @@ void printText(int y, int x, char *text) {
     int italics = 0;
     int bold = 0;
     int underline = 0;
+    int strikethrough = 0;
     int doIndent = 0;
     int colorsP[64] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     int colorStackNum = 0;
@@ -351,6 +352,35 @@ void printText(int y, int x, char *text) {
                     }
                     break;
 
+                case 'y':
+                    strikethrough ++;
+                    if (strikethrough > 1048576) {
+                        // This limit should never be reached, but let's just make sure.
+                        strikethrough --;
+                    }
+                    break;
+                case 'z':
+                    if (strikethrough > 0) {
+                        strikethrough --;
+                    }
+                    break;
+
+                case '1':
+                    colorsP[colorStackNum] = 5;
+                    colorStackNum ++;
+                    if (colorStackNum > 62) {
+                        // This limit should (hopefully) never be reached, but let's just make sure.
+                        colorStackNum --;
+                    }
+                    break;
+                case '2':
+                    colorsP[colorStackNum] = 4;
+                    colorStackNum ++;
+                    if (colorStackNum > 62) {
+                        // This limit should (hopefully) never be reached, but let's just make sure.
+                        colorStackNum --;
+                    }
+                    break;
                 case '4':
                     colorsP[colorStackNum] = 3;
                     colorStackNum ++;
@@ -388,6 +418,10 @@ void printText(int y, int x, char *text) {
 
             if (underline) {
                 toPrint = toPrint | A_UNDERLINE;
+            }
+
+            if (strikethrough) {
+                // No ncurses support for strikethrough
             }
 
             if (colorStackNum) {
@@ -488,6 +522,8 @@ void initWindow() {
     init_pair(1, COLOR_WHITE, COLOR_BLACK);
     init_pair(2, COLOR_BLACK, COLOR_WHITE);
     init_pair(3, COLOR_BLUE, COLOR_BLACK);
+    init_pair(4, COLOR_GREEN, COLOR_BLACK);
+    init_pair(5, COLOR_RED, COLOR_BLACK);
 }
 
 void endProgram() {

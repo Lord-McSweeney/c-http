@@ -183,12 +183,22 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 }
             }
 
-            struct css_style elementStyling = CSS_getDefaultStylesFromElement(node, attributes);
+            struct css_styling elementStyling = CSS_getDefaultStylesFromElement(node, attributes);
 
             char *lower = xml_toLowerCase(node.name);
             int hLevel = HTML_headerLevel(node.name);
             if ((CSS_isStyleBlock(elementStyling) && (!hasBlocked || !strcmp(lower, "p") || hLevel)) || (!CSS_isStyleBlock(elementStyling) && hasBlocked)) {
                 strcat(alloc, "\n");
+            }
+
+            // Only the first <title> is taken into account- the rest aren't special
+            if (!strcmp(lower, "title") && state->title == NULL) {
+                state->title = recursiveXMLToText(&node, node.children, state, originalHTML, 0, 0, 0);
+                free(lower);
+                freeXMLAttributes(attributes);
+                freeXMLAttributes(parent_attributes);
+                hasBlocked = 0;
+                continue;
             }
 
             if (!strcmp(lower, "br")) {
@@ -207,7 +217,10 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 }
                 switch (elementStyling.color) {
                     case CSS_COLOR_RED:
-                        // TODO: support
+                        strcat(alloc, "\\1");
+                        break;
+                    case CSS_COLOR_GREEN:
+                        strcat(alloc, "\\2");
                         break;
                     case CSS_COLOR_BLUE:
                         strcat(alloc, "\\4");
@@ -255,17 +268,6 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 char *text = recursiveXMLToText(&node, node.children, state, originalHTML, avoidDisplay || isAvoidingDisplay, (hLevel >= 2) || uppercase, listNestAmount);
                 avoidDisplay = 0;
 
-                // Only the first <title> is taken into account- the rest are displayed
-                if (!strcmp(lower, "title") && state->title == NULL) {
-                    state->title = XML_makeStrCpy(text);
-                    free(text);
-                    free(lower);
-                    freeXMLAttributes(attributes);
-                    freeXMLAttributes(parent_attributes);
-                    hasBlocked = 0;
-                    continue;
-                }
-
                 if (!strcmp(lower, "img")) {
                     char *altText = XML_getAttributeByName(attributes, "alt");
                     if (altText) {
@@ -310,8 +312,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 }
                 switch (elementStyling.color) {
                     case CSS_COLOR_RED:
-                        // TODO: support
-                        break;
+                    case CSS_COLOR_GREEN:
                     case CSS_COLOR_BLUE:
                         strcat(alloc, "\\0");
                         break;

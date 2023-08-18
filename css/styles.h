@@ -1,23 +1,27 @@
 #include "../xml/html.h"
 #include "../xml/attributes.h"
+#include "parse.h"
+
+#ifndef _CSS_STYLES
+    #define _CSS_STYLES 1
 
 int CSS_isDefaultBlock(struct xml_node *node) {
     char *lower = xml_toLowerCase(node->name);
-    int res = !strcmp(lower, "div") || !strcmp(lower, "p") || !strcmp(lower, "hr") || !strcmp(lower, "header") || !strcmp(lower, "aside") || !strcmp(lower, "h1") || !strcmp(lower, "h2") || !strcmp(lower, "h3") || !strcmp(lower, "h4") || !strcmp(lower, "h5") || !strcmp(lower, "h6") || !strcmp(lower, "blockquote") || !strcmp(lower, "dt") || !strcmp(lower, "tspan") || !strcmp(lower, "desc") || !strcmp(lower, "li") || !strcmp(lower, "dd") || !strcmp(lower, "tr");
+    int res = !strcmp(lower, "div") || !strcmp(lower, "p") || !strcmp(lower, "hr") || !strcmp(lower, "header") || !strcmp(lower, "aside") || !strcmp(lower, "h1") || !strcmp(lower, "h2") || !strcmp(lower, "h3") || !strcmp(lower, "h4") || !strcmp(lower, "h5") || !strcmp(lower, "h6") || !strcmp(lower, "blockquote") || !strcmp(lower, "dt") || !strcmp(lower, "tspan") || !strcmp(lower, "desc") || !strcmp(lower, "li") || !strcmp(lower, "dd") || !strcmp(lower, "tr") || !strcmp(lower, "button");
     free(lower);
     return res;
 }
 
 int CSS_isDefaultInline(const char *nodeName) {
     char *lower = xml_toLowerCase(nodeName);
-    int res = !strcmp(lower, "a") || !strcmp(lower, "span") || !strcmp(lower, "font") || !strcmp(lower, "b") || !strcmp(lower, "i") || !strcmp(lower, "img") || !strcmp(lower, "strong") || !strcmp(lower, "em") || !strcmp(lower, "sup") || !strcmp(lower, "td");
+    int res = !strcmp(lower, "a") || !strcmp(lower, "span") || !strcmp(lower, "font") || !strcmp(lower, "b") || !strcmp(lower, "i") || !strcmp(lower, "img") || !strcmp(lower, "strong") || !strcmp(lower, "em") || !strcmp(lower, "sup") || !strcmp(lower, "td") || !strcmp(lower, "input");
     free(lower);
     return res;
 }
 
 int CSS_isDefaultHidden(const char *nodeName) {
     char *lower = xml_toLowerCase(nodeName);
-    int res = !strcmp(lower, "script") || !strcmp(lower, "style");
+    int res = !strcmp(lower, "script") || !strcmp(lower, "style") || !strcmp(lower, "head") || !strcmp(lower, "meta") || !strcmp(lower, "link") || !strcmp(lower, "title");
     free(lower);
     return res;
 }
@@ -27,17 +31,19 @@ enum css_display {
     DISPLAY_BLOCK,
     DISPLAY_NONE,
     DISPLAY_FLEX, // not yet implemented
+    DISPLAY_DEFAULT,
     DISPLAY_UNKNOWN, // default
 };
 
 enum css_color {
     CSS_COLOR_RED,
     CSS_COLOR_BLUE,
+    CSS_COLOR_GREEN,
     CSS_COLOR_BLACK,
     CSS_COLOR_UNKNOWN, // default
 };
 
-struct css_style {
+struct css_styling {
     int bold;
     int italic;
     int underline;
@@ -47,22 +53,31 @@ struct css_style {
     enum css_display display;
 };
 
-int CSS_isStyleBlock(struct css_style style) {
+int CSS_isStyleBlock(struct css_styling style) {
     return style.display == DISPLAY_BLOCK;
 }
 
-int CSS_isStyleInline(struct css_style style) {
+int CSS_isStyleInline(struct css_styling style) {
     return style.display == DISPLAY_INLINE;
 }
 
-int CSS_isStyleHidden(struct css_style style) {
+int CSS_isStyleHidden(struct css_styling style) {
     return style.display == DISPLAY_NONE;
 }
 
-struct css_style CSS_getDefaultStylesFromElement(struct xml_node node, struct xml_attributes *attribs) {
-    struct css_style styling;
+enum css_display CSS_styleNameToDisplay(char *name) {
+    if (name == NULL) return DISPLAY_DEFAULT;
+    if (!strcmp(name, "inline")) return DISPLAY_INLINE;
+    if (!strcmp(name, "block")) return DISPLAY_BLOCK;
+    if (!strcmp(name, "none")) return DISPLAY_NONE;
+    if (!strcmp(name, "flex")) return DISPLAY_FLEX;
+    return DISPLAY_DEFAULT;
+}
+
+struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct xml_attributes *attribs) {
+    struct css_styling styling;
     styling.display = DISPLAY_UNKNOWN;
-    styling.color = COLOR_BLACK;
+    styling.color = CSS_COLOR_BLACK;
     styling.bold = 0;
     styling.italic = 0;
     styling.underline = 0;
@@ -98,13 +113,46 @@ struct css_style CSS_getDefaultStylesFromElement(struct xml_node node, struct xm
     }
 
 
-    // CSS styling comes next: TODO
-    // ...
+    // TODO: support more styles
     char *attrib = XML_getAttributeByName(attribs, "style");
-    if (attrib != NULL && (!strcmp(attrib, "display: none") || !strcmp(attrib, "display: none;") || !strcmp(attrib, "display: none:") || !strcmp(attrib, "display:none"))) {
-        styling.display = DISPLAY_NONE;
+    if (attrib != NULL) {
+        struct css_styles styles = CSS_makeEmptyStyles();
+        CSS_parseInlineStyles(&styles, attrib);
+
+        char *displayStyle = CSS_getStyleByName(&styles, "display");
+
+        enum css_display display = CSS_styleNameToDisplay(displayStyle);
+        if (display != DISPLAY_DEFAULT) {
+            styling.display = display;
+        }
+
+
+        char *textDecorationStyle = CSS_getStyleByName(&styles, "text-decoration");
+        if (textDecorationStyle != NULL) {
+            if (!strcmp(textDecorationStyle, "underline")) {
+                styling.underline = 1;
+            } else if (!strcmp(textDecorationStyle, "line-through")) {
+                styling.strikethrough = 1;
+            } else {
+                fprintf(stderr, "Warning: Unsupported text-decoration \"%s\"\n", textDecorationStyle);
+            }
+        }
+
+
+        char *colorStyle = CSS_getStyleByName(&styles, "color");
+        if (colorStyle != NULL) {
+            if (!strcmp(colorStyle, "blue")) {
+                styling.color = CSS_COLOR_BLUE;
+            } else if (!strcmp(colorStyle, "lime") || !strcmp(colorStyle, "green")) {
+                styling.color = CSS_COLOR_GREEN;
+            } else if (!strcmp(colorStyle, "red")) {
+                styling.color = CSS_COLOR_RED;
+            }
+        }
     }
 
     free(lower);
     return styling;
 }
+
+#endif

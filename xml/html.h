@@ -4,11 +4,11 @@
     #define _XML_HTML 1
 
 #define html_numVoidElements 18
-#define html_numChildlessElements 2
 #define html_numClosingElements 2
+#define html_numChildlessElements 3
 char html_voidElements[][16] = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr", "command", "keygen", "menuitem", "frame"};
 char html_closingElements[][8] = {"p", "li"};
-char html_childlessElements[][8] = {"script", "style"};
+char html_childlessElements[][8] = {"script", "style", "title"};
 
 struct xml_data {
     char *data;
@@ -349,9 +349,10 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                 if (curChar == '<') {
                     int isScriptTag = (nextChar == '/' && nextChar2 == 's' && nextChar3 == 'c' && nextChar4 == 'r' && nextChar5 == 'i' && nextChar6 == 'p' && nextChar7 == 't' && nextChar8 == '>');
                     int isStyleTag = (nextChar == '/' && nextChar2 == 's' && nextChar3 == 't' && nextChar4 == 'y' && nextChar5 == 'l' && nextChar6 == 'e' && nextChar7 == '>');
+                    int isTitleTag = (nextChar == '/' && nextChar2 == 't' && nextChar3 == 'i' && nextChar4 == 't' && nextChar5 == 'l' && nextChar6 == 'e' && nextChar7 == '>');
                     
                     // why, HTML?
-                    if ((strcmp(closingTag, "script") || isScriptTag) && (strcmp(closingTag, "style") || isStyleTag)) {
+                    if ((strcmp(closingTag, "script") || isScriptTag) && (strcmp(closingTag, "style") || isStyleTag) && (strcmp(closingTag, "title") || isTitleTag)) {
                         struct xml_node node = XML_createXMLText(XML_makeStrCpy(currentTextContent));
                         XML_appendChild(&response, node);
                         currentTextContentUsage = 0;
@@ -519,32 +520,33 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                         error_xml.error = 3;
                         return error_xml;
                     }
-                }
-                if (!doneParsingName) {
-                    currentElementNameUsage ++;
-                    if (currentElementNameUsage > 254) {
-                        free(currentTextContent);
-                        free(currentDoctypeContent);
-                        free(currentElementName);
-                        free(currentAttributeContent);
-
-                        error_xml.error = 2;
-                        return error_xml;
-                    }
-                    startedParsingName = 1;
-                    currentElementName[strlen(currentElementName)] = curChar;
                 } else {
-                    currentAttributeContentUsage ++;
-                    if (currentAttributeContentUsage > 16382) {
-                        free(currentTextContent);
-                        free(currentDoctypeContent);
-                        free(currentElementName);
-                        free(currentAttributeContent);
+                    if (!doneParsingName) {
+                        currentElementNameUsage ++;
+                        if (currentElementNameUsage > 254) {
+                            free(currentTextContent);
+                            free(currentDoctypeContent);
+                            free(currentElementName);
+                            free(currentAttributeContent);
 
-                        error_xml.error = 2;
-                        return error_xml;
+                            error_xml.error = 2;
+                            return error_xml;
+                        }
+                        startedParsingName = 1;
+                        currentElementName[strlen(currentElementName)] = curChar;
+                    } else {
+                        currentAttributeContentUsage ++;
+                        if (currentAttributeContentUsage > 16382) {
+                            free(currentTextContent);
+                            free(currentDoctypeContent);
+                            free(currentElementName);
+                            free(currentAttributeContent);
+
+                            error_xml.error = 2;
+                            return error_xml;
+                        }
+                        currentAttributeContent[strlen(currentAttributeContent)] = curChar;
                     }
-                    currentAttributeContent[strlen(currentAttributeContent)] = curChar;
                 }
                 break;
             case PARSE_ELEMENT_END_SLASH:
@@ -686,7 +688,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                 currentTextContent[strlen(currentTextContent)] = curChar;
                 break;
             case PARSE_UNKNOWN:
-                if (curChar == '<') {
+                if (curChar == '<' && !html_isChildlessElement(xml_toLowerCase(parentClosingTag))) {
                     currentIndex = 0;
                     currentState = PARSE_ELEMENT_NAME;
                 } else {
