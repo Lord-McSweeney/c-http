@@ -211,7 +211,7 @@ struct xml_attrib_result XML_parseAttributes(char *inputString) {
                 }
                 break;
             case APARSE_UNKNOWN:
-                if (curChar != ' ') {
+                if (curChar != ' ' && curChar != '\n') {
                     if (curChar == '=' || curChar == '\'' || curChar == '"') {
                         free(currentDataContent);
                         return errResult;
