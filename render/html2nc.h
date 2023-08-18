@@ -187,7 +187,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
 
             char *lower = xml_toLowerCase(node.name);
             int hLevel = HTML_headerLevel(node.name);
-            if ((CSS_isStyleBlock(elementStyling) && (!hasBlocked || !strcmp(lower, "p") || hLevel)) || (!CSS_isStyleBlock(elementStyling) && hasBlocked)) {
+            if ((CSS_isStyleBlock(elementStyling) && (!hasBlocked || !strcmp(lower, "p") || hLevel)) || (!CSS_isStyleBlock(elementStyling) && hasBlocked) && !isAvoidingDisplay) {
                 strcat(alloc, "\n");
             }
 
@@ -201,11 +201,13 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 continue;
             }
 
-            if (!strcmp(lower, "br")) {
+            if (!strcmp(lower, "br") && !isAvoidingDisplay) {
                 strcat(alloc, "\n");
-            } else if (!strcmp(lower, "hr")) {
+            } else if (!strcmp(lower, "hr") && !isAvoidingDisplay) {
                 strcat(alloc, "\\h");
-            } else if (!CSS_isStyleHidden(elementStyling)) {
+            } else {
+                int isVisible = !CSS_isStyleHidden(elementStyling);
+
                 if (elementStyling.tabbed) {
                     strcat(alloc, "\\t");
                 }
@@ -230,7 +232,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     strcat(alloc, "\\b");
                 }
 
-                if (!strcmp(lower, "li")) {
+                if (!strcmp(lower, "li") && isVisible) {
                     char *tabs = HTML_getTabsRepeated(listNestAmount);
                     strcat(alloc, tabs);
                     free(tabs);
@@ -261,14 +263,14 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 }
 
                 int avoidDisplay = 0;
-                if (!strcmp(lower, "svg") || !strcmp(lower, "select")) {
+                if (!strcmp(lower, "svg") || !strcmp(lower, "select") || !isVisible) {
                     avoidDisplay = 1;
                 }
 
                 char *text = recursiveXMLToText(&node, node.children, state, originalHTML, avoidDisplay || isAvoidingDisplay, (hLevel >= 2) || uppercase, listNestAmount);
                 avoidDisplay = 0;
 
-                if (!strcmp(lower, "img")) {
+                if (!strcmp(lower, "img") && isVisible) {
                     char *altText = XML_getAttributeByName(attributes, "alt");
                     if (altText) {
                         if (strlen(altText)) {
@@ -289,7 +291,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     continue;
                 }
 
-                if (!strcmp(lower, "select")) {
+                if (!strcmp(lower, "select") && isVisible) {
                     strcat(alloc, "[SELECT]");
                     free(text);
                     free(lower);
@@ -336,7 +338,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 free(text);
             }
 
-            if (CSS_isStyleBlock(elementStyling)) {
+            if (CSS_isStyleBlock(elementStyling) && !CSS_isStyleHidden(elementStyling)) {
                 strcat(alloc, "\n");
                 hasBlocked = 1;
             } else {
