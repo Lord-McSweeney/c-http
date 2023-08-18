@@ -230,7 +230,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     strcat(alloc, "\\b");
                 }
 
-                if (!strcmp(lower, "li") && parent != NULL) {
+                if (!strcmp(lower, "li")) {
                     char *tabs = HTML_getTabsRepeated(listNestAmount);
                     strcat(alloc, tabs);
                     free(tabs);
