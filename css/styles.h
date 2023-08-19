@@ -14,7 +14,7 @@ int CSS_isDefaultBlock(struct xml_node *node) {
 
 int CSS_isDefaultInline(const char *nodeName) {
     char *lower = xml_toLowerCase(nodeName);
-    int res = !strcmp(lower, "a") || !strcmp(lower, "span") || !strcmp(lower, "font") || !strcmp(lower, "b") || !strcmp(lower, "i") || !strcmp(lower, "img") || !strcmp(lower, "strong") || !strcmp(lower, "em") || !strcmp(lower, "sup") || !strcmp(lower, "td") || !strcmp(lower, "input");
+    int res = !strcmp(lower, "a") || !strcmp(lower, "span") || !strcmp(lower, "font") || !strcmp(lower, "b") || !strcmp(lower, "i") || !strcmp(lower, "u") || !strcmp(lower, "img") || !strcmp(lower, "strong") || !strcmp(lower, "em") || !strcmp(lower, "sup") || !strcmp(lower, "td") || !strcmp(lower, "input");
     free(lower);
     return res;
 }
@@ -104,6 +104,9 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
     }
     if (!strcmp(lower, "i") || !strcmp(lower, "em")) {
         styling.italic = 1;
+    }
+    if (!strcmp(lower, "u")) {
+        styling.underline = 1;
     }
     if (!strcmp(lower, "s")) {
         styling.strikethrough = 1;
