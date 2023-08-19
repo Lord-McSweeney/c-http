@@ -1,4 +1,9 @@
 #include <ncurses.h>
+#include <string.h>
+#include <stdlib.h>
+
+#ifndef _DSP_HANDLING
+    #define _DSP_HANDLING 1
 
 typedef void (*clickHandler)(void *, char *);
 
@@ -68,14 +73,16 @@ struct nc_selected selectableFromTextarea(struct nc_text_area *textarea) {
 
 struct nc_state {
     enum nc_page currentPage;
-    
+
     struct nc_text_area text_areas[256];
     struct nc_button buttons[256];
     struct nc_text texts[256];
     int numTextAreas;
     int numButtons;
     int numTexts;
-    
+
+    int initialButtons; // Number of buttons right after initialization
+
     struct nc_selected *selectables;
     int numSelectables;
     int selectableIndex;
@@ -260,7 +267,7 @@ char *repeatChar(char c, int times) {
     return mem;
 }
 
-void printText(int y, int x, char *text) {
+void printText(int y, int x, char *text, int invertColors) {
     int mx;
     int my;
     getmaxyx(stdscr, my, mx);
@@ -424,10 +431,18 @@ void printText(int y, int x, char *text) {
                 // No ncurses support for strikethrough
             }
 
-            if (colorStackNum) {
-                attron(COLOR_PAIR(colorsP[colorStackNum - 1]));
+            if (invertColors) {
+                if (colorStackNum) {
+                    attron(COLOR_PAIR(256 - colorsP[colorStackNum - 1]));
+                } else {
+                    attron(COLOR_PAIR(255));
+                }
             } else {
-                attron(COLOR_PAIR(1));
+                if (colorStackNum) {
+                    attron(COLOR_PAIR(colorsP[colorStackNum - 1]));
+                } else {
+                    attron(COLOR_PAIR(1));
+                }
             }
 
             mvaddch(realPosY, realPosX, toPrint);
@@ -453,25 +468,18 @@ void render_nc(struct nc_state *browserState) {
     int numButtons = browserState->numButtons;
     for (int i = 0; i < numTexts; i ++) {
         if (browserState->texts[i].visible) {
-            printText(browserState->texts[i].y, browserState->texts[i].x, browserState->texts[i].text);
+            printText(browserState->texts[i].y, browserState->texts[i].x, browserState->texts[i].text, 0);
         }
     }
     curs_set(0);
 
     for (int i = 0; i < numButtons; i ++) {
         if (browserState->buttons[i].visible) {
-            attron(COLOR_PAIR(1));
-            if (browserState->buttons[i].selected) {
-                attron(COLOR_PAIR(255));
-            }
-            mvprintw(
-                browserState->buttons[i].y,
-                browserState->buttons[i].x,
-                browserState->buttons[i].text
-            );
-            attron(COLOR_PAIR(1));
+            printText(browserState->buttons[i].y, browserState->buttons[i].x, browserState->buttons[i].text, browserState->buttons[i].selected);
         }
     }
+
+    attron(COLOR_PAIR(1));
     for (int i = 0; i < numButtons; i ++) {
         if (browserState->buttons[i].selected) {
             move(
@@ -530,7 +538,13 @@ void initWindow() {
     createColorPair(5, COLOR_RED, COLOR_BLACK);
 }
 
+void nc_onInitFinish(struct nc_state *state) {
+    state->initialButtons = state->numButtons;
+}
+
 void endProgram() {
     endwin();
     exit(0);
 }
+
+#endif
