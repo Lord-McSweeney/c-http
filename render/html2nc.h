@@ -187,7 +187,23 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
 
             char *lower = xml_toLowerCase(node.name);
             int hLevel = HTML_headerLevel(node.name);
-            if ((CSS_isStyleBlock(elementStyling) && (!hasBlocked || !strcmp(lower, "p") || hLevel)) || (!CSS_isStyleBlock(elementStyling) && hasBlocked) && !isAvoidingDisplay) {
+            if (
+                (
+                    (
+                        CSS_isStyleBlock(elementStyling)
+                         && 
+                        (!hasBlocked || !strcmp(lower, "p") || hLevel)
+                    )
+                    ||
+                    (
+                        !CSS_isStyleBlock(elementStyling)
+                         && 
+                        hasBlocked
+                    )
+                )
+                 && 
+                !isAvoidingDisplay
+               ) {
                 strcat(alloc, "\n");
             }
 

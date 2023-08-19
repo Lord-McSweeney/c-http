@@ -462,7 +462,7 @@ void render_nc(struct nc_state *browserState) {
         if (browserState->buttons[i].visible) {
             attron(COLOR_PAIR(1));
             if (browserState->buttons[i].selected) {
-                attron(COLOR_PAIR(2));
+                attron(COLOR_PAIR(255));
             }
             mvprintw(
                 browserState->buttons[i].y,
@@ -485,7 +485,7 @@ void render_nc(struct nc_state *browserState) {
         if (browserState->text_areas[i].visible) {
             attron(COLOR_PAIR(1));
             if (browserState->text_areas[i].selected) {
-                attron(COLOR_PAIR(2));
+                attron(COLOR_PAIR(255));
             }
 
             char *renderResult = getTextAreaRendered(browserState->text_areas[i]);
@@ -512,17 +512,22 @@ void render_nc(struct nc_state *browserState) {
     // `refresh` is automatically called by getch, called after render_nc
 }
 
+void createColorPair(char num, int fgColor, int bgColor) {
+    init_pair(num, fgColor, bgColor);
+    init_pair(256 - num, bgColor, fgColor);
+}
+
 void initWindow() {
     initscr();
     cbreak();
     noecho();
     keypad(stdscr, TRUE);
     start_color();
-    init_pair(1, COLOR_WHITE, COLOR_BLACK);
-    init_pair(2, COLOR_BLACK, COLOR_WHITE);
-    init_pair(3, COLOR_BLUE, COLOR_BLACK);
-    init_pair(4, COLOR_GREEN, COLOR_BLACK);
-    init_pair(5, COLOR_RED, COLOR_BLACK);
+    createColorPair(1, COLOR_WHITE, COLOR_BLACK);
+
+    createColorPair(3, COLOR_BLUE, COLOR_BLACK);
+    createColorPair(4, COLOR_GREEN, COLOR_BLACK);
+    createColorPair(5, COLOR_RED, COLOR_BLACK);
 }
 
 void endProgram() {

@@ -100,10 +100,6 @@ char *trimWhiteSpaceAtEndOfString(const char *string) {
 // This will add/overwrite the styles to the styles pointer passed to the function.
 // The function is infallible. Large CSS (names/values >16384 bytes) will simply be ignored.
 void CSS_parseInlineStyles(struct css_styles *styles, char *inputString) {
-    struct css_styles resultStyles;
-    resultStyles.count = 0;
-    resultStyles.styles = NULL;
-
     int currentState = CSS_PARSE_UNKNOWN;
 
     struct css_style currentStyle;
