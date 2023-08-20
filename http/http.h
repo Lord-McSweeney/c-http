@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "../socket/socket.h"
 #include "response.h"
 #include "chunked.h"
@@ -52,19 +53,11 @@ struct http_url* http_url_from_string(char *string) {
 
     int urllen = strlen(string);
     
-    // Special percent-encoded characters
-    int numSpecial = 0;
-    for (int i = 0; i < urllen; i ++) {
-        if (string[i] == ' ') {
-            numSpecial ++;
-        }
-    }
-    
-    char *protocol = (char *) calloc(urllen + numSpecial * 3 + 1, sizeof(char));
-    char *hostname = (char *) calloc(urllen + numSpecial * 3 + 1, sizeof(char));
-    char *port = (char *) calloc(urllen + numSpecial * 3 + 5, sizeof(char));
-    char *path = (char *) calloc(urllen + numSpecial * 3 + 1, sizeof(char));
-    char *fragment = (char *) calloc(urllen + numSpecial * 3, sizeof(char));
+    char *protocol = (char *) calloc(urllen + 2, sizeof(char));
+    char *hostname = (char *) calloc(urllen + 2, sizeof(char));
+    char *port = (char *) calloc(urllen + 6, sizeof(char));
+    char *path = (char *) calloc(urllen + 2, sizeof(char));
+    char *fragment = (char *) calloc(urllen + 1, sizeof(char));
     
     int currentState = HTTP_PROTOCOL;
     int currentIndex = 0;
@@ -170,11 +163,20 @@ struct http_url* http_url_from_string(char *string) {
                     currentIndex = 0;
                     break;
                 }
-                if (curChar == ' ') {
-                    path[strlen(path)] = '%';
-                    path[strlen(path)] = '2';
-                    path[strlen(path)] = '0';
-                    break;
+                if (curChar == '%') {
+                    if (urllen - i >= 2) {
+                        char next1 = string[i + 1];
+                        char next2 = string[i + 2];
+                        if (next1 >= '0' && next1 <= '9' && next2 >= '0' && next2 <= '9') {
+                            char *txt = (char *) calloc(3, sizeof(char));
+                            txt[0] = next1;
+                            txt[1] = next2;
+                            long int num = strtol(txt, NULL, 16);
+                            path[strlen(path)] = (char) num;
+                            i += 2;
+                            break;
+                        }
+                    }
                 }
                 path[strlen(path)] = curChar;
                 break;

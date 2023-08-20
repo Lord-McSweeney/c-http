@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdlib.h>
 
 #ifndef _XML_HTML
     #define _XML_HTML 1

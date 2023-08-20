@@ -71,6 +71,64 @@ void freeXMLAttributes(struct xml_attributes *attribs) {
     free(attribs);
 }
 
+char *XML_parseHTMLEscapes(const char *content) {
+    int numEscapes = 18;
+    char entities[][8] =    {"lt", "gt", "amp", "nbsp", "quot", "copy", "raquo", "#32", "#039", "#91", "#93", "#160", "#171", "#187", "#8211", "#8212", "#8230", "#8260"};
+    char replaceWith[][4] = {"<",  ">",  "&",   " ",    "\"",   "C",    ">>",    " ",   "'",    "[",    "]",  " ",    "<<",   ">>",   "--",    "--",    "...",   "/"};
+
+
+    int numSlashes = 0;
+    for (int i = 0; i < strlen(content); i ++) {
+        if (content[i] == '\\') {
+            numSlashes ++;
+        }
+    }
+
+    char *allocated = (char *) calloc(strlen(content) + numSlashes + 1, sizeof(char));
+    int len = strlen(content);
+    int realIndex = 0;
+    int foundEscape = 0;
+    for (int i = 0; i < len; i ++) {
+        char curChar = content[i];
+
+        if (curChar == '&') {
+            foundEscape = 0;
+            for (int j = 0; j < numEscapes; j ++) {
+                int entLen = strlen(entities[j]);
+                // i + 1 to skip over the '&'
+                if (!strncmp(content + i + 1, entities[j], entLen)) {
+                    int replaceLength = strlen(replaceWith[j]);
+                    int k;
+                    for (k = 0; k < replaceLength; k ++) {
+                        allocated[realIndex + k] = replaceWith[j][0];
+                    }
+
+                    i += entLen + 1;
+                    realIndex += k;
+
+                    if (content[i] != ';') i --;
+                    foundEscape = 1;
+                }
+            }
+
+            if (!foundEscape) {
+                allocated[realIndex] = curChar;
+                realIndex ++;
+            }
+        } else if (curChar == '\\') {
+            allocated[realIndex] = curChar;
+            allocated[realIndex + 1] = curChar;
+            realIndex += 2;
+        } else {
+            allocated[realIndex] = curChar;
+            realIndex ++;
+        }
+    }
+    char *newText = XML_makeStrCpy(allocated);
+    free(allocated);
+    return newText;
+}
+
 // Error codes:
 /*
     1: Invalid XML
@@ -133,7 +191,7 @@ struct xml_attrib_result XML_parseAttributes(char *inputString) {
                 break;
             case APARSE_ATTRIBUTE_SINGLE_QUOTED_VALUE:
                 if (curChar == '\'') {
-                    currentAttrib.value = XML_makeStrCpy(currentDataContent);
+                    currentAttrib.value = XML_parseHTMLEscapes(currentDataContent);
                     currentDataUsage = 0;
                     XML_clrStr(currentDataContent);
 
@@ -156,7 +214,7 @@ struct xml_attrib_result XML_parseAttributes(char *inputString) {
                 break;
             case APARSE_ATTRIBUTE_DOUBLE_QUOTED_VALUE:
                 if (curChar == '"') {
-                    currentAttrib.value = XML_makeStrCpy(currentDataContent);
+                    currentAttrib.value = XML_parseHTMLEscapes(currentDataContent);
                     currentDataUsage = 0;
                     XML_clrStr(currentDataContent);
 
@@ -188,7 +246,7 @@ struct xml_attrib_result XML_parseAttributes(char *inputString) {
                     if (currentIndex == 1) {
                         // this should be unreachable
                     } else {
-                        currentAttrib.value = XML_makeStrCpy(currentDataContent);
+                        currentAttrib.value = XML_parseHTMLEscapes(currentDataContent);
                         currentDataUsage = 0;
                         XML_clrStr(currentDataContent);
 
