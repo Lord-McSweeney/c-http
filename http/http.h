@@ -5,6 +5,8 @@
 #include "response.h"
 #include "chunked.h"
 
+// see https://aticleworld.com/ssl-server-client-using-openssl-in-c/ for TLS 1.2 example
+
 #ifndef _HTTP_HTTP
 
     #define _HTTP_HTTP 1

@@ -7,7 +7,7 @@
 
 int CSS_isDefaultBlock(struct xml_node *node) {
     char *lower = xml_toLowerCase(node->name);
-    int res = !strcmp(lower, "div") || !strcmp(lower, "p") || !strcmp(lower, "hr") || !strcmp(lower, "header") || !strcmp(lower, "aside") || !strcmp(lower, "h1") || !strcmp(lower, "h2") || !strcmp(lower, "h3") || !strcmp(lower, "h4") || !strcmp(lower, "h5") || !strcmp(lower, "h6") || !strcmp(lower, "blockquote") || !strcmp(lower, "dt") || !strcmp(lower, "tspan") || !strcmp(lower, "desc") || !strcmp(lower, "li") || !strcmp(lower, "dd") || !strcmp(lower, "tr") || !strcmp(lower, "button");
+    int res = !strcmp(lower, "div") || !strcmp(lower, "p") || !strcmp(lower, "hr") || !strcmp(lower, "header") || !strcmp(lower, "aside") || !strcmp(lower, "h1") || !strcmp(lower, "h2") || !strcmp(lower, "h3") || !strcmp(lower, "h4") || !strcmp(lower, "h5") || !strcmp(lower, "h6") || !strcmp(lower, "blockquote") || !strcmp(lower, "dt") || !strcmp(lower, "tspan") || !strcmp(lower, "li") || !strcmp(lower, "dd") || !strcmp(lower, "tr") || !strcmp(lower, "button");
     free(lower);
     return res;
 }
@@ -21,7 +21,7 @@ int CSS_isDefaultInline(const char *nodeName) {
 
 int CSS_isDefaultHidden(const char *nodeName) {
     char *lower = xml_toLowerCase(nodeName);
-    int res = !strcmp(lower, "script") || !strcmp(lower, "style") || !strcmp(lower, "head") || !strcmp(lower, "meta") || !strcmp(lower, "link") || !strcmp(lower, "title");
+    int res = !strcmp(lower, "script") || !strcmp(lower, "style") || !strcmp(lower, "head") || !strcmp(lower, "meta") || !strcmp(lower, "link") || !strcmp(lower, "title") || !strcmp(lower, "svg");
     free(lower);
     return res;
 }

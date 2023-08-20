@@ -134,7 +134,7 @@ struct html2nc_result {
     char *title;
 };
 
-char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct html2nc_state *state, char *originalHTML, int isAvoidingDisplay, int uppercase, int listNestAmount) {
+char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct html2nc_state *state, char *originalHTML, int uppercase, int listNestAmount) {
     char *alloc = (char *) calloc(strlen(originalHTML) + 2, sizeof(char));
 
     int currentOrderedListNum = 1;
@@ -148,20 +148,17 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
         if (node.type == NODE_DOCTYPE || node.type == NODE_COMMENT) {
             // ignore
         } else if (node.type == NODE_TEXT) {
-            // SVGs should not have text within them
-            if (!isAvoidingDisplay) {
-                char *text = getXMLTrimmedTextContent(node.text_content, justHadInlineInsideBlockWithText);
-                char *allocated = parseHTMLEscapes(text);
-                if (uppercase) {
-                    char *upper = xml_toUpperCase(allocated);
-                    strcat(alloc, upper);
-                    free(upper);
-                } else {
-                    strcat(alloc, allocated);
-                }
-                free(text);
-                free(allocated);
+            char *text = getXMLTrimmedTextContent(node.text_content, justHadInlineInsideBlockWithText);
+            char *allocated = parseHTMLEscapes(text);
+            if (uppercase) {
+                char *upper = xml_toUpperCase(allocated);
+                strcat(alloc, upper);
+                free(upper);
+            } else {
+                strcat(alloc, allocated);
             }
+            free(text);
+            free(allocated);
             hasBlocked = 0;
             justHadInlineInsideBlockWithText = 1;
             continue; // necesssary because justHadInlineInsideBlockWithText gets reset at the end of the loop
@@ -205,14 +202,14 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     )
                 )
                  && 
-                !isAvoidingDisplay
+                !CSS_isStyleHidden(elementStyling)
                ) {
                 strcat(alloc, "\n");
             }
 
             // Only the first <title> is taken into account- the rest aren't special
             if (!strcmp(lower, "title") && state->title == NULL) {
-                state->title = recursiveXMLToText(&node, node.children, state, originalHTML, 0, 0, 0);
+                state->title = recursiveXMLToText(&node, node.children, state, originalHTML, 0, 0);
                 free(lower);
                 freeXMLAttributes(attributes);
                 freeXMLAttributes(parent_attributes);
@@ -220,9 +217,9 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 continue;
             }
 
-            if (!strcmp(lower, "br") && !isAvoidingDisplay) {
+            if (!strcmp(lower, "br") && !CSS_isStyleHidden(elementStyling)) {
                 strcat(alloc, "\n");
-            } else if (!strcmp(lower, "hr") && !isAvoidingDisplay) {
+            } else if (!strcmp(lower, "hr") && !CSS_isStyleHidden(elementStyling)) {
                 strcat(alloc, "\\h");
             } else {
                 int isVisible = !CSS_isStyleHidden(elementStyling);
@@ -285,13 +282,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     }
                 }
 
-                int avoidDisplay = 0;
-                if (!strcmp(lower, "svg") || !strcmp(lower, "select") || !isVisible) {
-                    avoidDisplay = 1;
-                }
-
-                char *text = recursiveXMLToText(&node, node.children, state, originalHTML, avoidDisplay || isAvoidingDisplay, (hLevel >= 2) || uppercase, listNestAmount);
-                avoidDisplay = 0;
+                char *text = recursiveXMLToText(&node, node.children, state, originalHTML, (hLevel >= 2) || uppercase, listNestAmount);
 
                 if (!strcmp(lower, "img") && isVisible) {
                     char *altText = XML_getAttributeByName(attributes, "alt");
@@ -324,7 +315,9 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     continue;
                 }
 
-                strcat(alloc, text);
+                if (isVisible) {
+                    strcat(alloc, text);
+                }
 
                 if (elementStyling.bold || hLevel >= 1) {
                     strcat(alloc, "\\c");
@@ -391,7 +384,7 @@ struct html2nc_result htmlToText(struct xml_list xml, char *originalHTML) {
     state.title = NULL;
     
     struct html2nc_result result;
-    result.text = recursiveXMLToText(NULL, xml, &state, originalHTML, 0, 0, 0);
+    result.text = recursiveXMLToText(NULL, xml, &state, originalHTML, 0, 0);
 
     // Default title, if title wasn't set
     if (state.title == NULL) {
