@@ -88,6 +88,7 @@ struct nc_state {
     int initialButtons; // Number of buttons right after initialization
     int globalScrollX;
     int globalScrollY;
+    int shouldCheckAutoScroll;
 
     struct nc_selected *selectables;
     int numSelectables;
@@ -111,6 +112,24 @@ struct nc_button *getCurrentSelectedButton(struct nc_state *state) {
             return &state->buttons[i];
         }
     }
+    return NULL;
+}
+
+int *getYPosOfCurrentSelected(struct nc_state *state) {
+    int *data = (int *) calloc(1, sizeof(int));
+    for (int i = 0; i < state->numButtons; i ++) {
+        if (state->buttons[i].selected && state->buttons[i].visible && state->buttons[i].enabled) {
+            data[0] = state->buttons[i].y;
+            return data;
+        }
+    }
+    for (int i = 0; i < state->numTextAreas; i ++) {
+        if (state->text_areas[i].selected && state->text_areas[i].visible) {
+            data[0] = state->text_areas[i].y;
+            return data;
+        }
+    }
+    free(data);
     return NULL;
 }
 
@@ -263,6 +282,24 @@ void updateFocus_nc(struct nc_state *state) {
         textarea->selected = 1;
     } else {
         // ...both are selected????????
+    }
+
+    if (state->shouldCheckAutoScroll) {
+        int mx;
+        int my;
+        getmaxyx(stdscr, my, mx);
+
+        int *yposp = getYPosOfCurrentSelected(state);
+        if (yposp != NULL) {
+            int ypos = (*yposp) + state->globalScrollY;
+            if (ypos < 0) {
+                state->globalScrollY = -(ypos - state->globalScrollY);
+            }
+            if (ypos > my - 1) {
+                state->globalScrollY = (-(ypos - state->globalScrollY) + my) - 1;
+            }
+            free(yposp);
+        }
     }
 }
 

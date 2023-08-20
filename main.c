@@ -146,6 +146,7 @@ void onKeyPress(struct nc_state *browserState, int ch) {/*
                     break;
                 }
             }
+            browserState->shouldCheckAutoScroll = 1;
             break;
         case '\t':
         case KEY_RIGHT:
@@ -166,6 +167,7 @@ void onKeyPress(struct nc_state *browserState, int ch) {/*
                     break;
                 }
             }
+            browserState->shouldCheckAutoScroll = 1;
             break;
         case 24: // CTRL+X
             closeCurrentWindow(browserState);
@@ -221,6 +223,7 @@ void *eventLoop(struct nc_state *state) {
             }
         }
         render_nc(state);
+        state->shouldCheckAutoScroll = 0;
         if (ch = getch()) {
             onKeyPress(state, ch);
         }
@@ -314,6 +317,7 @@ int main(int argc, char **argv) {
     browserState.selectableIndex = -1;
     browserState.globalScrollX = 0;
     browserState.globalScrollY = 0;
+    browserState.shouldCheckAutoScroll = 0;
 
     initWindow();
     initializeDisplayObjects(&browserState);
