@@ -39,8 +39,17 @@ enum css_color {
     CSS_COLOR_RED,
     CSS_COLOR_BLUE,
     CSS_COLOR_GREEN,
-    CSS_COLOR_BLACK,
-    CSS_COLOR_UNKNOWN, // default
+    CSS_COLOR_BLACK, // default
+    CSS_COLOR_UNKNOWN,
+};
+
+enum css_position {
+    POSITION_ABSOLUTE,
+    POSITION_RELATIVE,
+    POSITION_STATIC, // default
+    POSITION_FIXED,
+    POSITION_STICKY,
+    POSITION_UNKNOWN,
 };
 
 struct css_styling {
@@ -49,6 +58,7 @@ struct css_styling {
     int underline;
     int strikethrough;
     int tabbed;
+    enum css_position position;
     enum css_color color;
     enum css_display display;
 };
@@ -78,6 +88,7 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
     struct css_styling styling;
     styling.display = DISPLAY_UNKNOWN;
     styling.color = CSS_COLOR_BLACK;
+    styling.position = POSITION_STATIC;
     styling.bold = 0;
     styling.italic = 0;
     styling.underline = 0;
@@ -150,6 +161,24 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
                 styling.color = CSS_COLOR_GREEN;
             } else if (!strcmp(colorStyle, "red")) {
                 styling.color = CSS_COLOR_RED;
+            }
+        }
+
+
+        char *positionStyle = CSS_getStyleByName(&styles, "position");
+        if (positionStyle != NULL) {
+            if (!strcmp(positionStyle, "absolute")) {
+                styling.position = POSITION_ABSOLUTE;
+            } else if (!strcmp(positionStyle, "relative")) {
+                styling.position = POSITION_RELATIVE;
+            } else if (!strcmp(positionStyle, "static")) {
+                styling.position = POSITION_STATIC;
+            } else if (!strcmp(positionStyle, "fixed")) {
+                styling.position = POSITION_FIXED;
+            } else if (!strcmp(positionStyle, "sticky")) {
+                styling.position = POSITION_STICKY;
+            } else {
+                styling.position = POSITION_UNKNOWN;
             }
         }
     }
