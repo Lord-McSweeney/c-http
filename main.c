@@ -52,6 +52,7 @@ void openGotoPageDialog(struct nc_state *state) {
         state->currentPage = PAGE_GOTO_OVER_DOCUMENT;
         hideButtons(state);
     } else {
+        freeButtons(state);
         state->currentPage = PAGE_GOTO_DIALOG;
     }
     getTextByDescriptor(state, "helpText")->visible = 0;
@@ -78,6 +79,7 @@ void closeGotoPageDialog(struct nc_state *state) {
         getTextByDescriptor(state, "documentText")->visible = 1;
         showButtons(state);
     } else {
+        freeButtons(state);
         getTextByDescriptor(state, "documentText")->visible = 0;
         state->currentPage = PAGE_EMPTY;
         getTextByDescriptor(state, "helpText")->visible = 1;
@@ -162,21 +164,21 @@ void onKeyPress(struct nc_state *browserState, char ch) {
     } else if (browserState->currentPage == PAGE_DOCUMENT_LOADED) {
         struct nc_text *documentText = getTextByDescriptor(browserState, "documentText");
         if (ch == 3) {
-            if (documentText->y < 0) {
-               documentText->y ++;
+            if (browserState->globalScrollY < 0) {
+               browserState->globalScrollY ++;
             }
         } else if (ch == 2) {
             if (/*todo: make sure the page doesn't scroll too far down*/true) {
-                documentText->y --;
+               browserState->globalScrollY --;
             }
         } else if (ch == 4) {
             // left
-            if (documentText->x < 0) {
-               documentText->x ++;
+            if (browserState->globalScrollX < 0) {
+               browserState->globalScrollX ++;
             }
         } else if (ch == 5) {
             if (/*todo: make sure the page doesn't scroll too far right*/true) {
-                documentText->x --;
+               browserState->globalScrollX --;
             }
         }
     }
@@ -193,6 +195,12 @@ void *eventLoop(struct nc_state *state) {
     while (1) {
         char ch;
         updateFocus_nc(state);
+
+        for (int i = 0; i < state->numButtons; i ++) {
+            if (state->buttons[i].onclick == nc_templinkpresshandler) {
+                state->buttons[i].onclick = onlinkpressed;
+            }
+        }
         render_nc(state);
         if (ch = getch()) {
             onKeyPress(state, ch);
@@ -285,6 +293,8 @@ int main(int argc, char **argv) {
     browserState.selectables = (struct nc_selected *) calloc(0, sizeof(struct nc_selected));
     browserState.numSelectables = 0;
     browserState.selectableIndex = -1;
+    browserState.globalScrollX = 0;
+    browserState.globalScrollY = 0;
 
     initWindow();
     initializeDisplayObjects(&browserState);

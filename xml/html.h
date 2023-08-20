@@ -450,6 +450,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                 if (curChar == '>' && !isInsideString && !isInsideSingleQuoteString) {
                     if (startedParsingName) {
                         doneParsingName = 1;
+                        // TODO: Links have weirder behavior
                         if ((html_isClosingElement(currentElementName) && html_isClosingElement(closingTag)) || (!strcmp(currentElementName, "a") && !strcmp(closingTag, "a"))) {
                             struct xml_response realResponse;
                             realResponse.error = 0;

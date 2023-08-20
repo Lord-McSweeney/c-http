@@ -1,9 +1,11 @@
+#ifndef _DSP_HANDLING
+    #define _DSP_HANDLING 1
+
 #include <ncurses.h>
 #include <string.h>
 #include <stdlib.h>
-
-#ifndef _DSP_HANDLING
-    #define _DSP_HANDLING 1
+#include "../utils/string.h"
+#include "../xml/html.h"
 
 typedef void (*clickHandler)(void *, char *);
 
@@ -82,6 +84,8 @@ struct nc_state {
     int numTexts;
 
     int initialButtons; // Number of buttons right after initialization
+    int globalScrollX;
+    int globalScrollY;
 
     struct nc_selected *selectables;
     int numSelectables;
@@ -267,7 +271,9 @@ char *repeatChar(char c, int times) {
     return mem;
 }
 
-void printText(int y, int x, char *text, int invertColors) {
+void nc_templinkpresshandler(void *state, char *url) {}
+
+void printText(struct nc_state *state, int y, int x, char *text, int invertColors) {
     int mx;
     int my;
     getmaxyx(stdscr, my, mx);
@@ -290,9 +296,19 @@ void printText(int y, int x, char *text, int invertColors) {
     int underline = 0;
     int strikethrough = 0;
     int doIndent = 0;
+    int aboutToCreateButton = 0;
     int colorsP[64] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     int colorStackNum = 0;
+    int linkIdx = 1; // should be 1-indexed to avoid null bytes. Hopefully we will never hit 65536 links.
+    char *buttonSpace = (char *) calloc(strlen(text) + 1, sizeof(char));
+    int posx = 0;
+    int posy = 0;
     for (int i = 0; i < len; i ++) {
+        // This should be run no matter what
+        if (aboutToCreateButton) {
+            buttonSpace[strlen(buttonSpace)] = text[i];
+        }
+
         if (text[i] == '\\' && !escapeModeEnabled) {
             escapeModeEnabled = 1;
             continue;
@@ -329,6 +345,34 @@ void printText(int y, int x, char *text, int invertColors) {
                     if (italics > 0) {
                         italics --;
                     }
+                    break;
+
+                case 'm':
+                    aboutToCreateButton = 1;
+                    posx = realPosX;
+                    posy = realPosY;
+                    break;
+                case 'n':
+                    aboutToCreateButton = 0;
+                    buttonSpace[strlen(buttonSpace) - 1] = 0; // remove \ 
+                    buttonSpace[strlen(buttonSpace) - 1] = 0; // remove n
+                    char *addr = text + i + 1;
+                    char *result = safeDecodeString(addr);
+
+                    char *descriptor = (char *) calloc(strlen(result) + 9, sizeof(char));
+                    strcpy(descriptor, "linkto_");
+                    descriptor[strlen(descriptor)] = linkIdx & 0xFF;
+                    descriptor[strlen(descriptor)] = linkIdx >> 8;
+                    strcat(descriptor, result);
+                    linkIdx ++;
+                    if (getButtonByDescriptor(state, descriptor)) {
+                        // Already exists, don't create again
+                        free(descriptor);
+                    } else {
+                        createNewButton(state, posx, posy, XML_makeStrCpy(buttonSpace), nc_templinkpresshandler, descriptor);
+                    }
+                    XML_clrStr(buttonSpace);
+                    i += safeGetEncodedStringLength(addr);
                     break;
 
                 case 'q':
@@ -413,7 +457,7 @@ void printText(int y, int x, char *text, int invertColors) {
                 continue;
             }
         }
-        if (realPosY >= 0 && realPosX >= 0 && realPosY < my) {
+        if (realPosY + state->globalScrollY >= 0 && realPosX + state->globalScrollX >= 0 && realPosY + state->globalScrollY < my) {
             int toPrint = text[i];
             if (italics) {
                 toPrint = toPrint | A_ITALIC;
@@ -445,7 +489,7 @@ void printText(int y, int x, char *text, int invertColors) {
                 }
             }
 
-            mvaddch(realPosY, realPosX, toPrint);
+            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, toPrint);
         }
         realPosX ++;
         if (text[i] == '\n' || realPosX >= mx) {
@@ -464,18 +508,17 @@ void printText(int y, int x, char *text, int invertColors) {
 void render_nc(struct nc_state *browserState) {
     clear();
     int numTexts = browserState->numTexts;
-    int numTextAreas = browserState->numTextAreas;
-    int numButtons = browserState->numButtons;
     for (int i = 0; i < numTexts; i ++) {
         if (browserState->texts[i].visible) {
-            printText(browserState->texts[i].y, browserState->texts[i].x, browserState->texts[i].text, 0);
+            printText(browserState, browserState->texts[i].y, browserState->texts[i].x, browserState->texts[i].text, 0);
         }
     }
     curs_set(0);
 
+    int numButtons = browserState->numButtons;
     for (int i = 0; i < numButtons; i ++) {
         if (browserState->buttons[i].visible) {
-            printText(browserState->buttons[i].y, browserState->buttons[i].x, browserState->buttons[i].text, browserState->buttons[i].selected);
+            printText(browserState, browserState->buttons[i].y, browserState->buttons[i].x, browserState->buttons[i].text, browserState->buttons[i].selected);
         }
     }
 
@@ -489,6 +532,7 @@ void render_nc(struct nc_state *browserState) {
         }
     }
 
+    int numTextAreas = browserState->numTextAreas;
     for (int i = 0; i < numTextAreas; i ++) {
         if (browserState->text_areas[i].visible) {
             attron(COLOR_PAIR(1));

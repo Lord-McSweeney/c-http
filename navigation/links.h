@@ -1,5 +1,8 @@
 // Despite the file name, this is for general page navigation.
 
+#ifndef _NAVIGATION
+    #define _NAVIGATION 1
+
 #include <string.h>
 #include <stdlib.h>
 
@@ -130,10 +133,19 @@ void onFinishData(void *ptrState) {
 
 void ongotourl(void *state, char *_) {
     struct nc_state *realState = (struct nc_state *) state;
+
+    for (int i = realState->numButtons - 1; i >= realState->initialButtons; i --) {
+        realState->buttons[i].descriptor = NULL;
+        realState->buttons[i].text = NULL;
+        realState->buttons[i].visible = 0;
+        realState->buttons[i].enabled = 0;
+        realState->numButtons --;
+    }
+
     realState->selectableIndex = -1;
     realState->currentPage = PAGE_DOCUMENT_LOADED;
-    getTextByDescriptor(state, "documentText")->x = 0;
-    getTextByDescriptor(state, "documentText")->y = 0;
+    realState->globalScrollX = 0;
+    realState->globalScrollY = 0;
     getTextByDescriptor(realState, "gotoURL")->visible = 0;
     getTextAreaByDescriptor(realState, "urltextarea")->visible = 0;
     getButtonByDescriptor(realState, "gotobutton")->visible = 0;
@@ -141,7 +153,7 @@ void ongotourl(void *state, char *_) {
     getTextAreaByDescriptor(state, "userAgent")->visible = 0;
     getTextByDescriptor(realState, "documentText")->visible = 1;
     getTextByDescriptor(state, "helpText")->visible = 0;
-    
+
     getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
     strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");
     render_nc(realState);
@@ -152,3 +164,43 @@ void ongotourl(void *state, char *_) {
         getTextByDescriptor(realState, "documentText")->text = HTTP_makeStrCpy("ERROR: Serialized document was NULL!");
     }
 }
+
+void onlinkpressed(void *state, char *url) {
+    if (strncmp(url, "linkto_", 7)) {
+        return;
+    }
+
+    struct nc_state *realState = (struct nc_state *) state;
+
+    for (int i = realState->numButtons - 1; i >= realState->initialButtons; i --) {
+        realState->buttons[i].descriptor = NULL;
+        realState->buttons[i].text = NULL;
+        realState->buttons[i].visible = 0;
+        realState->buttons[i].enabled = 0;
+        realState->numButtons --;
+    }
+
+    realState->selectableIndex = -1;
+    realState->currentPage = PAGE_DOCUMENT_LOADED;
+    realState->globalScrollX = 0;
+    realState->globalScrollY = 0;
+    getTextByDescriptor(realState, "gotoURL")->visible = 0;
+    getTextAreaByDescriptor(realState, "urltextarea")->visible = 0;
+    getButtonByDescriptor(realState, "gotobutton")->visible = 0;
+    getTextByDescriptor(state, "userAgentDetail")->visible = 0;
+    getTextAreaByDescriptor(state, "userAgent")->visible = 0;
+    getTextByDescriptor(realState, "documentText")->visible = 1;
+    getTextByDescriptor(state, "helpText")->visible = 0;
+
+    getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
+    strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");
+    render_nc(realState);
+    char *data = downloadAndOpenPage(state, (url + 8), onReceiveData, onFinishData, 0);
+    free(getTextByDescriptor(realState, "documentText")->text);
+    getTextByDescriptor(realState, "documentText")->text = data;
+    if (data == NULL) {
+        getTextByDescriptor(realState, "documentText")->text = HTTP_makeStrCpy("ERROR: Serialized document was NULL!");
+    }
+}
+
+#endif

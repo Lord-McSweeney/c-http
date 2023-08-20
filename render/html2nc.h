@@ -1,8 +1,11 @@
+// Converts XML/HTML nodes to rich text.
+
+#include <stdlib.h>
+#include <string.h>
+
 #include "../xml/html.h"
 #include "../xml/attributes.h"
 #include "../css/styles.h"
-#include <stdlib.h>
-#include <string.h>
 
 int shouldBeDisplayed(const char *nodeName) {
     return strcmp(nodeName, "script") && strcmp(nodeName, "style");
@@ -224,6 +227,10 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
             } else {
                 int isVisible = !CSS_isStyleHidden(elementStyling);
 
+                if (isVisible && !strcmp(lower, "a") && XML_getAttributeByName(attributes, "href")) {
+                    strcat(alloc, "\\m");
+                }
+
                 if (elementStyling.tabbed) {
                     strcat(alloc, "\\t");
                 }
@@ -338,6 +345,12 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 if (elementStyling.underline) {
                     strcat(alloc, "\\r");
                 }
+
+                if (isVisible && !strcmp(lower, "a") && XML_getAttributeByName(attributes, "href")) {
+                    strcat(alloc, "\\n");
+                    strcat(alloc, safeEncodeString(XML_getAttributeByName(attributes, "href")));
+                }
+
                 if (!strcmp(lower, "li")) {
                     listNestAmount --;
                 }
