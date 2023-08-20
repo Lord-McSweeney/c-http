@@ -109,6 +109,7 @@ struct http_url* http_url_from_string(char *string) {
                     // welp, turns out we had a [protocol]:[hostname] instead of [protocol]://[hostname]
                     currentState = HTTP_HOSTNAME;
                     currentIndex = 0;
+                    i --;
                 }
                 break;
             case HTTP_PROTOCOL_2:
@@ -449,6 +450,44 @@ struct http_response http_makeHTTPRequest(char *charURL, char *userAgent, dataRe
         free(url);
 
         return response;
+    } else if (!strcmp(charURL, "about:blank")) {
+        struct http_data body;
+        body.length = 0;
+        body.data = HTTP_makeStrCpy("");
+
+        struct http_response result;
+        result.response_code = 200;
+        result.response_description = HTTP_makeStrCpy("OK");
+        result.num_headers = 0;
+        result.headers = NULL;
+        result.is_chunked = 0;
+        result.is_html = 0;
+        result.content_length = 0;
+        result.error = 0;
+        result.redirect = NULL;
+        result.do_redirect = 0;
+        result.response_body = body;
+
+        return result;
+    } else if (!strcmp(url->protocol, "about")) {
+        struct http_data body;
+        body.length = strlen("Invalid about: page");
+        body.data = HTTP_makeStrCpy("Invalid about: page");
+
+        struct http_response result;
+        result.response_code = 400;
+        result.response_description = HTTP_makeStrCpy("INVALID");
+        result.num_headers = 0;
+        result.headers = NULL;
+        result.is_chunked = 0;
+        result.is_html = 0;
+        result.content_length = 0;
+        result.error = 0;
+        result.redirect = NULL;
+        result.do_redirect = 0;
+        result.response_body = body;
+
+        return result;
     } else {
         // Unsupported protocol
         struct http_response errorResponse;
