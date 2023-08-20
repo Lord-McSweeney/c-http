@@ -265,6 +265,41 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     continue;
                 }
 
+                if (!strcmp(lower, "input") && isVisible) {
+                    char *type = XML_getAttributeByName(attributes, "type");
+                    if (type) {
+                        if (!strcmp(type, "checkbox")) {
+                            char *checked = XML_getAttributeByName(attributes, "checked");
+                            if (checked) {
+                                strcat(alloc, "[\\q \\r]");
+                            } else {
+                                strcat(alloc, "[\\qX\\r]");
+                            }
+                        } else if (!strcmp(type, "text")) {
+                            strcat(alloc, "|_________|");
+                        } else if (!strcmp(type, "hidden")) {
+                            // nothing
+                        } else if (!strcmp(type, "submit")) {
+                            char *value = XML_getAttributeByName(attributes, "value");
+                            if (value && *value) {
+                                strcat(alloc, "[");
+                                strcat(alloc, value);
+                                strcat(alloc, "]");
+                            }
+                        } else {
+                            strcat(alloc, "[INPUT]");
+                        }
+                    } else {
+                        strcat(alloc, "|_________|");
+                    }
+                    free(text);
+                    free(lower);
+                    freeXMLAttributes(attributes);
+                    freeXMLAttributes(parent_attributes);
+                    hasBlocked = 0;
+                    continue;
+                }
+
                 if (isVisible) {
                     strcat(alloc, text);
                 }
