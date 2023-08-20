@@ -72,9 +72,9 @@ void freeXMLAttributes(struct xml_attributes *attribs) {
 }
 
 char *XML_parseHTMLEscapes(const char *content) {
-    int numEscapes = 18;
-    char entities[][8] =    {"lt", "gt", "amp", "nbsp", "quot", "copy", "raquo", "#32", "#039", "#91", "#93", "#160", "#171", "#187", "#8211", "#8212", "#8230", "#8260"};
-    char replaceWith[][4] = {"<",  ">",  "&",   " ",    "\"",   "C",    ">>",    " ",   "'",    "[",    "]",  " ",    "<<",   ">>",   "--",    "--",    "...",   "/"};
+    int numEscapes = 22;
+    char entities[][8] =    {"lt", "gt", "amp", "nbsp", "quot", "copy", "raquo", "#32", "#039", "#91", "#93", "#160", "#171", "#187", "#914", "#946", "#8211", "#8212", "#8216", "#8217", "#8230", "#8260"};
+    char replaceWith[][4] = {"<",  ">",  "&",   " ",    "\"",   "C",    ">>",    " ",   "'",    "[",    "]",  " ",    "<<",   ">>",   "B",    "B",    "--",    "--",    "'",     "'",     "...",   "/"};
 
 
     int numSlashes = 0;
@@ -93,7 +93,7 @@ char *XML_parseHTMLEscapes(const char *content) {
 
         if (curChar == '&') {
             foundEscape = 0;
-            for (int j = 0; j < numEscapes; j ++) {
+            for (int j = numEscapes - 1; j >= 0; j --) {
                 int entLen = strlen(entities[j]);
                 // i + 1 to skip over the '&'
                 if (!strncmp(content + i + 1, entities[j], entLen)) {
