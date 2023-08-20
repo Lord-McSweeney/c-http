@@ -63,6 +63,10 @@ void openGotoPageDialog(struct nc_state *state) {
     getTextByDescriptor(state, "userAgentDetail")->visible = 1;
     getTextAreaByDescriptor(state, "userAgent")->visible = 1;
     state->selectableIndex = 0;
+
+    // Should this save the global scroll when appearing over the current document?
+    state->globalScrollX = 0;
+    state->globalScrollY = 0;
     
     int curlen = strlen(textarea->currentText);
     while(curlen > 0) {
