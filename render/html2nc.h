@@ -163,8 +163,8 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 free(allocated);
             }
             hasBlocked = 0;
-            //printf(strcat(getTabsRepeated(depth), "text node (#%d). contents: '%s'\n"), i, node.text_content);
-            //printf(strcat(getTabsRepeated(depth), "text node (#%d). contents: '...'\n"), i);
+            justHadInlineInsideBlockWithText = 1;
+            continue; // necesssary because justHadInlineInsideBlockWithText gets reset at the end of the loop
         } else if (node.type == NODE_ELEMENT) {
             struct xml_attrib_result attrib_result = XML_parseAttributes(node.attribute_content);
             struct xml_attributes *attributes;
@@ -355,6 +355,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     listNestAmount --;
                 }
 
+                // FIXME: Account for hidden elements
                 if (CSS_isDefaultInline(node.name) && strlen(text)) {
                     free(text);
                     free(lower);

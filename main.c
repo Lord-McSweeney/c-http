@@ -244,7 +244,7 @@ int main(int argc, char **argv) {
         url = argv[1];
     }
 /*
-    struct http_response parsedResponse = http_makeHTTPRequest("httpforever.com", NULL, NULL, NULL);
+    struct http_response parsedResponse = http_makeHTTPRequest("file:///home/batuhan/test.html", "uqers" NULL, NULL, NULL);
     
     if (parsedResponse.error) {
         if (parsedResponse.error == 4) {
