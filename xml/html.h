@@ -417,7 +417,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                     isEscapeEnabled = 1;
                 }
                 
-                if (curChar == ' ') {
+                if (curChar == ' ' || curChar == '\n') {
                     if (doneParsingName) {
                         currentAttributeContentUsage ++;
                         if (currentAttributeContentUsage > 16382) {
