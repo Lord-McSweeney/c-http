@@ -313,6 +313,8 @@ char *repeatChar(char c, int times) {
 
 void nc_templinkpresshandler(void *state, char *url) {}
 
+void nc_noopbuttonhandler(void *state, char *url) {}
+
 void printText(struct nc_state *state, int y, int x, char *text, int invertColors, int overrideMinX) {
     int mx;
     int my;
@@ -397,28 +399,53 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                     posy = realPosY;
                     break;
                 case 'n':
-                    aboutToCreateButton = 0;
-                    buttonSpace[strlen(buttonSpace) - 1] = 0; // remove \ 
-                    buttonSpace[strlen(buttonSpace) - 1] = 0; // remove n
-                    char *addr = text + i + 1;
-                    char *result = safeDecodeString(addr);
+                    switch(text[i + 1]) {
+                        case 'L': // Link
+                            aboutToCreateButton = 0;
+                            buttonSpace[strlen(buttonSpace) - 1] = 0; // remove \ 
+                            buttonSpace[strlen(buttonSpace) - 1] = 0; // remove n
+                            char *addr = text + i + 2;
+                            char *result = safeDecodeString(addr);
 
-                    char *descriptor = (char *) calloc(strlen(result) + 9, sizeof(char));
-                    strcpy(descriptor, "linkto_");
-                    descriptor[strlen(descriptor)] = linkIdx & 0xFF;
-                    descriptor[strlen(descriptor)] = linkIdx >> 8;
-                    strcat(descriptor, result);
-                    linkIdx ++;
-                    if (getButtonByDescriptor(state, descriptor)) {
-                        // Already exists, don't create again
-                        free(descriptor);
-                    } else {
-                        createNewButton(state, posx, posy, XML_makeStrCpy(buttonSpace), nc_templinkpresshandler, descriptor);
-                        struct nc_button *linkButton = getButtonByDescriptor(state, descriptor);
-                        linkButton->overrideMinX = minX;
+                            char *linkDescriptor = (char *) calloc(strlen(result) + 9, sizeof(char));
+                            strcpy(linkDescriptor, "linkto_");
+                            linkDescriptor[strlen(linkDescriptor)] = linkIdx & 0xFF;
+                            linkDescriptor[strlen(linkDescriptor)] = linkIdx >> 8;
+                            strcat(linkDescriptor, result);
+                            linkIdx ++;
+                            if (getButtonByDescriptor(state, linkDescriptor)) {
+                                // Already exists, don't create again
+                                free(linkDescriptor);
+                            } else {
+                                createNewButton(state, posx, posy, XML_makeStrCpy(buttonSpace), nc_templinkpresshandler, linkDescriptor);
+                                struct nc_button *linkButton = getButtonByDescriptor(state, linkDescriptor);
+                                linkButton->overrideMinX = minX;
+                            }
+                            XML_clrStr(buttonSpace);
+                            i += safeGetEncodedStringLength(addr) + 1;
+                            break;
+                        case 'N': // NO-OP
+                            aboutToCreateButton = 0;
+                            buttonSpace[strlen(buttonSpace) - 1] = 0; // remove \ 
+                            buttonSpace[strlen(buttonSpace) - 1] = 0; // remove n
+                            char *noopDescriptor = (char *) calloc(strlen(result) + 9, sizeof(char));
+                            strcpy(noopDescriptor, "linkto_");
+                            noopDescriptor[strlen(noopDescriptor)] = linkIdx & 0xFF;
+                            noopDescriptor[strlen(noopDescriptor)] = linkIdx >> 8;
+                            strcat(noopDescriptor, result);
+                            linkIdx ++;
+                            if (getButtonByDescriptor(state, noopDescriptor)) {
+                                // Already exists, don't create again
+                                free(noopDescriptor);
+                            } else {
+                                createNewButton(state, posx, posy, XML_makeStrCpy(buttonSpace), nc_noopbuttonhandler, noopDescriptor);
+                                struct nc_button *linkButton = getButtonByDescriptor(state, noopDescriptor);
+                                linkButton->overrideMinX = minX;
+                            }
+                            XML_clrStr(buttonSpace);
+                            i += 1;
+                            break;
                     }
-                    XML_clrStr(buttonSpace);
-                    i += safeGetEncodedStringLength(addr);
                     break;
 
                 case 'q':
