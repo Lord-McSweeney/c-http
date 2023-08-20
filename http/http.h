@@ -346,6 +346,17 @@ struct http_response http_makeNetworkHTTPRequest(struct http_url *url, char *use
 
     struct http_response parsedResponse = parsePossiblyIncompleteHTTPResponse(initialHttpResponse, "1.1");
 
+    // There's no guarantee that all the headers will be sent in the initial read
+    while(!parsedResponse.has_body) {
+        int initialBytesRead = tcpResult.bytesRead;
+        char *currentPosition = buffer + initialBytesRead;
+        tcpResult = rsocket(tcpResult.descriptor, currentPosition, 1048570 - tcpResult.bytesRead);
+        tcpResult.bytesRead = initialBytesRead + tcpResult.bytesRead;
+
+        initialHttpResponse.length = tcpResult.bytesRead;
+        parsedResponse = parsePossiblyIncompleteHTTPResponse(initialHttpResponse, "1.1");
+    }
+
     if (parsedResponse.error) {
         errorResponse.error = parsedResponse.error;
         return errorResponse;
@@ -470,6 +481,7 @@ struct http_response http_makeHTTPRequest(char *charURL, char *userAgent, dataRe
         result.error = 0;
         result.redirect = NULL;
         result.do_redirect = 0;
+        result.has_body = 1;
         result.response_body = body;
 
         return result;
@@ -489,6 +501,7 @@ struct http_response http_makeHTTPRequest(char *charURL, char *userAgent, dataRe
         result.error = 0;
         result.redirect = NULL;
         result.do_redirect = 0;
+        result.has_body = 1;
         result.response_body = body;
 
         return result;

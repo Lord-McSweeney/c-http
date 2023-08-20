@@ -55,6 +55,7 @@ struct http_response {
     int content_length;
     char *redirect;
     int do_redirect;
+    int has_body;
     int error;
 };
 
@@ -82,6 +83,7 @@ struct http_response parsePossiblyIncompleteHTTPResponse(struct http_data rawRes
     response.content_length = -1;
     response.redirect = NULL;
     response.do_redirect = 0;
+    response.has_body = 0;
 
     if (rawResponse.length < 7) {
         response.error = 195;
@@ -169,6 +171,7 @@ struct http_response parsePossiblyIncompleteHTTPResponse(struct http_data rawRes
                     if (currentIndex == 1) {
                         currentState = PARSE_HTTP_BODY;
                         currentIndex = 0;
+                        response.has_body = 1;
                         i ++; // CR+LF
                         break;
                     } else {
