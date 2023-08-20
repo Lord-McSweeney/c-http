@@ -44,6 +44,8 @@ struct nc_button {
     char *descriptor;
     int selected;
     int enabled;
+
+    int overrideMinX;
 };
 
 struct nc_text {
@@ -172,6 +174,7 @@ struct nc_button createNewButton(struct nc_state *state, int x, int y, char *tex
     button.enabled = 1;
     button.text = text;
     button.onclick = onclick;
+    button.overrideMinX = -1;
     button.descriptor = nc_strcpy(descriptor);
     state->buttons[state->numButtons] = button;
     state->numButtons ++;
@@ -273,7 +276,7 @@ char *repeatChar(char c, int times) {
 
 void nc_templinkpresshandler(void *state, char *url) {}
 
-void printText(struct nc_state *state, int y, int x, char *text, int invertColors) {
+void printText(struct nc_state *state, int y, int x, char *text, int invertColors, int overrideMinX) {
     int mx;
     int my;
     getmaxyx(stdscr, my, mx);
@@ -289,6 +292,10 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
     strcat(horizontalRow, dashes);
     free(dashes);
     free(spaces);
+
+    if (overrideMinX != -1) {
+        minX = overrideMinX;
+    }
 
     int escapeModeEnabled = 0;
     int italics = 0;
@@ -370,6 +377,8 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                         free(descriptor);
                     } else {
                         createNewButton(state, posx, posy, XML_makeStrCpy(buttonSpace), nc_templinkpresshandler, descriptor);
+                        struct nc_button *linkButton = getButtonByDescriptor(state, descriptor);
+                        linkButton->overrideMinX = minX;
                     }
                     XML_clrStr(buttonSpace);
                     i += safeGetEncodedStringLength(addr);
@@ -510,7 +519,7 @@ void render_nc(struct nc_state *browserState) {
     int numTexts = browserState->numTexts;
     for (int i = 0; i < numTexts; i ++) {
         if (browserState->texts[i].visible) {
-            printText(browserState, browserState->texts[i].y, browserState->texts[i].x, browserState->texts[i].text, 0);
+            printText(browserState, browserState->texts[i].y, browserState->texts[i].x, browserState->texts[i].text, 0, -1);
         }
     }
     curs_set(0);
@@ -518,7 +527,7 @@ void render_nc(struct nc_state *browserState) {
     int numButtons = browserState->numButtons;
     for (int i = 0; i < numButtons; i ++) {
         if (browserState->buttons[i].visible) {
-            printText(browserState, browserState->buttons[i].y, browserState->buttons[i].x, browserState->buttons[i].text, browserState->buttons[i].selected);
+            printText(browserState, browserState->buttons[i].y, browserState->buttons[i].x, browserState->buttons[i].text, browserState->buttons[i].selected, browserState->buttons[i].overrideMinX);
         }
     }
 
