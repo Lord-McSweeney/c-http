@@ -144,7 +144,15 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     )
                 )
                  && 
-                !CSS_isStyleHidden(elementStyling)
+                !CSS_isStyleHidden(elementStyling) // Hidden elements shouldn't count
+                 &&
+                !(
+                    i == 0
+                     && 
+                    parent
+                     && 
+                    CSS_isStyleBlock(CSS_getDefaultStylesFromElement(*parent, parent_attributes)) // If we already had a block-level element as our parent and this is the first child, it doesn't count
+                )
                ) {
                 strcat(alloc, "\n");
             }
