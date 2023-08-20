@@ -30,7 +30,7 @@ void showButtons(struct nc_state *state) {
 void initializeDisplayObjects(struct nc_state *state) {
     createNewText(state, 1, 1, "Go to a URL:", "gotoURL");
     createNewText(state, 0, 0, "No document loaded", "documentText");
-    createNewText(state, 0, 0, "This is the browser's home page.\n\nNavigation tools:\nCTRL+O: Go to site\nCTRL+X: Close current page\nUp/Down arrows: scroll current document\nTab: Cycle through buttons/text fields\nEnter: Click current button\n\n\nCreated by uqers.", "helpText");
+    createNewText(state, 0, 0, "This is the browser's home page.\n\nNavigation tools:\nCTRL+O: Go to site\nCTRL+X: Close current page\nUp/Down arrows: scroll current document\nTab/Shift+Tab (or left arrow/right arrow): Cycle through buttons/links/text fields\n\n\nCreated by uqers.", "helpText");
     createNewTextarea(state, 1, 3, 29, 1, "urltextarea");
     createNewButton(state, 1, 5, "OK", ongotourl, "gotobutton");
     createNewText(state, 1, 13, "Use a custom user agent", "userAgentDetail");
@@ -119,21 +119,25 @@ void closeCurrentWindow(struct nc_state *state) {
     }
 }
 
-void onKeyPress(struct nc_state *browserState, char ch) {
+void onKeyPress(struct nc_state *browserState, int ch) {/*
+    endwin();
+    printf("%d\n", ch);
+    exit(4);*/
     switch(ch) {
         case 15: // CTRL+O
             openGotoPageDialog(browserState);
             break;
-        case 4: // left arrow
+        case KEY_BTAB: // SHIFT+TAB
+        case KEY_LEFT:
             browserState->selectableIndex --;
             if (browserState->selectableIndex < 0) {
                 browserState->selectableIndex = browserState->numSelectables - 1;
             }
             int i1 = 0;
             while(!isSelectable(browserState->selectables[browserState->selectableIndex])) {
-                browserState->selectableIndex ++;
-                if (browserState->selectableIndex >= browserState->numSelectables) {
-                    browserState->selectableIndex = 0;
+                browserState->selectableIndex --;
+                if (browserState->selectableIndex < 0) {
+                    browserState->selectableIndex = browserState->numSelectables - 1;
                 }
                 i1 ++;
                 if (i1 > browserState->numSelectables + 1) {
@@ -144,7 +148,7 @@ void onKeyPress(struct nc_state *browserState, char ch) {
             }
             break;
         case '\t':
-        case 5: // right arrow
+        case KEY_RIGHT:
             browserState->selectableIndex ++;
             if (browserState->selectableIndex >= browserState->numSelectables) {
                 browserState->selectableIndex = 0;
@@ -177,7 +181,7 @@ void onKeyPress(struct nc_state *browserState, char ch) {
                 }
                 textarea->currentText[curlen] = ch;
             }
-        } else if (ch == 7) {
+        } else if (ch == KEY_BACKSPACE) { // backspace
             if (curlen > 0) {
                 textarea->currentText[curlen - 1] = '\0';
             }
@@ -187,11 +191,11 @@ void onKeyPress(struct nc_state *browserState, char ch) {
         }
     } else if (browserState->currentPage == PAGE_DOCUMENT_LOADED) {
         struct nc_text *documentText = getTextByDescriptor(browserState, "documentText");
-        if (ch == 3) {
+        if (ch == KEY_UP) {
             if (browserState->globalScrollY < 0) {
                browserState->globalScrollY ++;
             }
-        } else if (ch == 2) {
+        } else if (ch == KEY_DOWN) {
             if (/*todo: make sure the page doesn't scroll too far down*/true) {
                browserState->globalScrollY --;
             }
@@ -208,7 +212,7 @@ void onKeyPress(struct nc_state *browserState, char ch) {
 
 void *eventLoop(struct nc_state *state) {
     while (1) {
-        char ch;
+        int ch;
         updateFocus_nc(state);
 
         for (int i = 0; i < state->numButtons; i ++) {
