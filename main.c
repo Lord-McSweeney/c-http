@@ -120,19 +120,39 @@ void onKeyPress(struct nc_state *browserState, char ch) {
         case 15: // CTRL+O
             openGotoPageDialog(browserState);
             break;
-        case '\t': // tab
-            browserState->selectableIndex ++;
-            if (browserState->selectableIndex >= browserState->numSelectables) {
-                browserState->selectableIndex = 0;
+        case 4: // left arrow
+            browserState->selectableIndex --;
+            if (browserState->selectableIndex < 0) {
+                browserState->selectableIndex = browserState->numSelectables - 1;
             }
-            int i = 0;
+            int i1 = 0;
             while(!isSelectable(browserState->selectables[browserState->selectableIndex])) {
                 browserState->selectableIndex ++;
                 if (browserState->selectableIndex >= browserState->numSelectables) {
                     browserState->selectableIndex = 0;
                 }
-                i ++;
-                if (i > browserState->numSelectables + 1) {
+                i1 ++;
+                if (i1 > browserState->numSelectables + 1) {
+                    // all selectables are disabled
+                    browserState->selectableIndex = -1;
+                    break;
+                }
+            }
+            break;
+        case '\t':
+        case 5: // right arrow
+            browserState->selectableIndex ++;
+            if (browserState->selectableIndex >= browserState->numSelectables) {
+                browserState->selectableIndex = 0;
+            }
+            int i2 = 0;
+            while(!isSelectable(browserState->selectables[browserState->selectableIndex])) {
+                browserState->selectableIndex ++;
+                if (browserState->selectableIndex >= browserState->numSelectables) {
+                    browserState->selectableIndex = 0;
+                }
+                i2 ++;
+                if (i2 > browserState->numSelectables + 1) {
                     // all selectables are disabled
                     browserState->selectableIndex = -1;
                     break;
@@ -170,15 +190,6 @@ void onKeyPress(struct nc_state *browserState, char ch) {
         } else if (ch == 2) {
             if (/*todo: make sure the page doesn't scroll too far down*/true) {
                browserState->globalScrollY --;
-            }
-        } else if (ch == 4) {
-            // left
-            if (browserState->globalScrollX < 0) {
-               browserState->globalScrollX ++;
-            }
-        } else if (ch == 5) {
-            if (/*todo: make sure the page doesn't scroll too far right*/true) {
-               browserState->globalScrollX --;
             }
         }
     }
