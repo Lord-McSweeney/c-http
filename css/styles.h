@@ -147,6 +147,10 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
                 styling.underline = 1;
             } else if (!strcmp(textDecorationStyle, "line-through")) {
                 styling.strikethrough = 1;
+            } else if (!strcmp(textDecorationStyle, "none")) {
+                // FIXME: It's more complex than this, see https://developer.mozilla.org/en-US/docs/Web/CSS/text-decoration
+                styling.strikethrough = 0;
+                styling.underline = 0;
             } else {
                 fprintf(stderr, "Warning: Unsupported text-decoration \"%s\"\n", textDecorationStyle);
             }
