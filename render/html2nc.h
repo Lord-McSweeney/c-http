@@ -48,6 +48,7 @@ char *getXMLTrimmedTextContent(const char *content, int removeStart) {
 
     for (int i = 0; i < len; i ++) {
         if (textContent[i] == '\n') textContent[i] = ' ';
+        if (textContent[i] == '\r') textContent[i] = ' ';
         if (textContent[i] == '\t') textContent[i] = ' ';
         if ((alreadyEncounteredSpace == 0 && alreadyEncounteredText) || textContent[i] != ' ') {
             if (textContent[i] != ' ') {
