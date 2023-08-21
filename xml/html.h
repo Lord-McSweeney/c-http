@@ -1,5 +1,4 @@
-#include <string.h>
-#include <stdlib.h>
+#include "../utils/string.h"
 
 #ifndef _XML_HTML
     #define _XML_HTML 1
@@ -147,19 +146,6 @@ struct xml_list XML_createEmptyXMLList() {
     return list;
 }
 
-char *XML_makeStrCpy(const char *string) {
-    char *destString = (char *) calloc(strlen(string) + 1, sizeof(string));
-    strcpy(destString, string);
-    return destString;
-}
-
-void XML_clrStr(char *string) {
-    int len = strlen(string);
-    for (int i = 0; i < len; i ++) {
-        string[i] = 0;
-    }
-}
-
 void XML_appendChild(struct xml_list *parent, struct xml_node child) {
     parent->count ++;
     parent->nodes = (struct xml_node *) realloc(parent->nodes, sizeof(struct xml_node) * parent->count);
@@ -168,18 +154,18 @@ void XML_appendChild(struct xml_list *parent, struct xml_node child) {
 
 char *XML_nodeTypeToString(enum xml_node_type type) {
     if (type == NODE_DOCTYPE) {
-        return XML_makeStrCpy("doctype");
+        return makeStrCpy("doctype");
     }
     if (type == NODE_TEXT) {
-        return XML_makeStrCpy("text");
+        return makeStrCpy("text");
     }
     if (type == NODE_ELEMENT) {
-        return XML_makeStrCpy("element");
+        return makeStrCpy("element");
     }
     if (type == NODE_COMMENT) {
-        return XML_makeStrCpy("comment");
+        return makeStrCpy("comment");
     }
-    return XML_makeStrCpy("!CORRUPT!");
+    return makeStrCpy("!CORRUPT!");
 }
 
 int html_isVoidElement(const char *name) {
@@ -354,10 +340,10 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                     
                     // why, HTML?
                     if ((strcmp(closingTag, "script") || isScriptTag) && (strcmp(closingTag, "style") || isStyleTag) && (strcmp(closingTag, "title") || isTitleTag)) {
-                        struct xml_node node = XML_createXMLText(XML_makeStrCpy(currentTextContent));
+                        struct xml_node node = XML_createXMLText(makeStrCpy(currentTextContent));
                         XML_appendChild(&response, node);
                         currentTextContentUsage = 0;
-                        XML_clrStr(currentTextContent);
+                        clrStr(currentTextContent);
                         currentIndex = 0;
                         currentState = PARSE_ELEMENT_NAME;
                         break;
@@ -466,15 +452,15 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                             return realResponse;
                         }
                         if (html_isVoidElement(currentElementName)) {
-                            struct xml_node node = XML_createXMLElement(XML_makeStrCpy(currentElementName));
-                            node.attribute_content = XML_makeStrCpy(currentAttributeContent);
+                            struct xml_node node = XML_createXMLElement(makeStrCpy(currentElementName));
+                            node.attribute_content = makeStrCpy(currentAttributeContent);
 
                             currentAttributeContentUsage = 0;
-                            XML_clrStr(currentAttributeContent);
+                            clrStr(currentAttributeContent);
 
                             XML_appendChild(&response, node);
                             currentElementNameUsage = 0;
-                            XML_clrStr(currentElementName);
+                            clrStr(currentElementName);
                             currentIndex = 0;
                             currentState = PARSE_UNKNOWN;
                             break;
@@ -484,7 +470,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                         newData.data = xml_string.data + i + 1;
                         newData.length = xml_string.length - i;
 
-                        char *copy = XML_makeStrCpy(currentElementName);
+                        char *copy = makeStrCpy(currentElementName);
                         struct xml_response childResponse = recursive_parse_xml_node(newData, copy, closingTag);
                         free(copy);
 
@@ -501,16 +487,16 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                             return error_xml;
                         }
 
-                        struct xml_node node = XML_createXMLElement(XML_makeStrCpy(currentElementName));
+                        struct xml_node node = XML_createXMLElement(makeStrCpy(currentElementName));
 
-                        node.attribute_content = XML_makeStrCpy(currentAttributeContent);
+                        node.attribute_content = makeStrCpy(currentAttributeContent);
                         currentAttributeContentUsage = 0;
-                        XML_clrStr(currentAttributeContent);
+                        clrStr(currentAttributeContent);
 
                         node.children = childResponse.list;
                         XML_appendChild(&response, node);
                         currentElementNameUsage = 0;
-                        XML_clrStr(currentElementName);
+                        clrStr(currentElementName);
                         currentIndex = 0;
                         currentState = PARSE_UNKNOWN;
                     } else {
@@ -553,15 +539,15 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                 break;
             case PARSE_ELEMENT_END_SLASH:
                 if (curChar == '>') {
-                    struct xml_node node = XML_createXMLElement(XML_makeStrCpy(currentElementName));
+                    struct xml_node node = XML_createXMLElement(makeStrCpy(currentElementName));
 
-                    node.attribute_content = XML_makeStrCpy(currentAttributeContent);
+                    node.attribute_content = makeStrCpy(currentAttributeContent);
                     currentAttributeContentUsage = 0;
-                    XML_clrStr(currentAttributeContent);
+                    clrStr(currentAttributeContent);
 
                     XML_appendChild(&response, node);
                     currentElementNameUsage = 0;
-                    XML_clrStr(currentElementName);
+                    clrStr(currentElementName);
                     currentIndex = 0;
                     currentState = PARSE_UNKNOWN;
                     break;
@@ -585,10 +571,10 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                         return error_xml;
                     }
                     if (html_isVoidElement(currentElementName)) {
-                        struct xml_node node = XML_createXMLElement(XML_makeStrCpy(currentElementName));
+                        struct xml_node node = XML_createXMLElement(makeStrCpy(currentElementName));
                         XML_appendChild(&response, node);
                         currentElementNameUsage = 0;
-                        XML_clrStr(currentElementName);
+                        clrStr(currentElementName);
                         currentIndex = 0;
                         currentState = PARSE_UNKNOWN;
                         break;
@@ -621,7 +607,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                     } else {
                         // AFAICS Chrome ignores these tags, so I do too
                         currentElementNameUsage = 0;
-                        XML_clrStr(currentElementName);
+                        clrStr(currentElementName);
                         currentIndex = 0;
                         currentState = PARSE_UNKNOWN;
                     }
@@ -644,11 +630,11 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                 break;
             case PARSE_DOCTYPE:
                 if (curChar == '>') {
-                    char *doctypeContent = XML_makeStrCpy(currentDoctypeContent);
+                    char *doctypeContent = makeStrCpy(currentDoctypeContent);
                     struct xml_node node = XML_createDoctype(doctypeContent);
                     XML_appendChild(&response, node);
                     currentDoctypeContentUsage = 0;
-                    XML_clrStr(currentDoctypeContent);
+                    clrStr(currentDoctypeContent);
                     currentIndex = 0;
                     currentState = PARSE_UNKNOWN;
                     break;
@@ -667,10 +653,10 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                 break;
             case PARSE_COMMENT:
                 if (curChar == '-' && nextChar == '-' && nextChar2 == '>') {
-                    struct xml_node node = XML_createComment(XML_makeStrCpy(currentTextContent));
+                    struct xml_node node = XML_createComment(makeStrCpy(currentTextContent));
                     XML_appendChild(&response, node);
                     currentTextContentUsage = 0;
-                    XML_clrStr(currentTextContent);
+                    clrStr(currentTextContent);
                     currentIndex = 0;
                     currentState = PARSE_UNKNOWN;
                     i += 2;
@@ -707,10 +693,10 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
     }
 
     if (strlen(currentTextContent)) {
-        struct xml_node node = XML_createXMLText(XML_makeStrCpy(currentTextContent));
+        struct xml_node node = XML_createXMLText(makeStrCpy(currentTextContent));
         XML_appendChild(&response, node);
         currentTextContentUsage = 0;
-        XML_clrStr(currentTextContent);
+        clrStr(currentTextContent);
     }
 
     free(currentTextContent);

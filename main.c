@@ -1,10 +1,10 @@
 // main.c
 // Compile with gcc main.c -lncurses -lssl -lcrypto
-
-#include "render/display-handling.h"
-#include "navigation/links.h"
-
 #include <stdlib.h>
+
+#include "navigation/links.h"
+#include "render/display-handling.h"
+#include "utils/string.h"
 
 void freeButtons(struct nc_state *state) {
     for (int i = state->numButtons - 1; i >= state->initialButtons; i --) {
@@ -43,7 +43,7 @@ void initializeDisplayObjects(struct nc_state *state) {
     getTextByDescriptor(state, "helpText")->visible = 1;
     getTextByDescriptor(state, "userAgentDetail")->visible = 0;
     getTextAreaByDescriptor(state, "userAgent")->visible = 0;
-    getTextAreaByDescriptor(state, "userAgent")->currentText = HTTP_makeStrCpy("uqers");
+    getTextAreaByDescriptor(state, "userAgent")->currentText = makeStrCpy("uqers");
 }
 
 void openGotoPageDialog(struct nc_state *state) {
@@ -101,7 +101,7 @@ void closeDocumentPage(struct nc_state *state) {
     state->currentPage = PAGE_EMPTY;
     getTextByDescriptor(state, "helpText")->visible = 1;
     getTextByDescriptor(state, "documentText")->visible = 0;
-    getTextByDescriptor(state, "documentText")->text = HTTP_makeStrCpy("");
+    getTextByDescriptor(state, "documentText")->text = makeStrCpy("");
     state->currentPageUrl = NULL;
     freeButtons(state);
 }

@@ -2,10 +2,8 @@
     #define _DSP_HANDLING 1
 
 #include <ncurses.h>
-#include <string.h>
-#include <stdlib.h>
+
 #include "../utils/string.h"
-#include "../xml/html.h"
 
 typedef void (*clickHandler)(void *, char *);
 
@@ -419,11 +417,11 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                                 // Already exists, don't create again
                                 free(linkDescriptor);
                             } else {
-                                createNewButton(state, posx, posy, XML_makeStrCpy(buttonSpace), nc_templinkpresshandler, linkDescriptor);
+                                createNewButton(state, posx, posy, makeStrCpy(buttonSpace), nc_templinkpresshandler, linkDescriptor);
                                 struct nc_button *linkButton = getButtonByDescriptor(state, linkDescriptor);
                                 linkButton->overrideMinX = minX;
                             }
-                            XML_clrStr(buttonSpace);
+                            clrStr(buttonSpace);
                             i += safeGetEncodedStringLength(addr) + 1;
                             break;
                         case 'N': // NO-OP
@@ -440,11 +438,11 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                                 // Already exists, don't create again
                                 free(noopDescriptor);
                             } else {
-                                createNewButton(state, posx, posy, XML_makeStrCpy(buttonSpace), nc_noopbuttonhandler, noopDescriptor);
+                                createNewButton(state, posx, posy, makeStrCpy(buttonSpace), nc_noopbuttonhandler, noopDescriptor);
                                 struct nc_button *linkButton = getButtonByDescriptor(state, noopDescriptor);
                                 linkButton->overrideMinX = minX;
                             }
-                            XML_clrStr(buttonSpace);
+                            clrStr(buttonSpace);
                             i += 1;
                             break;
                     }

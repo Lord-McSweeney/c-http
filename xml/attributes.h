@@ -1,4 +1,4 @@
-#include "html.h"
+#include "../utils/string.h"
 
 #ifndef _XML_ATTRIBUTE
     #define _XML_ATTRIBUTE 1
@@ -49,8 +49,8 @@ void XML_appendAttribute(struct xml_attributes *attribs, struct xml_attribute at
 
 struct xml_attribute XML_makeAttribute(const char *name, const char *value) {
     struct xml_attribute attrib;
-    attrib.name = XML_makeStrCpy(name);
-    attrib.value = XML_makeStrCpy(value);
+    attrib.name = makeStrCpy(name);
+    attrib.value = makeStrCpy(value);
     return attrib;
 }
 
@@ -124,7 +124,7 @@ char *XML_parseHTMLEscapes(const char *content) {
             realIndex ++;
         }
     }
-    char *newText = XML_makeStrCpy(allocated);
+    char *newText = makeStrCpy(allocated);
     free(allocated);
     return newText;
 }
@@ -161,15 +161,15 @@ struct xml_attrib_result XML_parseAttributes(char *inputString) {
                 if (curChar == '=') {
                     currentAttrib.name = xml_toLowerCase(currentDataContent);
                     currentDataUsage = 0;
-                    XML_clrStr(currentDataContent);
+                    clrStr(currentDataContent);
 
                     currentIndex = 0;
                     currentState = APARSE_ATTRIBUTE_VALUE;
                 } else if (curChar == ' ') {
                     currentAttrib.name = xml_toLowerCase(currentDataContent);
-                    currentAttrib.value = XML_makeStrCpy("");
+                    currentAttrib.value = makeStrCpy("");
                     currentDataUsage = 0;
-                    XML_clrStr(currentDataContent);
+                    clrStr(currentDataContent);
 
                     XML_appendAttribute(&attribs, currentAttrib);
                     currentAttrib.name = NULL;
@@ -193,7 +193,7 @@ struct xml_attrib_result XML_parseAttributes(char *inputString) {
                 if (curChar == '\'') {
                     currentAttrib.value = XML_parseHTMLEscapes(currentDataContent);
                     currentDataUsage = 0;
-                    XML_clrStr(currentDataContent);
+                    clrStr(currentDataContent);
 
                     XML_appendAttribute(&attribs, currentAttrib);
                     currentAttrib.name = NULL;
@@ -216,7 +216,7 @@ struct xml_attrib_result XML_parseAttributes(char *inputString) {
                 if (curChar == '"') {
                     currentAttrib.value = XML_parseHTMLEscapes(currentDataContent);
                     currentDataUsage = 0;
-                    XML_clrStr(currentDataContent);
+                    clrStr(currentDataContent);
 
                     XML_appendAttribute(&attribs, currentAttrib);
                     currentAttrib.name = NULL;
@@ -248,7 +248,7 @@ struct xml_attrib_result XML_parseAttributes(char *inputString) {
                     } else {
                         currentAttrib.value = XML_parseHTMLEscapes(currentDataContent);
                         currentDataUsage = 0;
-                        XML_clrStr(currentDataContent);
+                        clrStr(currentDataContent);
 
                         currentIndex = 0;
                         currentState = APARSE_UNKNOWN;
@@ -288,15 +288,15 @@ struct xml_attrib_result XML_parseAttributes(char *inputString) {
         switch(currentState) {
             case APARSE_ATTRIBUTE_VALUE:
                 currentDataUsage = 0;
-                struct xml_attribute attrib1 = XML_makeAttribute(xml_toLowerCase(currentAttrib.name), XML_makeStrCpy(currentDataContent));
+                struct xml_attribute attrib1 = XML_makeAttribute(xml_toLowerCase(currentAttrib.name), makeStrCpy(currentDataContent));
                 XML_appendAttribute(&attribs, attrib1);
-                XML_clrStr(currentDataContent);
+                clrStr(currentDataContent);
                 break;
             case APARSE_ATTRIBUTE_NAME:
                 currentDataUsage = 0;
-                struct xml_attribute attrib2 = XML_makeAttribute(XML_makeStrCpy(currentDataContent), XML_makeStrCpy(""));
+                struct xml_attribute attrib2 = XML_makeAttribute(makeStrCpy(currentDataContent), makeStrCpy(""));
                 XML_appendAttribute(&attribs, attrib2);
-                XML_clrStr(currentDataContent);
+                clrStr(currentDataContent);
                 break;
         }
     }

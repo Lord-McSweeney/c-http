@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #ifndef _UTILS_STRING
     #define _UTILS_STRING 1
@@ -47,6 +48,19 @@ int safeGetEncodedStringLength(char *string) {
     free(len2);
 
     return 1 + lenLen + len;
+}
+
+char *makeStrCpy(const char *string) {
+    char *destString = (char *) calloc(strlen(string) + 1, sizeof(char));
+    strcpy(destString, string);
+    return destString;
+}
+
+void clrStr(char *string) {
+    int len = strlen(string);
+    for (int i = 0; i < len; i ++) {
+        string[i] = 0;
+    }
 }
 
 #endif

@@ -1,11 +1,9 @@
 // Converts XML/HTML nodes to rich text.
 
-#include <stdlib.h>
-#include <string.h>
-
 #include "../xml/html.h"
 #include "../xml/attributes.h"
 #include "../css/styles.h"
+#include "../utils/string.h"
 
 int shouldBeDisplayed(const char *nodeName) {
     return strcmp(nodeName, "script") && strcmp(nodeName, "style");
@@ -37,7 +35,7 @@ int HTML_headerLevel(const char *nodeName) {
 
 char *getXMLTrimmedTextContent(const char *content, int removeStart) {
     char *allocated = (char *) calloc(strlen(content) + 1, sizeof(char));
-    char *textContent = XML_makeStrCpy(content);
+    char *textContent = makeStrCpy(content);
     int len = strlen(textContent);
     
     int alreadyEncounteredSpace = 0;
@@ -61,7 +59,7 @@ char *getXMLTrimmedTextContent(const char *content, int removeStart) {
             alreadyEncounteredSpace = 1;
         }
     }
-    char *newText = XML_makeStrCpy(allocated);
+    char *newText = makeStrCpy(allocated);
     free(allocated);
     free(textContent);
     return newText;
@@ -364,7 +362,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
         justHadInlineInsideBlockWithText = 0;
     }
     
-    char *copy = XML_makeStrCpy(alloc);
+    char *copy = makeStrCpy(alloc);
     free(alloc);
     return copy;
 }
@@ -378,9 +376,9 @@ struct html2nc_result htmlToText(struct xml_list xml, char *originalHTML) {
 
     // Default title, if title wasn't set
     if (state.title == NULL) {
-        result.title = XML_makeStrCpy("Page has no title");
+        result.title = makeStrCpy("Page has no title");
     } else {
-        result.title = XML_makeStrCpy(state.title);
+        result.title = makeStrCpy(state.title);
     }
 
     free(state.title);

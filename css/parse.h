@@ -1,4 +1,4 @@
-#include "../xml/html.h"
+#include "../utils/string.h"
 
 #ifndef _CSS_PARSE
     #define _CSS_PARSE 1
@@ -49,8 +49,8 @@ void CSS_appendStyle(struct css_styles *styles, struct css_style style) {
 
 struct css_style CSS_makeStyle(const char *name, const char *value) {
     struct css_style style;
-    style.name = XML_makeStrCpy(name);
-    style.value = XML_makeStrCpy(value);
+    style.name = makeStrCpy(name);
+    style.value = makeStrCpy(value);
     return style;
 }
 
@@ -120,7 +120,7 @@ void CSS_parseInlineStyles(struct css_styles *styles, char *inputString) {
                 if (curChar == ';') {
                     currentStyle.value = trimWhiteSpaceAtEndOfString(currentDataContent);
                     currentDataUsage = 0;
-                    XML_clrStr(currentDataContent);
+                    clrStr(currentDataContent);
 
                     CSS_appendStyle(styles, currentStyle);
                     currentStyle.name = NULL;
@@ -146,7 +146,7 @@ void CSS_parseInlineStyles(struct css_styles *styles, char *inputString) {
                 if (curChar == ':') {
                     currentStyle.name = trimWhiteSpaceAtEndOfString(currentDataContent);
                     currentDataUsage = 0;
-                    XML_clrStr(currentDataContent);
+                    clrStr(currentDataContent);
                     
                     currentState = CSS_PARSE_STYLE_VALUE;
                 } else if (currentDataUsage <= 16382) {
@@ -165,7 +165,7 @@ void CSS_parseInlineStyles(struct css_styles *styles, char *inputString) {
     
     switch(currentState) {
         case CSS_PARSE_STYLE_VALUE:
-            currentStyle.value = XML_makeStrCpy(currentDataContent);
+            currentStyle.value = makeStrCpy(currentDataContent);
 
             CSS_appendStyle(styles, currentStyle);
             break;

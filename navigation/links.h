@@ -6,14 +6,16 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "../render/display-handling.h"
 #include "../http/http.h"
-#include "../xml/html.h"
+#include "../http/url.h"
+#include "../render/display-handling.h"
 #include "../render/html2nc.h"
+#include "../utils/string.h"
+#include "../xml/html.h"
 
 char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler handler, dataReceiveHandler finishHandler, int redirect_depth) {
     if (redirect_depth > 15) {
-        return HTTP_makeStrCpy("Too many redirects (>15)");
+        return makeStrCpy("Too many redirects (>15)");
     }
 
     char *userAgent = getTextAreaByDescriptor(state, "userAgent")->currentText;
@@ -21,41 +23,41 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
     
     if (parsedResponse.error) {
         if (parsedResponse.error == 4) {
-            return HTTP_makeStrCpy("Please enter a valid URL.\n");
+            return makeStrCpy("Please enter a valid URL.\n");
         } else if (parsedResponse.error < 4) {
-            return HTTP_makeStrCpy("Malformed HTTP response.\n");
+            return makeStrCpy("Malformed HTTP response.\n");
         } else if (parsedResponse.error == 5) {
-            return HTTP_makeStrCpy("Host not found.\n");
+            return makeStrCpy("Host not found.\n");
         } else if (parsedResponse.error == 6) {
-            return HTTP_makeStrCpy("Error while resolving domain.\n");
+            return makeStrCpy("Error while resolving domain.\n");
         } else if (parsedResponse.error == 7) {
-            return HTTP_makeStrCpy("Temporary error in name resolution.\n");
+            return makeStrCpy("Temporary error in name resolution.\n");
         } else if (parsedResponse.error == 101) {
-            return HTTP_makeStrCpy("Network unreachable.\n");
+            return makeStrCpy("Network unreachable.\n");
         } else if (parsedResponse.error == 104) {
-            return HTTP_makeStrCpy("Connection reset by peer.\n");
+            return makeStrCpy("Connection reset by peer.\n");
         } else if (parsedResponse.error == 111) {
-            return HTTP_makeStrCpy("Connection refused.\n");
+            return makeStrCpy("Connection refused.\n");
         } else if (parsedResponse.error == 113) {
-            return HTTP_makeStrCpy("No route to host.\n");
+            return makeStrCpy("No route to host.\n");
         } else if (parsedResponse.error == 192) {
-            return HTTP_makeStrCpy("Error initializing SSL/TLS.\n");
+            return makeStrCpy("Error initializing SSL/TLS.\n");
         } else if (parsedResponse.error == 193) {
-            return HTTP_makeStrCpy("SSL/TLS error.\n");
+            return makeStrCpy("SSL/TLS error.\n");
         } else if (parsedResponse.error == 194) {
-            return HTTP_makeStrCpy("Unsupported protocol.\n");
+            return makeStrCpy("Unsupported protocol.\n");
         } else if (parsedResponse.error == 195) {
-            return HTTP_makeStrCpy("Invalid HTTP response (possibly HTTPS).\n");
+            return makeStrCpy("Invalid HTTP response (possibly HTTPS).\n");
         } else if (parsedResponse.error == 196) {
-            return HTTP_makeStrCpy("Read access denied.\n");
+            return makeStrCpy("Read access denied.\n");
         } else if (parsedResponse.error == 197) {
-            return HTTP_makeStrCpy("File is a directory.\n");
+            return makeStrCpy("File is a directory.\n");
         } else if (parsedResponse.error == 198) {
-            return HTTP_makeStrCpy("No such file or directory.\n");
+            return makeStrCpy("No such file or directory.\n");
         } else if (parsedResponse.error == 199) {
-            return HTTP_makeStrCpy("Invalid chunked response (possible memory corruption?).\n");
+            return makeStrCpy("Invalid chunked response (possible memory corruption?).\n");
         } else {
-            return HTTP_makeStrCpy("Error while connecting to host or receiving data from host.\n");
+            return makeStrCpy("Error while connecting to host or receiving data from host.\n");
         }
     }
 
@@ -100,7 +102,7 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
     strcat(getTextByDescriptor(state, "documentText")->text, "\nDone parsing page as HTML.\nConverting HTML to rich text...");
 
     if (xml.error) {
-        return HTTP_makeStrCpy("Encountered an error while parsing the page.");
+        return makeStrCpy("Encountered an error while parsing the page.");
     }
 
     struct html2nc_result result = htmlToText(xml.list, parsedResponse.response_body.data);
@@ -170,7 +172,7 @@ void ongotourl(void *state, char *_) {
     free(getTextByDescriptor(realState, "documentText")->text);
     getTextByDescriptor(realState, "documentText")->text = data;
     if (data == NULL) {
-        getTextByDescriptor(realState, "documentText")->text = HTTP_makeStrCpy("ERROR: Serialized document was NULL!");
+        getTextByDescriptor(realState, "documentText")->text = makeStrCpy("ERROR: Serialized document was NULL!");
     }
     realState->currentPageUrl = getTextAreaByDescriptor(realState, "urltextarea")->currentText;
 }
@@ -214,7 +216,7 @@ void onlinkpressed(void *state, char *url) {
     free(getTextByDescriptor(realState, "documentText")->text);
     getTextByDescriptor(realState, "documentText")->text = data;
     if (data == NULL) {
-        getTextByDescriptor(realState, "documentText")->text = HTTP_makeStrCpy("ERROR: Serialized document was NULL!");
+        getTextByDescriptor(realState, "documentText")->text = makeStrCpy("ERROR: Serialized document was NULL!");
     }
     realState->currentPageUrl = absoluteURL;
 }
