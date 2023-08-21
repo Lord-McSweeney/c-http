@@ -93,7 +93,9 @@ struct nc_state {
     struct nc_selected *selectables;
     int numSelectables;
     int selectableIndex;
-    
+
+    char *currentPageUrl;
+
     // todo: add a forward/back buffer
 };
 

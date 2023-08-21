@@ -101,6 +101,7 @@ void closeDocumentPage(struct nc_state *state) {
     getTextByDescriptor(state, "helpText")->visible = 1;
     getTextByDescriptor(state, "documentText")->visible = 0;
     getTextByDescriptor(state, "documentText")->text = HTTP_makeStrCpy("");
+    state->currentPageUrl = NULL;
     freeButtons(state);
 }
 
@@ -318,6 +319,7 @@ int main(int argc, char **argv) {
     browserState.globalScrollX = 0;
     browserState.globalScrollY = 0;
     browserState.shouldCheckAutoScroll = 0;
+    browserState.currentPageUrl = NULL;
 
     initWindow();
     initializeDisplayObjects(&browserState);

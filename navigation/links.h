@@ -163,6 +163,7 @@ void ongotourl(void *state, char *_) {
     if (data == NULL) {
         getTextByDescriptor(realState, "documentText")->text = HTTP_makeStrCpy("ERROR: Serialized document was NULL!");
     }
+    realState->currentPageUrl = getTextAreaByDescriptor(realState, "urltextarea")->currentText;
 }
 
 void onlinkpressed(void *state, char *url) {
@@ -180,6 +181,11 @@ void onlinkpressed(void *state, char *url) {
         realState->numButtons --;
     }
 
+    char *realURL = url + 8;
+
+    struct http_url *curURL = http_url_from_string(realState->currentPageUrl);
+    char *absoluteURL = http_resolveRelativeURL(curURL, realState->currentPageUrl, realURL);
+
     realState->selectableIndex = -1;
     realState->currentPage = PAGE_DOCUMENT_LOADED;
     realState->globalScrollX = 0;
@@ -195,12 +201,13 @@ void onlinkpressed(void *state, char *url) {
     getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
     strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");
     render_nc(realState);
-    char *data = downloadAndOpenPage(state, (url + 8), onReceiveData, onFinishData, 0);
+    char *data = downloadAndOpenPage(state, absoluteURL, onReceiveData, onFinishData, 0);
     free(getTextByDescriptor(realState, "documentText")->text);
     getTextByDescriptor(realState, "documentText")->text = data;
     if (data == NULL) {
         getTextByDescriptor(realState, "documentText")->text = HTTP_makeStrCpy("ERROR: Serialized document was NULL!");
     }
+    realState->currentPageUrl = absoluteURL;
 }
 
 #endif

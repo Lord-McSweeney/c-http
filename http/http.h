@@ -21,6 +21,9 @@ struct http_url {
     short port;
     char *path;
     char *fragment;
+
+    int has_explicit_port;
+    int had_protocol_slashes;
 };
 
 enum _http_internal_url_parser_state {
@@ -62,6 +65,8 @@ struct http_url* http_url_from_string(char *string) {
     int currentState = HTTP_PROTOCOL;
     int currentIndex = 0;
     int isIp = 0;
+    int isPortExplicit = 0;
+    int hasProtocolSlashes = 0;
     for (int i = 0; i < urllen; i ++) {
         char curChar = string[i];
         switch (currentState) {
@@ -90,6 +95,7 @@ struct http_url* http_url_from_string(char *string) {
                 break;
             case HTTP_PROTOCOL_1:
                 if (curChar == '/') {
+                    hasProtocolSlashes = 1;
                     currentState = HTTP_PROTOCOL_2;
                     currentIndex = 0;
                 } else if (curChar >= '0' && curChar <= '9') {
@@ -130,6 +136,7 @@ struct http_url* http_url_from_string(char *string) {
                         errno = 3;
                         return NULL;
                     }
+                    isPortExplicit = 1;
                     currentState = HTTP_PORT;
                     currentIndex = 0;
                     break;
@@ -215,10 +222,113 @@ struct http_url* http_url_from_string(char *string) {
     result_mem->port = atoi(port);
     result_mem->path = path;
     result_mem->fragment = fragment;
+    result_mem->has_explicit_port = isPortExplicit;
+    result_mem->had_protocol_slashes = hasProtocolSlashes;
+
     free(hostname);
     free(port);
 
     return result_mem;
+}
+
+char* http_resolveRelativeURL(struct http_url *base, char *baseString, char *string) {
+    // NOTE: This function duplicates a lot of "build string from struct http_url" code. Could that be extracted into a new function?
+    if (strlen(string) == 0) {
+        return baseString;
+    }
+    if (string[0] == '/') {
+        if (string[1] == '/') {
+            char *newAlloc = (char *) calloc(strlen(base->protocol) + 3 + strlen(string), sizeof(char));
+            strcpy(newAlloc, base->protocol);
+            strcat(newAlloc, ":");
+            strcat(newAlloc, string);
+            return newAlloc;
+        } else {
+            char *newAlloc = (char *) calloc(strlen(base->protocol) + 8 + strlen(base->hostname) + strlen(string), sizeof(char));
+            strcpy(newAlloc, base->protocol);
+            if (base->had_protocol_slashes) {
+                strcat(newAlloc, "://");
+            } else {
+                strcat(newAlloc, ":");
+            }
+            strcat(newAlloc, base->hostname);
+            if (base->has_explicit_port) {
+                strcat(newAlloc, ":");
+                char *al2 = (char *) calloc(16, sizeof(char));
+                sprintf(al2, "%d", base->port);
+                strcat(newAlloc, al2);
+                free(al2);
+            }
+            strcat(newAlloc, string);
+            return newAlloc;
+        }
+    } else if (string[0] == '#') {
+            char *newAlloc = (char *) calloc(strlen(base->protocol) + 12 + strlen(base->hostname) + strlen(base->path) + strlen(string), sizeof(char));
+            strcpy(newAlloc, base->protocol);
+            if (base->had_protocol_slashes) {
+                strcat(newAlloc, "://");
+            } else {
+                strcat(newAlloc, ":");
+            }
+            strcat(newAlloc, base->hostname);
+            if (base->has_explicit_port) {
+                strcat(newAlloc, ":");
+                char *al2 = (char *) calloc(16, sizeof(char));
+                sprintf(al2, "%d", base->port);
+                strcat(newAlloc, al2);
+                free(al2);
+            }
+            strcat(newAlloc, base->path);
+            strcat(newAlloc, string);
+            return newAlloc;
+    } else if (string[0] == '?') {
+        // TODO
+        return baseString;
+    } else {
+        int isAbsolute = 0;
+        int wasNotAbsolute = 0;
+        for (int i = 0; i < strlen(string); i ++) {
+            char cur = string[i];
+            if (cur == '?' || cur == '#') {
+                wasNotAbsolute = 1;
+            }
+            if (cur == ':' && !wasNotAbsolute) {
+                isAbsolute = 1;
+            }
+        }
+        if (isAbsolute) {
+            return string;
+        } else {
+            char *resultPath = (char *) calloc(strlen(baseString) + strlen(string) + 2, sizeof(char));
+            int lastSlashPos = 0;
+            for (int i = strlen(base->path) - 1; i >= 0; i ++) {
+                if (base->path[i] == '/') {
+                    lastSlashPos = i;
+                    break;
+                }
+            }
+            strcpy(resultPath, base->path);
+            strcpy(resultPath + lastSlashPos + 1, string);
+
+            char *newAlloc = (char *) calloc(strlen(base->protocol) + 12 + strlen(base->hostname) + strlen(resultPath), sizeof(char));
+            strcpy(newAlloc, base->protocol);
+            if (base->had_protocol_slashes) {
+                strcat(newAlloc, "://");
+            } else {
+                strcat(newAlloc, ":");
+            }
+            strcat(newAlloc, base->hostname);
+            if (base->has_explicit_port) {
+                strcat(newAlloc, ":");
+                char *al2 = (char *) calloc(16, sizeof(char));
+                sprintf(al2, "%d", base->port);
+                strcat(newAlloc, al2);
+                free(al2);
+            }
+            strcat(newAlloc, resultPath);
+            return newAlloc;
+        }
+    }
 }
 
 struct http_response http_readFileToHTTP(char *path) {
