@@ -72,9 +72,36 @@ void freeXMLAttributes(struct xml_attributes *attribs) {
 }
 
 char *XML_parseHTMLEscapes(const char *content) {
-    int numEscapes = 23;
-    char ents[][8] = {"lt", "gt", "amp", "nbsp", "quot", "copy", "raquo", "#32", "#039", "#91", "#93", "#160", "#171", "#187", "#914", "#946", "#8211", "#8212", "#8216", "#8217", "#8230", "#8250", "#8260"};
-    char rplcwt[][4] = {"<",  ">",  "&",   " ",    "\"",   "C",    ">>",    " ",   "'",    "[",    "]",  " ",    "<<",   ">>",   "B",    "B",    "--",    "--",    "'",     "'",     "...",   ">",   "/"};
+    int numEscapes = 27;
+    char entities[][8] = {
+        "lt",     "<",
+        "gt",     ">",
+        "amp",    "&",
+        "nbsp",   " ",
+        "quot",   "\"",
+        "copy",   "C",
+        "raquo",  ">>",
+        "ldquo",  "\"",
+        "rdquo",  "\"",
+        "hellip", "...",
+        "#32",    " ",
+        "#39",    "'",
+        "#039",   "'",
+        "#91",    "[",
+        "#93",    "]",
+        "#160",   " ",
+        "#171",   "<<",
+        "#187",   ">>",
+        "#914",   "B",
+        "#946",   "B",
+        "#8211",  "--",
+        "#8212",  "---",
+        "#8216",  "'",
+        "#8217",  "'",
+        "#8230",  "...",
+        "#8250",  ">",
+        "#8260",  "/"
+    };
 
 
     int numSlashes = 0;
@@ -93,14 +120,16 @@ char *XML_parseHTMLEscapes(const char *content) {
 
         if (curChar == '&') {
             foundEscape = 0;
-            for (int j = numEscapes - 1; j >= 0; j --) {
-                int entLen = strlen(ents[j]);
+            for (int j = (numEscapes * 2) - 1; j >= 0; j -= 2) {
+                char *entity = entities[j - 1];
+                char *replaceWith = entities[j];
+                int entLen = strlen(entity);
                 // i + 1 to skip over the '&'
-                if (!strncmp(content + i + 1, ents[j], entLen)) {
-                    int replaceLength = strlen(rplcwt[j]);
+                if (!strncmp(content + i + 1, entity, entLen)) {
+                    int replaceLength = strlen(replaceWith);
                     int k;
                     for (k = 0; k < replaceLength; k ++) {
-                        allocated[realIndex + k] = rplcwt[j][0];
+                        allocated[realIndex + k] = replaceWith[k];
                     }
 
                     i += entLen + 1;
