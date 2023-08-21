@@ -85,7 +85,6 @@ struct http_response parsePossiblyIncompleteHTTPResponse(struct http_data rawRes
     response.do_redirect = 0;
     response.has_body = 0;
 
-    fprintf(stderr, "data was |%s|, len %d\n", rawResponse.data, rawResponse.length);
     if (rawResponse.length < 7 || strncmp(rawResponse.data, "HTTP/", 5)) {
         response.error = 195;
         return response;
