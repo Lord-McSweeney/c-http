@@ -234,6 +234,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 }
 
                 char *text = recursiveXMLToText(&node, node.children, state, originalHTML, (hLevel >= 2) || uppercase, listNestAmount);
+                int wasDisplayed = strlen(text);
 
                 if (!strcmp(lower, "img") && isVisible) {
                     char *altText = XML_getAttributeByName(attributes, "alt");
@@ -252,6 +253,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     free(lower);
                     freeXMLAttributes(attributes);
                     freeXMLAttributes(parent_attributes);
+                    justHadInlineInsideBlockWithText = 1;
                     hasBlocked = 0;
                     continue;
                 }
@@ -262,6 +264,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     free(lower);
                     freeXMLAttributes(attributes);
                     freeXMLAttributes(parent_attributes);
+                    justHadInlineInsideBlockWithText = 1;
                     hasBlocked = 0;
                     continue;
                 }
@@ -280,7 +283,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                             strcat(alloc, "|_________|");
                         } else if (!strcmp(type, "hidden")) {
                             // nothing
-                        } else if (!strcmp(type, "submit")) {
+                        } else if (!strcmp(type, "submit") || !strcmp(type, "button")) {
                             char *value = XML_getAttributeByName(attributes, "value");
                             if (value && *value) {
                                 strcat(alloc, "[");
@@ -297,6 +300,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     free(lower);
                     freeXMLAttributes(attributes);
                     freeXMLAttributes(parent_attributes);
+                    justHadInlineInsideBlockWithText = 1;
                     hasBlocked = 0;
                     continue;
                 }
@@ -335,7 +339,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 }
 
                 // FIXME: Account for hidden elements
-                if (CSS_isDefaultInline(node.name) && strlen(text)) {
+                if (CSS_isDefaultInline(node.name) && wasDisplayed) {
                     free(text);
                     free(lower);
                     freeXMLAttributes(attributes);
