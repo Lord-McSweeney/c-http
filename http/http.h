@@ -308,7 +308,7 @@ char* http_resolveRelativeURL(struct http_url *base, char *baseString, char *str
         } else {
             char *resultPath = (char *) calloc(strlen(baseString) + strlen(string) + 2, sizeof(char));
             int lastSlashPos = 0;
-            for (int i = strlen(base->path) - 1; i >= 0; i ++) {
+            for (int i = strlen(base->path) - 1; i >= 0; i --) {
                 if (base->path[i] == '/') {
                     lastSlashPos = i;
                     break;
