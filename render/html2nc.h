@@ -271,13 +271,11 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     if (type) {
                         if (!strcmp(type, "checkbox")) {
                             char *checked = XML_getAttributeByName(attributes, "checked");
-                            strcat(alloc, "\\m");
                             if (checked) {
                                 strcat(alloc, "[\\q \\r]");
                             } else {
                                 strcat(alloc, "[\\qX\\r]");
                             }
-                            strcat(alloc, "\\nN");
                         } else if (!strcmp(type, "text")) {
                             strcat(alloc, "|_________|");
                         } else if (!strcmp(type, "hidden")) {
