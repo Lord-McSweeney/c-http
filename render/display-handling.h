@@ -365,7 +365,7 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
             int doContinue = 0;
             switch (text[i]) {
                 case 'h':
-                    mvaddstr(realPosY, realPosX, horizontalRow);
+                    mvaddstr(realPosY + state->globalScrollY, realPosX + state->globalScrollX, horizontalRow);
                     realPosX = mx;
                     break;
 
