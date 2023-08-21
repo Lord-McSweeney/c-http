@@ -11,20 +11,22 @@ struct socket_info {
     int descriptor;
     int bytesRead;
     int error;
+    void *extra;
 };
 
-struct socket_info rwsocket(char *address, int portnum, char *senddata, char *towrite, int amount) {
+struct socket_info rwsocket(const char *address, int portnum, char *senddata, char *towrite, int amount) {
     struct socket_info errorStruct;
     errorStruct.descriptor = -1;
     errorStruct.bytesRead = -1;
     errorStruct.error = -1;
+    errorStruct.extra = NULL;
 
     struct timeval timeout;
     timeout.tv_sec = 0;
     timeout.tv_usec = 2500;
     int socket_desc;
     struct sockaddr_in server;
-    char *server_reply = (char *) malloc(amount);
+    char *server_reply = (char *) calloc(amount + 1, sizeof(char));
 
     socket_desc = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_desc == -1) {
@@ -73,24 +75,25 @@ struct socket_info rwsocket(char *address, int portnum, char *senddata, char *to
         return errorStruct;
     }
 
-    strcpy(towrite, server_reply);
+    strncpy(towrite, server_reply, amount);
     free(server_reply);
-    
+
     struct socket_info returnValue;
     returnValue.descriptor = socket_desc;
     returnValue.bytesRead = bytesRead;
     returnValue.error = 0;
+    returnValue.extra = NULL;
     return returnValue;
 }
 
-struct socket_info rsocket(int descriptor, char *towrite, int amount) {
+struct socket_info rsocket(struct socket_info info, char *towrite, int amount) {
     struct socket_info errorStruct;
     errorStruct.descriptor = -1;
     errorStruct.bytesRead = -1;
     errorStruct.error = -1;
 
     char *server_reply = (char *) calloc(amount + 1, sizeof(char));
-    int bytesRead = recv(descriptor, server_reply, amount, 0);
+    int bytesRead = recv(info.descriptor, server_reply, amount, 0);
     if (bytesRead < 0) {
         printf("Error while recieving additional response from server. Error code: \"%d\"\n", errno);
         return errorStruct;
@@ -100,15 +103,15 @@ struct socket_info rsocket(int descriptor, char *towrite, int amount) {
     free(server_reply);
 
     struct socket_info returnValue;
-    returnValue.descriptor = descriptor;
+    returnValue.descriptor = info.descriptor;
     returnValue.bytesRead = bytesRead;
     returnValue.error = 0;
 
     return returnValue;
 }
 
-void csocket(int descriptor) {
-    close(descriptor);
+void csocket(struct socket_info info) {
+    close(info.descriptor);
 }
 
 int lookupIP(char *hostname, char *buffer) {

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../socket/socket.h"
+#include "../socket/secure_socket.h"
 #include "response.h"
 #include "chunked.h"
 
@@ -14,6 +15,12 @@
     #define maxResponseSize 1048578
 
 typedef void (*dataReceiveHandler)(void *);
+
+typedef struct socket_info (*socketConnecter)(const char *, int, char *, char *, int);
+
+typedef struct socket_info (*socketReader)(struct socket_info, char *, int);
+
+typedef void (*socketCloser)(struct socket_info);
 
 struct http_url {
     char *protocol;
@@ -384,7 +391,16 @@ struct http_response http_readFileToHTTP(char *path) {
     return result;
 }
 
-struct http_response http_makeNetworkHTTPRequest(struct http_url *url, char *userAgent, dataReceiveHandler chunkHandler, dataReceiveHandler finishHandler, void *chunkArg) {
+struct http_response http_makeNetworkHTTPRequest(
+    struct http_url *url,
+    socketConnecter rwsocket,
+    socketReader rsocket,
+    socketCloser csocket,
+    char *userAgent,
+    dataReceiveHandler chunkHandler,
+    dataReceiveHandler finishHandler,
+    void *chunkArg
+) {
     struct http_response errorResponse;
     errorResponse.error = 1;
 
@@ -441,6 +457,19 @@ struct http_response http_makeNetworkHTTPRequest(struct http_url *url, char *use
                 free(buffer);
                 return errorResponse;
         }
+        switch (tcpResult.error) {
+            case -6:
+                errorResponse.error = 192;
+                free(buffer);
+                return errorResponse;
+            case -7:
+                errorResponse.error = 193;
+                free(buffer);
+                return errorResponse;
+        }
+        errorResponse.error = 200;
+        free(buffer);
+        return errorResponse;
         //printf("error: %d\n", errno);
     }
 
@@ -456,20 +485,32 @@ struct http_response http_makeNetworkHTTPRequest(struct http_url *url, char *use
 
     struct http_response parsedResponse = parsePossiblyIncompleteHTTPResponse(initialHttpResponse, "1.1");
 
+    if (parsedResponse.error) {
+        errorResponse.error = parsedResponse.error;
+        csocket(tcpResult);
+        return errorResponse;
+    }
+
     // There's no guarantee that all the headers will be sent in the initial read
     while(!parsedResponse.has_body) {
         int initialBytesRead = tcpResult.bytesRead;
         char *currentPosition = buffer + initialBytesRead;
-        tcpResult = rsocket(tcpResult.descriptor, currentPosition, 1048570 - tcpResult.bytesRead);
+        tcpResult = rsocket(tcpResult, currentPosition, 1048570 - tcpResult.bytesRead);
         tcpResult.bytesRead = initialBytesRead + tcpResult.bytesRead;
 
         initialHttpResponse.length = tcpResult.bytesRead;
         parsedResponse = parsePossiblyIncompleteHTTPResponse(initialHttpResponse, "1.1");
+
+        if (parsedResponse.error) {
+            errorResponse.error = parsedResponse.error;
+            csocket(tcpResult);
+            return errorResponse;
+        }
     }
 
     if (parsedResponse.error) {
         errorResponse.error = parsedResponse.error;
-        csocket(tcpResult.descriptor);
+        csocket(tcpResult);
         return errorResponse;
     }
 
@@ -481,7 +522,7 @@ struct http_response http_makeNetworkHTTPRequest(struct http_url *url, char *use
             //fprintf(stderr, "Encountered error while parsing chunked response: %d\n", chunkedResponse.error);
             errorResponse.error = 199;
             free(buffer);
-            csocket(tcpResult.descriptor);
+            csocket(tcpResult);
             return errorResponse;
         }
         parsedResponse.response_body = chunkedResponse.current_parsed_data;
@@ -491,7 +532,7 @@ struct http_response http_makeNetworkHTTPRequest(struct http_url *url, char *use
             //fprintf(stderr, "Current position: %ld\n", (long) currentPosition);
             currentPosition = buffer + totalBytesRead;
             errno = 0;
-            tcpResult = rsocket(tcpResult.descriptor, currentPosition, 1048570 - totalBytesRead);
+            tcpResult = rsocket(tcpResult, currentPosition, 1048570 - totalBytesRead);
             totalBytesRead += tcpResult.bytesRead;
 
             if (chunkHandler != NULL) chunkHandler(chunkArg);
@@ -504,7 +545,7 @@ struct http_response http_makeNetworkHTTPRequest(struct http_url *url, char *use
 
             if (chunkedResponse.error) {
                 errorResponse.error = 199;
-                csocket(tcpResult.descriptor);
+                csocket(tcpResult);
                 return errorResponse;
             }
 
@@ -526,7 +567,7 @@ struct http_response http_makeNetworkHTTPRequest(struct http_url *url, char *use
 
                 currentPosition = buffer + totalBytesRead;
                 errno = 0;
-                tcpResult = rsocket(tcpResult.descriptor, currentPosition, 1048570 - totalBytesRead);
+                tcpResult = rsocket(tcpResult, currentPosition, 1048570 - totalBytesRead);
                 totalBytesRead += tcpResult.bytesRead;
 
                 if (chunkHandler != NULL) chunkHandler(chunkArg);
@@ -554,7 +595,7 @@ struct http_response http_makeNetworkHTTPRequest(struct http_url *url, char *use
 
     free(buffer);
 
-    csocket(tcpResult.descriptor);
+    csocket(tcpResult);
     return parsedResponse;
 }
 
@@ -568,27 +609,9 @@ struct http_response http_makeHTTPRequest(char *charURL, char *userAgent, dataRe
     }
 
     if (!strcmp(url->protocol, "http")) {
-        return http_makeNetworkHTTPRequest(url, userAgent, chunkHandler, finishHandler, chunkArg);
+        return http_makeNetworkHTTPRequest(url, rwsocket, rsocket, csocket, userAgent, chunkHandler, finishHandler, chunkArg);
     } else if (!strcmp(url->protocol, "https")) {
-        struct http_data body;
-        body.length = 22;
-        body.data = HTTP_makeStrCpy("HTTPS is not supported");
-
-        struct http_response result;
-        result.response_code = 200;
-        result.response_description = HTTP_makeStrCpy("OK");
-        result.num_headers = 0;
-        result.headers = NULL;
-        result.is_chunked = 0;
-        result.is_html = 0;
-        result.content_length = 0;
-        result.error = 0;
-        result.redirect = NULL;
-        result.do_redirect = 0;
-        result.has_body = 1;
-        result.response_body = body;
-
-        return result;
+        return http_makeNetworkHTTPRequest(url, secure_rwsocket, secure_rsocket, secure_csocket, userAgent, chunkHandler, finishHandler, chunkArg);
     } else if (!strcmp(url->protocol, "file")) {
         free(url->hostname);
         free(url->protocol);
