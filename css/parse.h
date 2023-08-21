@@ -79,7 +79,7 @@ void freeCSSStyles(struct css_styles *styles) {
 }
 
 char *trimWhiteSpaceAtEndOfString(const char *string) {
-    char *allocated = (char *) calloc(strlen(string), sizeof(char));
+    char *allocated = (char *) calloc(strlen(string) + 2, sizeof(char));
     for (int i = 0; i < strlen(string); i ++) {
         int wereAllSpace = 1;
         for (int j = i; j < strlen(string); j ++) {
