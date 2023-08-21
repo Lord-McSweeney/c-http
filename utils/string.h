@@ -36,8 +36,6 @@ char *safeDecodeString(char *string) {
 }
 
 int safeGetEncodedStringLength(char *string) {
-    char *result = (char *) calloc(strlen(string) + 2, sizeof(char));
-
     int lenLen = string[0] - 48;
 
     char *len2 = (char *) calloc(strlen(string) + 2, sizeof(char));

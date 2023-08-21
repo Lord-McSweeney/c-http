@@ -21,6 +21,8 @@ char *CSS_getStyleByName(struct css_styles *styles, const char *name) {
             return styles->styles[i].value;
         }
     }
+
+    free(n);
     return NULL;
 }
 
@@ -32,6 +34,8 @@ int CSS_getStyleIndexByName(struct css_styles *styles, const char *name) {
             return i;
         }
     }
+
+    free(n);
     return -1;
 }
 
@@ -54,10 +58,10 @@ struct css_style CSS_makeStyle(const char *name, const char *value) {
     return style;
 }
 
-struct css_styles CSS_makeEmptyStyles() {
-    struct css_styles styles;
-    styles.count = 0;
-    styles.styles = NULL;
+struct css_styles *CSS_makeEmptyStyles() {
+    struct css_styles *styles = (struct css_styles *) calloc(1, sizeof(struct css_styles));
+    styles->count = 0;
+    styles->styles = NULL;
     return styles;
 }
 

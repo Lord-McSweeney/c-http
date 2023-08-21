@@ -130,10 +130,10 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
     // TODO: support more styles
     char *attrib = XML_getAttributeByName(attribs, "style");
     if (attrib != NULL) {
-        struct css_styles styles = CSS_makeEmptyStyles();
-        CSS_parseInlineStyles(&styles, attrib);
+        struct css_styles *styles = CSS_makeEmptyStyles();
+        CSS_parseInlineStyles(styles, attrib);
 
-        char *displayStyle = CSS_getStyleByName(&styles, "display");
+        char *displayStyle = CSS_getStyleByName(styles, "display");
 
         enum css_display display = CSS_styleNameToDisplay(displayStyle);
         if (display != DISPLAY_DEFAULT) {
@@ -141,7 +141,7 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
         }
 
 
-        char *textDecorationStyle = CSS_getStyleByName(&styles, "text-decoration");
+        char *textDecorationStyle = CSS_getStyleByName(styles, "text-decoration");
         if (textDecorationStyle != NULL) {
             if (!strcmp(textDecorationStyle, "underline")) {
                 styling.underline = 1;
@@ -157,7 +157,7 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
         }
 
 
-        char *colorStyle = CSS_getStyleByName(&styles, "color");
+        char *colorStyle = CSS_getStyleByName(styles, "color");
         if (colorStyle != NULL) {
             if (!strcmp(colorStyle, "blue")) {
                 styling.color = CSS_COLOR_BLUE;
@@ -169,7 +169,7 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
         }
 
 
-        char *positionStyle = CSS_getStyleByName(&styles, "position");
+        char *positionStyle = CSS_getStyleByName(styles, "position");
         if (positionStyle != NULL) {
             if (!strcmp(positionStyle, "absolute")) {
                 styling.position = POSITION_ABSOLUTE;
@@ -185,6 +185,8 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
                 styling.position = POSITION_UNKNOWN;
             }
         }
+
+        freeCSSStyles(styles);
     }
 
     free(lower);

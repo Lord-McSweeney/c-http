@@ -26,6 +26,7 @@ char *XML_getAttributeByName(struct xml_attributes *attribs, const char *name) {
             return attribs->attributes[i].value;
         }
     }
+    free(n);
     return NULL;
 }
 

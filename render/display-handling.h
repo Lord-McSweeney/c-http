@@ -412,6 +412,7 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                             linkDescriptor[strlen(linkDescriptor)] = linkIdx & 0xFF;
                             linkDescriptor[strlen(linkDescriptor)] = linkIdx >> 8;
                             strcat(linkDescriptor, result);
+                            free(result);
                             linkIdx ++;
                             if (getButtonByDescriptor(state, linkDescriptor)) {
                                 // Already exists, don't create again
@@ -576,6 +577,7 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
     }
 
     free(horizontalRow);
+    free(buttonSpace);
 }
 
 void render_nc(struct nc_state *browserState) {

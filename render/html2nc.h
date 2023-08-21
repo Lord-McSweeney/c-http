@@ -328,8 +328,11 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 }
 
                 if (isVisible && !strcmp(lower, "a") && XML_getAttributeByName(attributes, "href")) {
+                    char *encoded = safeEncodeString(XML_getAttributeByName(attributes, "href"));
+
                     strcat(alloc, "\\nL");
-                    strcat(alloc, safeEncodeString(XML_getAttributeByName(attributes, "href")));
+                    strcat(alloc, encoded);
+                    free(encoded);
                 }
 
                 if (!strcmp(lower, "li")) {

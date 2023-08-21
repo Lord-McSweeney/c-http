@@ -579,7 +579,11 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                         currentState = PARSE_UNKNOWN;
                         break;
                     }
-                    if (!strcmp(xml_toLowerCase(closingTag), xml_toLowerCase(currentElementName))) {
+
+                    char *lowerName = xml_toLowerCase(currentElementName);
+                    char *lowerClose = xml_toLowerCase(closingTag);
+                    char *lowerParent = xml_toLowerCase(parentClosingTag);
+                    if (!strcmp(lowerClose, lowerName)) {
                         bytesParsed += 1;
                         struct xml_response realResponse;
                         realResponse.error = 0;
@@ -591,8 +595,12 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                         free(currentElementName);
                         free(currentAttributeContent);
 
+                        free(lowerName);
+                        free(lowerClose);
+                        free(lowerParent);
+
                         return realResponse;
-                    } else if (!strcmp(xml_toLowerCase(parentClosingTag), xml_toLowerCase(currentElementName)) && html_isClosingElement(closingTag)) {
+                    } else if (!strcmp(lowerParent, lowerName) && html_isClosingElement(closingTag)) {
                         struct xml_response realResponse;
                         realResponse.error = 0;
                         realResponse.bytesParsed = bytesParsed - (strlen(currentElementName) + 2);
@@ -603,6 +611,10 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                         free(currentElementName);
                         free(currentAttributeContent);
 
+                        free(lowerName);
+                        free(lowerClose);
+                        free(lowerParent);
+
                         return realResponse;
                     } else {
                         // AFAICS Chrome ignores these tags, so I do too
@@ -610,6 +622,10 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                         clrStr(currentElementName);
                         currentIndex = 0;
                         currentState = PARSE_UNKNOWN;
+
+                        free(lowerName);
+                        free(lowerClose);
+                        free(lowerParent);
                     }
                     break;
                 }
