@@ -64,7 +64,12 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
         strcat(getTextByDescriptor(state, "documentText")->text, parsedResponse.redirect);
         strcat(getTextByDescriptor(state, "documentText")->text, "\".");
         render_nc(state);
-        return downloadAndOpenPage(state, parsedResponse.redirect, handler, finishHandler, redirect_depth + 1);
+
+        struct http_url *curURL = http_url_from_string(state->currentPageUrl);
+        char *absoluteURL = http_resolveRelativeURL(curURL, state->currentPageUrl, parsedResponse.redirect);
+        state->currentPageUrl = absoluteURL;
+
+        return downloadAndOpenPage(state, absoluteURL, handler, finishHandler, redirect_depth + 1);
     }
 
     if (!parsedResponse.is_html) {
