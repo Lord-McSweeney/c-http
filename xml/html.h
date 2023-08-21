@@ -593,7 +593,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                         currentState = PARSE_UNKNOWN;
                         break;
                     }
-                    if (!strcmp(closingTag, currentElementName)) {
+                    if (!strcmp(xml_toLowerCase(closingTag), xml_toLowerCase(currentElementName))) {
                         bytesParsed += 1;
                         struct xml_response realResponse;
                         realResponse.error = 0;
@@ -606,7 +606,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                         free(currentAttributeContent);
 
                         return realResponse;
-                    } else if (!strcmp(parentClosingTag, currentElementName) && html_isClosingElement(closingTag)) {
+                    } else if (!strcmp(xml_toLowerCase(parentClosingTag), xml_toLowerCase(currentElementName)) && html_isClosingElement(closingTag)) {
                         struct xml_response realResponse;
                         realResponse.error = 0;
                         realResponse.bytesParsed = bytesParsed - (strlen(currentElementName) + 2);
