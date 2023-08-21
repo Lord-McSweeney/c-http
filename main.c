@@ -1,4 +1,5 @@
 // main.c
+// Compile with gcc main.c -lncurses -lssl -lcrypto
 
 #include "render/display-handling.h"
 #include "navigation/links.h"
