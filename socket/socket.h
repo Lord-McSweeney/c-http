@@ -98,13 +98,17 @@ struct socket_info rsocket(int descriptor, char *towrite, int amount) {
 
     strncpy(towrite, server_reply, amount);
     free(server_reply);
-    
+
     struct socket_info returnValue;
     returnValue.descriptor = descriptor;
     returnValue.bytesRead = bytesRead;
     returnValue.error = 0;
 
     return returnValue;
+}
+
+void csocket(int descriptor) {
+    close(descriptor);
 }
 
 int lookupIP(char *hostname, char *buffer) {

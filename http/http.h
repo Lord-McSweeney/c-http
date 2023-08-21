@@ -469,6 +469,7 @@ struct http_response http_makeNetworkHTTPRequest(struct http_url *url, char *use
 
     if (parsedResponse.error) {
         errorResponse.error = parsedResponse.error;
+        csocket(tcpResult.descriptor);
         return errorResponse;
     }
 
@@ -480,6 +481,7 @@ struct http_response http_makeNetworkHTTPRequest(struct http_url *url, char *use
             //fprintf(stderr, "Encountered error while parsing chunked response: %d\n", chunkedResponse.error);
             errorResponse.error = 199;
             free(buffer);
+            csocket(tcpResult.descriptor);
             return errorResponse;
         }
         parsedResponse.response_body = chunkedResponse.current_parsed_data;
@@ -502,6 +504,7 @@ struct http_response http_makeNetworkHTTPRequest(struct http_url *url, char *use
 
             if (chunkedResponse.error) {
                 errorResponse.error = 199;
+                csocket(tcpResult.descriptor);
                 return errorResponse;
             }
 
@@ -551,6 +554,7 @@ struct http_response http_makeNetworkHTTPRequest(struct http_url *url, char *use
 
     free(buffer);
 
+    csocket(tcpResult.descriptor);
     return parsedResponse;
 }
 
@@ -563,9 +567,28 @@ struct http_response http_makeHTTPRequest(char *charURL, char *userAgent, dataRe
         return failure;
     }
 
-    if (!strcmp(url->protocol, "https") || !strcmp(url->protocol, "http")) {
-        // Following code handles this
+    if (!strcmp(url->protocol, "http")) {
         return http_makeNetworkHTTPRequest(url, userAgent, chunkHandler, finishHandler, chunkArg);
+    } else if (!strcmp(url->protocol, "https")) {
+        struct http_data body;
+        body.length = 22;
+        body.data = HTTP_makeStrCpy("HTTPS is not supported");
+
+        struct http_response result;
+        result.response_code = 200;
+        result.response_description = HTTP_makeStrCpy("OK");
+        result.num_headers = 0;
+        result.headers = NULL;
+        result.is_chunked = 0;
+        result.is_html = 0;
+        result.content_length = 0;
+        result.error = 0;
+        result.redirect = NULL;
+        result.do_redirect = 0;
+        result.has_body = 1;
+        result.response_body = body;
+
+        return result;
     } else if (!strcmp(url->protocol, "file")) {
         free(url->hostname);
         free(url->protocol);
