@@ -244,10 +244,21 @@ struct nc_text createNewText(struct nc_state *state, int x, int y, char *givenTe
     return text;
 }
 
-char *getTextAreaRendered(struct nc_text_area textarea) {
-    char *resultingText = (char *) calloc(textarea.width + 2, sizeof(char));
+int getTextAreaWidth(struct nc_text_area textarea) {
+    int mx;
+    int my;
+    getmaxyx(stdscr, my, mx);
+    
 
-    int under = textarea.width - strlen(textarea.currentText);
+    return (textarea.width < 0) ? (mx + textarea.width) : textarea.width;
+}
+
+char *getTextAreaRendered(struct nc_text_area textarea) {
+    int width = getTextAreaWidth(textarea);
+
+    char *resultingText = (char *) calloc(width + 2, sizeof(char));
+
+    int under = width - strlen(textarea.currentText);
     if (under < 0) under = 0;
     for (int i = textarea.scrolledAmount; i < strlen(textarea.currentText); i ++) {
         resultingText[i - textarea.scrolledAmount] = textarea.currentText[i];
@@ -332,6 +343,11 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
     free(dashes);
     free(spaces);
 
+    char *fullDashes = repeatChar('-', mx);
+    char *fullHorizontalRow = (char *) calloc(mx + 1, sizeof(char));
+    strcpy(fullHorizontalRow, fullDashes);
+    free(fullDashes);
+
     if (overrideMinX != -1) {
         minX = overrideMinX;
     }
@@ -364,6 +380,10 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
             switch (text[i]) {
                 case 'h':
                     mvaddstr(realPosY + state->globalScrollY, realPosX + state->globalScrollX, horizontalRow);
+                    realPosX = mx;
+                    break;
+                case 'H':
+                    mvaddstr(realPosY + state->globalScrollY, realPosX + state->globalScrollX, fullHorizontalRow);
                     realPosX = mx;
                     break;
 
@@ -578,6 +598,7 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
 
     free(horizontalRow);
     free(buttonSpace);
+    free(fullHorizontalRow);
 }
 
 void render_nc(struct nc_state *browserState) {

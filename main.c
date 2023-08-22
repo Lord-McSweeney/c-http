@@ -44,6 +44,8 @@ void initializeDisplayObjects(struct nc_state *state) {
     getTextByDescriptor(state, "userAgentDetail")->visible = 0;
     getTextAreaByDescriptor(state, "userAgent")->visible = 0;
     getTextAreaByDescriptor(state, "userAgent")->currentText = makeStrCpy("uqers");
+    createNewTextarea(state, 0, 1, -5, 1, "urlField");
+    getTextAreaByDescriptor(state, "urlField")->visible = 0;
 }
 
 void openGotoPageDialog(struct nc_state *state) {
@@ -61,6 +63,7 @@ void openGotoPageDialog(struct nc_state *state) {
     textarea->visible = 1;
     getButtonByDescriptor(state, "gotobutton")->visible = 1;
     getTextByDescriptor(state, "documentText")->visible = 0;
+    getTextAreaByDescriptor(state, "urlField")->visible = 0;
     getTextByDescriptor(state, "userAgentDetail")->visible = 1;
     getTextAreaByDescriptor(state, "userAgent")->visible = 1;
     state->selectableIndex = 0;
@@ -82,6 +85,7 @@ void closeGotoPageDialog(struct nc_state *state) {
     if (state->currentPage == PAGE_GOTO_OVER_DOCUMENT) {
         state->currentPage = PAGE_DOCUMENT_LOADED;
         getTextByDescriptor(state, "documentText")->visible = 1;
+        getTextAreaByDescriptor(state, "urlField")->visible = 1;
         showButtons(state);
     } else {
         freeButtons(state);
@@ -101,6 +105,7 @@ void closeDocumentPage(struct nc_state *state) {
     state->currentPage = PAGE_EMPTY;
     getTextByDescriptor(state, "helpText")->visible = 1;
     getTextByDescriptor(state, "documentText")->visible = 0;
+    getTextAreaByDescriptor(state, "urlField")->visible = 0;
     getTextByDescriptor(state, "documentText")->text = makeStrCpy("");
     state->currentPageUrl = NULL;
     freeButtons(state);
@@ -180,7 +185,7 @@ void onKeyPress(struct nc_state *browserState, int ch) {/*
         int curlen = strlen(textarea->currentText);
         if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '.' || ch == '/' || ch == ':' || ch == '#' || ch == '-' || ch == '=' || ch == '?' || ch == '_' || ch == ',' || ch == '<' || ch == '>' || ch == '%' || ch == '&' || ch == '+' || ch == ';' || ch == '~') {
             if (curlen <= 1023) {
-                if (curlen >= textarea->width) {
+                if (curlen >= getTextAreaWidth(*textarea)) {
                     textarea->scrolledAmount ++;
                 }
                 textarea->currentText[curlen] = ch;
@@ -339,6 +344,7 @@ int main(int argc, char **argv) {
                 break;
             }
         }
+        getTextAreaByDescriptor(&browserState, "urlField")->currentText = url;
         ongotourl(&browserState, "<unused>");
     }
 

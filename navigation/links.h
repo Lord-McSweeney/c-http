@@ -70,6 +70,7 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
         struct http_url *curURL = http_url_from_string(state->currentPageUrl);
         char *absoluteURL = http_resolveRelativeURL(curURL, state->currentPageUrl, parsedResponse.redirect);
         state->currentPageUrl = absoluteURL;
+        getTextAreaByDescriptor(state, "urlField")->currentText = absoluteURL;
 
         return downloadAndOpenPage(state, absoluteURL, handler, finishHandler, redirect_depth + 1);
     }
@@ -107,9 +108,13 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
     }
 
     struct html2nc_result result = htmlToText(xml.list, parsedResponse.response_body.data);
-    char *total = (char *) calloc(strlen(result.text) + strlen(result.title) + 8, sizeof(char));
+    char *total = (char *) calloc(strlen(result.text) + strlen(url) + strlen(result.title) + 8, sizeof(char));
     strcpy(total, result.title);
-    strcat(total, "\n\n");
+    strcat(total, "\n");
+    strcat(total, url);
+    strcat(total, "\n");
+    strcat(total, "\\H");
+    strcat(total, "\n");
     strcat(total, result.text);
 
     strcat(getTextByDescriptor(state, "documentText")->text, "\nDone parsing HTML as rich text.");
@@ -164,9 +169,11 @@ void ongotourl(void *state, char *_) {
     getTextByDescriptor(state, "userAgentDetail")->visible = 0;
     getTextAreaByDescriptor(state, "userAgent")->visible = 0;
     getTextByDescriptor(realState, "documentText")->visible = 1;
+    getTextAreaByDescriptor(state, "urlField")->visible = 1;
     getTextByDescriptor(state, "helpText")->visible = 0;
 
     realState->currentPageUrl = getTextAreaByDescriptor(realState, "urltextarea")->currentText;
+    getTextAreaByDescriptor(state, "urlField")->currentText = realState->currentPageUrl;
 
     getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
     strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");
@@ -209,9 +216,11 @@ void onlinkpressed(void *state, char *url) {
     getTextByDescriptor(state, "userAgentDetail")->visible = 0;
     getTextAreaByDescriptor(state, "userAgent")->visible = 0;
     getTextByDescriptor(realState, "documentText")->visible = 1;
+    getTextAreaByDescriptor(state, "urlField")->visible = 1;
     getTextByDescriptor(state, "helpText")->visible = 0;
 
     realState->currentPageUrl = absoluteURL;
+    getTextAreaByDescriptor(state, "urlField")->currentText = absoluteURL;
 
     getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
     strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");
