@@ -75,6 +75,26 @@ struct html2nc_result {
     char *title;
 };
 
+// This function duplicates getTextAreaRendered in display-handling: it will be unnecessary once input is actually implemented.
+char *getInputRendered(char *text, int width) {
+    char *resultingText = (char *) calloc(width + 2, sizeof(char));
+
+    int under = width - strlen(text);
+    if (under < 0) under = 0;
+    for (int i = 0; i < width; i ++) {
+        if (text[i] == 0) {
+            break;
+        }
+        resultingText[i] = text[i];
+    }
+
+    for (int i = 0; i < under; i ++) {
+        resultingText[strlen(resultingText)] = '_';
+    }
+
+    return resultingText;
+}
+
 char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct html2nc_state *state, char *originalHTML, int uppercase, int listNestAmount) {
     char *alloc = (char *) calloc(strlen(originalHTML) + 2, sizeof(char));
 
@@ -272,7 +292,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     if (type) {
                         if (!strcmp(type, "checkbox")) {
                             char *checked = XML_getAttributeByName(attributes, "checked");
-                            if (checked) {
+                            if (!checked) {
                                 strcat(alloc, "[\\q \\r]");
                             } else {
                                 strcat(alloc, "[\\qX\\r]");
@@ -288,6 +308,16 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                                 strcat(alloc, value);
                                 strcat(alloc, "]");
                             }
+                        } else if (!strcmp(type, "file")) {
+                            strcat(alloc, "[UPLOAD]");
+                        } else if (!strcmp(type, "number")) {
+                            char *value = XML_getAttributeByName(attributes, "value");
+                            if (!value) {
+                                value = "";
+                            }
+                            strcat(alloc, "|");
+                            strcat(alloc, getInputRendered(value, 9));
+                            strcat(alloc, "|");
                         } else {
                             strcat(alloc, "[INPUT]");
                         }
