@@ -198,7 +198,11 @@ void onKeyPress(struct nc_state *browserState, int ch) {/*
                 textarea->scrolledAmount --;
             }
         }
-    } else if (browserState->currentPage == PAGE_DOCUMENT_LOADED) {
+        if (ch != KEY_UP && ch != KEY_DOWN) {
+            browserState->shouldCheckAutoScroll = 1;
+        }
+    }
+    if (browserState->currentPage == PAGE_DOCUMENT_LOADED) {
         struct nc_text *documentText = getTextByDescriptor(browserState, "documentText");
         if (ch == KEY_UP) {
             if (browserState->globalScrollY < 0) {

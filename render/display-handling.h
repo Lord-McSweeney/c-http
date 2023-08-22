@@ -639,21 +639,29 @@ void render_nc(struct nc_state *browserState) {
             char *renderResult = getTextAreaRendered(browserState->text_areas[i]);
 
             mvprintw(
-                browserState->text_areas[i].y,
-                browserState->text_areas[i].x,
+                browserState->text_areas[i].y + browserState->globalScrollY,
+                browserState->text_areas[i].x + browserState->globalScrollX,
                 renderResult
             );
             free(renderResult);
             attron(COLOR_PAIR(1));
         }
     }
+    int my;
+    int mx;
+    getmaxyx(stdscr, my, mx);
     for (int i = 0; i < numTextAreas; i ++) {
         if (browserState->text_areas[i].selected) {
-            move(
-                browserState->text_areas[i].y,
-                browserState->text_areas[i].x + strlen(browserState->text_areas[i].currentText) - browserState->text_areas[i].scrolledAmount
-            );
-            curs_set(1);
+            int ypos = browserState->text_areas[i].y + browserState->globalScrollY;
+            if (ypos < 0 || ypos > my - 1) {
+                curs_set(0);
+            } else {
+                move(
+                    ypos,
+                    browserState->text_areas[i].x + browserState->globalScrollX + strlen(browserState->text_areas[i].currentText) - browserState->text_areas[i].scrolledAmount
+                );
+                curs_set(1);
+            }
         }
     }
     refresh();
