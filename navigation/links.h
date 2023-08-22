@@ -91,6 +91,7 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
     }
 
     strcat(getTextByDescriptor(state, "documentText")->text, "\nBeginning to parse page as HTML...");
+    render_nc(state);
 
     // todo: handle headers
 
@@ -101,6 +102,7 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
                               );
 
     strcat(getTextByDescriptor(state, "documentText")->text, "\nDone parsing page as HTML.\nConverting HTML to rich text...");
+    render_nc(state);
 
     if (xml.error) {
         char *t = (char *) calloc(strlen("Encountered an error while parsing the page. Error code: %d.") + 1, sizeof(char));
@@ -119,6 +121,7 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
     strcat(total, result.text);
 
     strcat(getTextByDescriptor(state, "documentText")->text, "\nDone parsing HTML as rich text.");
+    render_nc(state);
 
     free(parsedResponse.response_body.data);
     for (int i = 0; i < parsedResponse.num_headers; i ++) {
@@ -170,7 +173,7 @@ void ongotourl(void *state, char *_) {
     getTextByDescriptor(state, "userAgentDetail")->visible = 0;
     getTextAreaByDescriptor(state, "userAgent")->visible = 0;
     getTextByDescriptor(realState, "documentText")->visible = 1;
-    getTextAreaByDescriptor(state, "urlField")->visible = 1;
+    getTextAreaByDescriptor(state, "urlField")->visible = 0;
     getTextByDescriptor(state, "helpText")->visible = 0;
 
     realState->currentPageUrl = getTextAreaByDescriptor(realState, "urltextarea")->currentText;
@@ -185,6 +188,8 @@ void ongotourl(void *state, char *_) {
     if (data == NULL) {
         getTextByDescriptor(realState, "documentText")->text = makeStrCpy("ERROR: Serialized document was NULL!");
     }
+
+    getTextAreaByDescriptor(state, "urlField")->visible = 1;
 }
 
 void onlinkpressed(void *state, char *url) {
@@ -217,7 +222,7 @@ void onlinkpressed(void *state, char *url) {
     getTextByDescriptor(state, "userAgentDetail")->visible = 0;
     getTextAreaByDescriptor(state, "userAgent")->visible = 0;
     getTextByDescriptor(realState, "documentText")->visible = 1;
-    getTextAreaByDescriptor(state, "urlField")->visible = 1;
+    getTextAreaByDescriptor(state, "urlField")->visible = 0;
     getTextByDescriptor(state, "helpText")->visible = 0;
 
     realState->currentPageUrl = absoluteURL;
@@ -232,6 +237,8 @@ void onlinkpressed(void *state, char *url) {
     if (data == NULL) {
         getTextByDescriptor(realState, "documentText")->text = makeStrCpy("ERROR: Serialized document was NULL!");
     }
+
+    getTextAreaByDescriptor(state, "urlField")->visible = 1;
 }
 
 #endif
