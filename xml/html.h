@@ -262,7 +262,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
     int currentState = PARSE_UNKNOWN;
     int currentIndex = 1;
 
-    int maxTextContent = 262144;
+    int maxTextContent = 256; // This will be dynamically resized
     int maxDoctypeContent = 256;
     int maxElementName = 256;
     int maxAttributeContent = 16384;
@@ -356,13 +356,9 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                 }
                 currentTextContentUsage ++;
                 if (currentTextContentUsage > maxTextContent - 2) {
-                    free(currentTextContent);
-                    free(currentDoctypeContent);
-                    free(currentElementName);
-                    free(currentAttributeContent);
-
-                    error_xml.error = 2;
-                    return error_xml;
+                    currentTextContent = (char *) realloc(currentTextContent, maxTextContent * 2);
+                    memset(currentTextContent + maxTextContent, 0, maxTextContent);
+                    maxTextContent *= 2;
                 }
                 currentTextContent[strlen(currentTextContent)] = curChar;
                 break;
@@ -686,13 +682,9 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                 }
                 currentTextContentUsage ++;
                 if (currentTextContentUsage > maxTextContent - 2) {
-                    free(currentTextContent);
-                    free(currentDoctypeContent);
-                    free(currentElementName);
-                    free(currentAttributeContent);
-
-                    error_xml.error = 2;
-                    return error_xml;
+                    currentTextContent = (char *) realloc(currentTextContent, maxTextContent * 2);
+                    memset(currentTextContent + maxTextContent, 0, maxTextContent);
+                    maxTextContent *= 2;
                 }
                 currentTextContent[strlen(currentTextContent)] = curChar;
                 break;
