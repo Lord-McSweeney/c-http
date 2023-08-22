@@ -77,7 +77,7 @@ struct nc_state {
     enum nc_page currentPage;
 
     struct nc_text_area text_areas[256];
-    struct nc_button buttons[256];
+    struct nc_button buttons[1536];
     struct nc_text texts[256];
     int numTextAreas;
     int numButtons;
@@ -140,6 +140,7 @@ int isSelectable(struct nc_selected selectable) {
         return selectable.textarea->visible;
     } else {
         // Somehow both are none???
+        fprintf(stderr, "Neither selectable of a selectable enum was selectable. This is a bug!\n");
         return 0;
     }
 }
@@ -191,13 +192,14 @@ struct nc_button createNewButton(struct nc_state *state, int x, int y, char *tex
     button.visible = 1;
     button.selected = 0;
     button.enabled = 1;
-    button.text = text;
+    button.text = nc_strcpy(text);
     button.onclick = onclick;
     button.overrideMinX = -1;
     button.descriptor = nc_strcpy(descriptor);
+
     state->buttons[state->numButtons] = button;
     state->numButtons ++;
-    
+
     state->selectables = (struct nc_selected *) realloc(state->selectables, (state->numSelectables + 1) * sizeof(struct nc_selected));
     state->selectables[state->numSelectables] = selectableFromButton(&state->buttons[state->numButtons - 1]);
     state->numSelectables ++;
@@ -219,6 +221,7 @@ struct nc_text_area createNewTextarea(struct nc_state *state, int x, int y, int 
     textarea.currentText = (char *) calloc(1024, sizeof(char));
     textarea.descriptor = nc_strcpy(descriptor);
     textarea.scrolledAmount = 0;
+
     state->text_areas[state->numTextAreas] = textarea;
     state->numTextAreas ++;
     
@@ -239,6 +242,7 @@ struct nc_text createNewText(struct nc_state *state, int x, int y, char *givenTe
     text.visible = 1;
     text.text = nc_strcpy(givenText);
     text.descriptor = nc_strcpy(descriptor);
+
     state->texts[state->numTexts] = text;
     state->numTexts ++;
     return text;
@@ -361,7 +365,9 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
     int aboutToCreateButton = 0;
     int colorsP[64] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     int colorStackNum = 0;
-    int linkIdx = 1; // should be 1-indexed to avoid null bytes. Hopefully we will never hit 65536 links.
+    unsigned int linkIdx1 = 0;
+    unsigned int linkIdx2 = 1;
+    int tooManyLinks = 0;
     char *buttonSpace = (char *) calloc(strlen(text) + 1, sizeof(char));
     int posx = 0;
     int posy = 0;
@@ -419,6 +425,17 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                     posy = realPosY;
                     break;
                 case 'n':
+                    if (linkIdx1 == 255) {
+                        linkIdx2 ++;
+                        linkIdx1 = 0;
+                    }
+                    if (linkIdx2 == 6 && !tooManyLinks) {
+                        tooManyLinks = 1;
+                    }
+                    linkIdx1 ++;
+                    if (tooManyLinks) {
+                        break;
+                    }
                     switch(text[i + 1]) {
                         case 'L': // Link
                             aboutToCreateButton = 0;
@@ -427,13 +444,11 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                             char *addr = text + i + 2;
                             char *result = safeDecodeString(addr);
 
-                            char *linkDescriptor = (char *) calloc(strlen(result) + 9, sizeof(char));
+                            char *linkDescriptor = (char *) calloc(strlen(result) + 10, sizeof(char));
                             strcpy(linkDescriptor, "linkto_");
-                            linkDescriptor[strlen(linkDescriptor)] = linkIdx & 0xFF;
-                            linkDescriptor[strlen(linkDescriptor)] = linkIdx >> 8;
+                            linkDescriptor[strlen(linkDescriptor)] = linkIdx1;
+                            linkDescriptor[strlen(linkDescriptor)] = linkIdx2;
                             strcat(linkDescriptor, result);
-                            free(result);
-                            linkIdx ++;
                             if (getButtonByDescriptor(state, linkDescriptor)) {
                                 // Already exists, don't create again
                                 free(linkDescriptor);
@@ -442,6 +457,7 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                                 struct nc_button *linkButton = getButtonByDescriptor(state, linkDescriptor);
                                 linkButton->overrideMinX = minX;
                             }
+                            free(result);
                             clrStr(buttonSpace);
                             i += safeGetEncodedStringLength(addr) + 1;
                             break;
@@ -449,12 +465,11 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                             aboutToCreateButton = 0;
                             buttonSpace[strlen(buttonSpace) - 1] = 0; // remove \ 
                             buttonSpace[strlen(buttonSpace) - 1] = 0; // remove n
-                            char *noopDescriptor = (char *) calloc(strlen(result) + 9, sizeof(char));
-                            strcpy(noopDescriptor, "linkto_");
-                            noopDescriptor[strlen(noopDescriptor)] = linkIdx & 0xFF;
-                            noopDescriptor[strlen(noopDescriptor)] = linkIdx >> 8;
-                            strcat(noopDescriptor, result);
-                            linkIdx ++;
+                            char *noopDescriptor = (char *) calloc(16, sizeof(char));
+                            strcpy(noopDescriptor, "noop_");
+                            noopDescriptor[strlen(noopDescriptor)] = linkIdx1;
+                            noopDescriptor[strlen(noopDescriptor)] = linkIdx2;
+                            strcat(noopDescriptor, "NOOP");
                             if (getButtonByDescriptor(state, noopDescriptor)) {
                                 // Already exists, don't create again
                                 free(noopDescriptor);

@@ -202,7 +202,7 @@ void onlinkpressed(void *state, char *url) {
         realState->numButtons --;
     }
 
-    char *realURL = url + 8;
+    char *realURL = url + 9;
 
     struct http_url *curURL = http_url_from_string(realState->currentPageUrl);
     char *absoluteURL = http_resolveRelativeURL(curURL, realState->currentPageUrl, realURL);
