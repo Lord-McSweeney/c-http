@@ -261,11 +261,16 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
     
     int currentState = PARSE_UNKNOWN;
     int currentIndex = 1;
-    
-    char *currentTextContent = (char *) calloc(131072, sizeof(char));
-    char *currentDoctypeContent = (char *) calloc(256, sizeof(char));
-    char *currentElementName = (char *) calloc(256, sizeof(char));
-    char *currentAttributeContent = (char *) calloc(16384, sizeof(char));
+
+    int maxTextContent = 262144;
+    int maxDoctypeContent = 256;
+    int maxElementName = 256;
+    int maxAttributeContent = 16384;
+
+    char *currentTextContent = (char *) calloc(maxTextContent, sizeof(char));
+    char *currentDoctypeContent = (char *) calloc(maxDoctypeContent, sizeof(char));
+    char *currentElementName = (char *) calloc(maxElementName, sizeof(char));
+    char *currentAttributeContent = (char *) calloc(maxAttributeContent, sizeof(char));
     
     int currentTextContentUsage = 0;
     int currentDoctypeContentUsage = 0;
@@ -350,7 +355,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                     }
                 }
                 currentTextContentUsage ++;
-                if (currentTextContentUsage > 131070) {
+                if (currentTextContentUsage > maxTextContent - 2) {
                     free(currentTextContent);
                     free(currentDoctypeContent);
                     free(currentElementName);
@@ -407,7 +412,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                 if (curChar == ' ' || curChar == '\n') {
                     if (doneParsingName) {
                         currentAttributeContentUsage ++;
-                        if (currentAttributeContentUsage > 16382) {
+                        if (currentAttributeContentUsage > maxAttributeContent - 2) {
                             free(currentTextContent);
                             free(currentDoctypeContent);
                             free(currentElementName);
@@ -511,7 +516,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                 } else {
                     if (!doneParsingName) {
                         currentElementNameUsage ++;
-                        if (currentElementNameUsage > 254) {
+                        if (currentElementNameUsage > maxElementName - 2) {
                             free(currentTextContent);
                             free(currentDoctypeContent);
                             free(currentElementName);
@@ -524,7 +529,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                         currentElementName[strlen(currentElementName)] = curChar;
                     } else {
                         currentAttributeContentUsage ++;
-                        if (currentAttributeContentUsage > 16382) {
+                        if (currentAttributeContentUsage > maxAttributeContent - 2) {
                             free(currentTextContent);
                             free(currentDoctypeContent);
                             free(currentElementName);
@@ -656,7 +661,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                     break;
                 }
                 currentDoctypeContentUsage ++;
-                if (currentDoctypeContentUsage > 254) {
+                if (currentDoctypeContentUsage > maxDoctypeContent - 2) {
                     free(currentTextContent);
                     free(currentDoctypeContent);
                     free(currentElementName);
@@ -680,7 +685,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                     break;
                 }
                 currentTextContentUsage ++;
-                if (currentTextContentUsage > 131070) {
+                if (currentTextContentUsage > maxTextContent - 2) {
                     free(currentTextContent);
                     free(currentDoctypeContent);
                     free(currentElementName);

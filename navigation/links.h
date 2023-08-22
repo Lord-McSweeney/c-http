@@ -103,8 +103,9 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
     strcat(getTextByDescriptor(state, "documentText")->text, "\nDone parsing page as HTML.\nConverting HTML to rich text...");
 
     if (xml.error) {
-        recursiveFreeXML(xml.list);
-        return makeStrCpy("Encountered an error while parsing the page.");
+        char *t = (char *) calloc(strlen("Encountered an error while parsing the page. Error code: %d.") + 1, sizeof(char));
+        sprintf(t, "Encountered an error while parsing the page. Error code: %d.", xml.error);
+        return t;
     }
 
     struct html2nc_result result = htmlToText(xml.list, parsedResponse.response_body.data);
