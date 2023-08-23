@@ -31,6 +31,7 @@ struct nc_text_area {
     char *descriptor;
     int selected;
     int scrolledAmount;
+    int allowMoreChars;
 };
 
 struct nc_button {
@@ -221,6 +222,7 @@ struct nc_text_area createNewTextarea(struct nc_state *state, int x, int y, int 
     textarea.currentText = (char *) calloc(1024, sizeof(char));
     textarea.descriptor = nc_strcpy(descriptor);
     textarea.scrolledAmount = 0;
+    textarea.allowMoreChars = 0;
 
     state->text_areas[state->numTextAreas] = textarea;
     state->numTextAreas ++;

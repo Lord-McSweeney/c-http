@@ -45,9 +45,10 @@ void initializeDisplayObjects(struct nc_state *state) {
     getTextByDescriptor(state, "helpText")->visible = 1;
     getTextByDescriptor(state, "userAgentDetail")->visible = 0;
     getTextAreaByDescriptor(state, "userAgent")->visible = 0;
-    getTextAreaByDescriptor(state, "userAgent")->currentText = makeStrCpy("uqers");
+    strcpy(getTextAreaByDescriptor(state, "userAgent")->currentText, "uqers");
     getTextAreaByDescriptor(state, "urlField")->visible = 0;
     getButtonByDescriptor(state, "smallgobutton")->visible = 0;
+    getTextAreaByDescriptor(state, "userAgent")->allowMoreChars = 1;
 }
 
 void openGotoPageDialog(struct nc_state *state) {
@@ -131,6 +132,14 @@ void closeCurrentWindow(struct nc_state *state) {
     }
 }
 
+int isCharAllowed(int is_extended, char ch) {
+    int cur = (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '.' || ch == '/' || ch == ':' || ch == '#' || ch == '-' || ch == '=' || ch == '?' || ch == '_' || ch == ',' || ch == '<' || ch == '>' || ch == '%' || ch == '&' || ch == '+' || ch == ';' || ch == '~';
+    if (is_extended) {
+        cur = cur || (ch == ' ' || ch == '(' || ch == ')' || ch == '[' || ch == ']' || ch == '^' || ch == '$');
+    }
+    return cur;
+}
+
 void onKeyPress(struct nc_state *browserState, int ch) {/*
     endwin();
     printf("%d\n", ch);
@@ -188,7 +197,7 @@ void onKeyPress(struct nc_state *browserState, int ch) {/*
     struct nc_text_area *textarea = getCurrentSelectedTextarea(browserState);
     if (textarea != NULL) {
         int curlen = strlen(textarea->currentText);
-        if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '.' || ch == '/' || ch == ':' || ch == '#' || ch == '-' || ch == '=' || ch == '?' || ch == '_' || ch == ',' || ch == '<' || ch == '>' || ch == '%' || ch == '&' || ch == '+' || ch == ';' || ch == '~') {
+        if (isCharAllowed(textarea->allowMoreChars, ch)) {
             if (curlen <= 1023) {
                 if (curlen >= getTextAreaWidth(*textarea)) {
                     textarea->scrolledAmount ++;
