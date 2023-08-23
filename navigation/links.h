@@ -289,6 +289,7 @@ void onlinkpressed(void *state, char *url) {
         char *absoluteURL = http_resolveRelativeURL(curURL, realState->currentPageUrl, realURL);
 
         realState->currentPageUrl = absoluteURL;
+        getTextAreaByDescriptor(realState, "urlField")->currentText = absoluteURL;
 
         getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
         strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");
