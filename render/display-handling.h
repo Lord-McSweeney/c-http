@@ -252,9 +252,16 @@ int getTextAreaWidth(struct nc_text_area textarea) {
     int mx;
     int my;
     getmaxyx(stdscr, my, mx);
-    
 
     return (textarea.width < 0) ? (mx + textarea.width) : textarea.width;
+}
+
+int getButtonX(struct nc_button button) {
+    int mx;
+    int my;
+    getmaxyx(stdscr, my, mx);
+
+    return (button.x < 0) ? (mx + button.x) : button.x;
 }
 
 char *getTextAreaRendered(struct nc_text_area textarea) {
@@ -629,7 +636,7 @@ void render_nc(struct nc_state *browserState) {
     int numButtons = browserState->numButtons;
     for (int i = 0; i < numButtons; i ++) {
         if (browserState->buttons[i].visible) {
-            printText(browserState, browserState->buttons[i].y, browserState->buttons[i].x, browserState->buttons[i].text, browserState->buttons[i].selected, browserState->buttons[i].overrideMinX);
+            printText(browserState, browserState->buttons[i].y, getButtonX(browserState->buttons[i]), browserState->buttons[i].text, browserState->buttons[i].selected, browserState->buttons[i].overrideMinX);
         }
     }
 
@@ -638,7 +645,7 @@ void render_nc(struct nc_state *browserState) {
         if (browserState->buttons[i].selected) {
             move(
                 browserState->buttons[i].y,
-                browserState->buttons[i].x
+                getButtonX(browserState->buttons[i])
             );
         }
     }

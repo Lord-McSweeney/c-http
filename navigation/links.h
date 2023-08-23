@@ -189,26 +189,34 @@ void ongotourl(void *state, char *_) {
     getTextByDescriptor(realState, "gotoURL")->visible = 0;
     getTextAreaByDescriptor(realState, "urltextarea")->visible = 0;
     getButtonByDescriptor(realState, "gotobutton")->visible = 0;
-    getTextByDescriptor(state, "userAgentDetail")->visible = 0;
-    getTextAreaByDescriptor(state, "userAgent")->visible = 0;
+    getTextByDescriptor(realState, "userAgentDetail")->visible = 0;
+    getTextAreaByDescriptor(realState, "userAgent")->visible = 0;
     getTextByDescriptor(realState, "documentText")->visible = 1;
-    getTextAreaByDescriptor(state, "urlField")->visible = 0;
-    getTextByDescriptor(state, "helpText")->visible = 0;
+    getTextAreaByDescriptor(realState, "urlField")->visible = 0;
+    getButtonByDescriptor(state, "smallgobutton")->visible = 0;
+    getTextByDescriptor(realState, "helpText")->visible = 0;
 
     realState->currentPageUrl = getTextAreaByDescriptor(realState, "urltextarea")->currentText;
-    getTextAreaByDescriptor(state, "urlField")->currentText = http_urlToString(http_url_from_string(realState->currentPageUrl));
+    getTextAreaByDescriptor(realState, "urlField")->currentText = http_urlToString(http_url_from_string(realState->currentPageUrl));
 
     getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
     strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");
     render_nc(realState);
-    char *data = downloadAndOpenPage(state, getTextAreaByDescriptor(realState, "urltextarea")->currentText, onReceiveData, onFinishData, 0);
+    char *data = downloadAndOpenPage(realState, getTextAreaByDescriptor(realState, "urltextarea")->currentText, onReceiveData, onFinishData, 0);
     free(getTextByDescriptor(realState, "documentText")->text);
     getTextByDescriptor(realState, "documentText")->text = data;
     if (data == NULL) {
         getTextByDescriptor(realState, "documentText")->text = makeStrCpy("ERROR: Serialized document was NULL!");
     }
 
-    getTextAreaByDescriptor(state, "urlField")->visible = 1;
+    getTextAreaByDescriptor(realState, "urlField")->visible = 1;
+    getButtonByDescriptor(state, "smallgobutton")->visible = 1;
+}
+
+void ongotourlfield(void *state, char *_) {
+    struct nc_state *realState = (struct nc_state *) state;
+    getTextAreaByDescriptor(realState, "urltextarea")->currentText = makeStrCpy(getTextAreaByDescriptor(realState, "urlField")->currentText);
+    ongotourl(state, _);
 }
 
 void onlinkpressed(void *state, char *url) {
@@ -238,26 +246,28 @@ void onlinkpressed(void *state, char *url) {
     getTextByDescriptor(realState, "gotoURL")->visible = 0;
     getTextAreaByDescriptor(realState, "urltextarea")->visible = 0;
     getButtonByDescriptor(realState, "gotobutton")->visible = 0;
-    getTextByDescriptor(state, "userAgentDetail")->visible = 0;
-    getTextAreaByDescriptor(state, "userAgent")->visible = 0;
+    getTextByDescriptor(realState, "userAgentDetail")->visible = 0;
+    getTextAreaByDescriptor(realState, "userAgent")->visible = 0;
     getTextByDescriptor(realState, "documentText")->visible = 1;
-    getTextAreaByDescriptor(state, "urlField")->visible = 0;
-    getTextByDescriptor(state, "helpText")->visible = 0;
+    getTextAreaByDescriptor(realState, "urlField")->visible = 0;
+    getButtonByDescriptor(state, "smallgobutton")->visible = 0;
+    getTextByDescriptor(realState, "helpText")->visible = 0;
 
     realState->currentPageUrl = absoluteURL;
-    getTextAreaByDescriptor(state, "urlField")->currentText = http_urlToString(http_url_from_string(absoluteURL));
+    getTextAreaByDescriptor(realState, "urlField")->currentText = http_urlToString(http_url_from_string(absoluteURL));
 
     getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
     strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");
     render_nc(realState);
-    char *data = downloadAndOpenPage(state, absoluteURL, onReceiveData, onFinishData, 0);
+    char *data = downloadAndOpenPage(realState, absoluteURL, onReceiveData, onFinishData, 0);
     free(getTextByDescriptor(realState, "documentText")->text);
     getTextByDescriptor(realState, "documentText")->text = data;
     if (data == NULL) {
         getTextByDescriptor(realState, "documentText")->text = makeStrCpy("ERROR: Serialized document was NULL!");
     }
 
-    getTextAreaByDescriptor(state, "urlField")->visible = 1;
+    getTextAreaByDescriptor(realState, "urlField")->visible = 1;
+    getButtonByDescriptor(state, "smallgobutton")->visible = 1;
 }
 
 #endif

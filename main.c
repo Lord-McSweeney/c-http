@@ -36,6 +36,8 @@ void initializeDisplayObjects(struct nc_state *state) {
     createNewButton(state, 1, 5, "OK", ongotourl, "gotobutton");
     createNewText(state, 1, 13, "Use a custom user agent", "userAgentDetail");
     createNewTextarea(state, 1, 14, 29, 1, "userAgent");
+    createNewTextarea(state, 0, 1, -5, 1, "urlField");
+    createNewButton(state, -3, 1, "Go!", ongotourlfield, "smallgobutton");
     getTextByDescriptor(state, "gotoURL")->visible = 0;
     getButtonByDescriptor(state, "gotobutton")->visible = 0;
     getTextAreaByDescriptor(state, "urltextarea")->visible = 0;
@@ -44,8 +46,8 @@ void initializeDisplayObjects(struct nc_state *state) {
     getTextByDescriptor(state, "userAgentDetail")->visible = 0;
     getTextAreaByDescriptor(state, "userAgent")->visible = 0;
     getTextAreaByDescriptor(state, "userAgent")->currentText = makeStrCpy("uqers");
-    createNewTextarea(state, 0, 1, -5, 1, "urlField");
     getTextAreaByDescriptor(state, "urlField")->visible = 0;
+    getButtonByDescriptor(state, "smallgobutton")->visible = 0;
 }
 
 void openGotoPageDialog(struct nc_state *state) {
@@ -64,6 +66,7 @@ void openGotoPageDialog(struct nc_state *state) {
     getButtonByDescriptor(state, "gotobutton")->visible = 1;
     getTextByDescriptor(state, "documentText")->visible = 0;
     getTextAreaByDescriptor(state, "urlField")->visible = 0;
+    getButtonByDescriptor(state, "smallgobutton")->visible = 0;
     getTextByDescriptor(state, "userAgentDetail")->visible = 1;
     getTextAreaByDescriptor(state, "userAgent")->visible = 1;
     state->selectableIndex = 0;
@@ -86,6 +89,7 @@ void closeGotoPageDialog(struct nc_state *state) {
         state->currentPage = PAGE_DOCUMENT_LOADED;
         getTextByDescriptor(state, "documentText")->visible = 1;
         getTextAreaByDescriptor(state, "urlField")->visible = 1;
+        getButtonByDescriptor(state, "smallgobutton")->visible = 1;
         showButtons(state);
     } else {
         freeButtons(state);
@@ -106,6 +110,7 @@ void closeDocumentPage(struct nc_state *state) {
     getTextByDescriptor(state, "helpText")->visible = 1;
     getTextByDescriptor(state, "documentText")->visible = 0;
     getTextAreaByDescriptor(state, "urlField")->visible = 0;
+    getButtonByDescriptor(state, "smallgobutton")->visible = 0;
     getTextByDescriptor(state, "documentText")->text = makeStrCpy("");
     state->currentPageUrl = NULL;
     freeButtons(state);
