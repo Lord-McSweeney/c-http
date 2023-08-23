@@ -22,43 +22,52 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
     struct http_response parsedResponse = http_makeHTTPRequest(url, userAgent, handler, finishHandler, (void *) state);
     
     if (parsedResponse.error) {
+        char *err;
         if (parsedResponse.error == 4) {
-            return makeStrCpy("Please enter a valid URL.\n");
+            err = makeStrCpy("Please enter a valid URL.\n");
         } else if (parsedResponse.error < 4) {
-            return makeStrCpy("Malformed HTTP response.\n");
+            err = makeStrCpy("Malformed HTTP response.\n");
         } else if (parsedResponse.error == 5) {
-            return makeStrCpy("Host not found.\n");
+            err = makeStrCpy("Host not found.\n");
         } else if (parsedResponse.error == 6) {
-            return makeStrCpy("Error while resolving domain.\n");
+            err = makeStrCpy("Error while resolving domain.\n");
         } else if (parsedResponse.error == 7) {
-            return makeStrCpy("Temporary error in name resolution.\n");
+            err = makeStrCpy("Temporary error in name resolution.\n");
         } else if (parsedResponse.error == 101) {
-            return makeStrCpy("Network unreachable.\n");
+            err = makeStrCpy("Network unreachable.\n");
         } else if (parsedResponse.error == 104) {
-            return makeStrCpy("Connection reset by peer.\n");
+            err = makeStrCpy("Connection reset by peer.\n");
         } else if (parsedResponse.error == 111) {
-            return makeStrCpy("Connection refused.\n");
+            err = makeStrCpy("Connection refused.\n");
         } else if (parsedResponse.error == 113) {
-            return makeStrCpy("No route to host.\n");
+            err = makeStrCpy("No route to host.\n");
         } else if (parsedResponse.error == 192) {
-            return makeStrCpy("Error initializing SSL/TLS.\n");
+            err = makeStrCpy("Error initializing SSL/TLS.\n");
         } else if (parsedResponse.error == 193) {
-            return makeStrCpy("SSL/TLS error.\n");
+            err = makeStrCpy("SSL/TLS error.\n");
         } else if (parsedResponse.error == 194) {
-            return makeStrCpy("Unsupported protocol.\n");
+            err = makeStrCpy("Unsupported protocol.\n");
         } else if (parsedResponse.error == 195) {
-            return makeStrCpy("Invalid HTTP response (possibly HTTPS).\n");
+            err = makeStrCpy("Invalid HTTP response (possibly HTTPS).\n");
         } else if (parsedResponse.error == 196) {
-            return makeStrCpy("Read access denied.\n");
+            err = makeStrCpy("Read access denied.\n");
         } else if (parsedResponse.error == 197) {
-            return makeStrCpy("File is a directory.\n");
+            err = makeStrCpy("File is a directory.\n");
         } else if (parsedResponse.error == 198) {
-            return makeStrCpy("No such file or directory.\n");
+            err = makeStrCpy("No such file or directory.\n");
         } else if (parsedResponse.error == 199) {
-            return makeStrCpy("Invalid chunked response (possible memory corruption?).\n");
+            err = makeStrCpy("Invalid chunked response (possible memory corruption?).\n");
         } else {
-            return makeStrCpy("Error while connecting to host or receiving data from host.\n");
+            err = makeStrCpy("Error while connecting to host or receiving data from host.\n");
         }
+        char *total = (char *) calloc(128 + strlen(url) + 8, sizeof(char));
+        strcpy(total, "Page has no title\n");
+        strcat(total, url);
+        strcat(total, "\n");
+        strcat(total, "\\H");
+        strcat(total, "\n");
+        strcat(total, err);
+        return total;
     }
 
     if (parsedResponse.do_redirect) {
@@ -70,7 +79,7 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
         struct http_url *curURL = http_url_from_string(state->currentPageUrl);
         char *absoluteURL = http_resolveRelativeURL(curURL, state->currentPageUrl, parsedResponse.redirect);
         state->currentPageUrl = absoluteURL;
-        getTextAreaByDescriptor(state, "urlField")->currentText = absoluteURL;
+        getTextAreaByDescriptor(state, "urlField")->currentText = http_urlToString(http_url_from_string(absoluteURL));
 
         return downloadAndOpenPage(state, absoluteURL, handler, finishHandler, redirect_depth + 1);
     }
@@ -85,7 +94,17 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
             free(parsedResponse.headers);
             free(parsedResponse.response_description);
             free(lowerData);
-            return parsedResponse.response_body.data;
+
+            char *total = (char *) calloc(parsedResponse.response_body.length + strlen(url) + 32, sizeof(char));
+            strcpy(total, "Page has no title\n");
+            strcat(total, url);
+            strcat(total, "\n");
+            strcat(total, "\\H");
+            strcat(total, "\n");
+            strcat(total, parsedResponse.response_body.data);
+            return total;
+
+            return total;
         }
         free(lowerData);
     }
@@ -177,7 +196,7 @@ void ongotourl(void *state, char *_) {
     getTextByDescriptor(state, "helpText")->visible = 0;
 
     realState->currentPageUrl = getTextAreaByDescriptor(realState, "urltextarea")->currentText;
-    getTextAreaByDescriptor(state, "urlField")->currentText = realState->currentPageUrl;
+    getTextAreaByDescriptor(state, "urlField")->currentText = http_urlToString(http_url_from_string(realState->currentPageUrl));
 
     getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
     strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");
@@ -226,7 +245,7 @@ void onlinkpressed(void *state, char *url) {
     getTextByDescriptor(state, "helpText")->visible = 0;
 
     realState->currentPageUrl = absoluteURL;
-    getTextAreaByDescriptor(state, "urlField")->currentText = absoluteURL;
+    getTextAreaByDescriptor(state, "urlField")->currentText = http_urlToString(http_url_from_string(absoluteURL));
 
     getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
     strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");

@@ -10,8 +10,10 @@ struct http_url {
     char *path;
     char *fragment;
 
-    int has_explicit_port;
     int had_protocol_slashes;
+    int has_explicit_port;
+    int had_explicit_path;
+    int had_explicit_fragment;
 };
 
 enum _http_internal_url_parser_state {
@@ -45,10 +47,13 @@ struct http_url* http_url_from_string(char *string) {
     char *fragment = (char *) calloc(urllen + 1, sizeof(char));
     
     int currentState = HTTP_PROTOCOL;
-    int currentIndex = 0;
+    int currentIndex = 1;
     int isIp = 0;
     int isPortExplicit = 0;
-    int hasProtocolSlashes = 0;
+    int hasProtocolSlashes = 1;
+    int hasPath = 0;
+    int hasFragment = 0;
+    int didGetToProtocolEnd = 0;
     for (int i = 0; i < urllen; i ++) {
         char curChar = string[i];
         switch (currentState) {
@@ -59,6 +64,7 @@ struct http_url* http_url_from_string(char *string) {
                 }
 
                 if (curChar == ':') {
+                    didGetToProtocolEnd = 1;
                     currentState = HTTP_PROTOCOL_1;
                     currentIndex = 0;
                     break;
@@ -66,6 +72,7 @@ struct http_url* http_url_from_string(char *string) {
                 
                 // Protocols cannot have periods inside them; if they do, turns out we were parsing a hostname 
                 if (curChar == '.') {
+                    didGetToProtocolEnd = 1;
                     i = -1;
                     free(protocol);
                     protocol = makeStrCpy("http");
@@ -77,7 +84,6 @@ struct http_url* http_url_from_string(char *string) {
                 break;
             case HTTP_PROTOCOL_1:
                 if (curChar == '/') {
-                    hasProtocolSlashes = 1;
                     currentState = HTTP_PROTOCOL_2;
                     currentIndex = 0;
                 } else if (curChar >= '0' && curChar <= '9') {
@@ -89,6 +95,7 @@ struct http_url* http_url_from_string(char *string) {
                     currentIndex = 0;
                     break;
                 } else {
+                    hasProtocolSlashes = 0;
                     // welp, turns out we had a [protocol]:[hostname] instead of [protocol]://[hostname]
                     currentState = HTTP_HOSTNAME;
                     currentIndex = 0;
@@ -106,7 +113,19 @@ struct http_url* http_url_from_string(char *string) {
                 }
                 break;
             case HTTP_HOSTNAME:
-                if (currentIndex == 0 && curChar >= '0' && curChar <= '9') {
+                if (curChar == '#') {
+                    if (currentIndex == 1) {
+                        errno = 2;
+                        return NULL;
+                    }
+
+                    hasPath = 1;
+                    hasFragment = 1;
+                    currentState = HTTP_FRAGMENT;
+                    currentIndex = 0;
+                    break;
+                }
+                if (currentIndex == 1 && curChar >= '0' && curChar <= '9') {
                     isIp = 1;
                 }
                 if (isIp && ((curChar >= 'a' && curChar <= 'z') || (curChar >= 'A' && curChar <= 'Z'))) {
@@ -114,7 +133,7 @@ struct http_url* http_url_from_string(char *string) {
                     return NULL;
                 }
                 if (curChar == ':') {
-                    if (currentIndex == 0) {
+                    if (currentIndex == 1) {
                         errno = 3;
                         return NULL;
                     }
@@ -124,10 +143,11 @@ struct http_url* http_url_from_string(char *string) {
                     break;
                 }
                 if (curChar == '/') {
-                    if (currentIndex == 0) {
+                    if (currentIndex == 1) {
                         errno = 3;
                         return NULL;
                     }
+                    hasPath = 1;
                     currentState = HTTP_PATH;
                     currentIndex = 0;
                     break;
@@ -148,6 +168,7 @@ struct http_url* http_url_from_string(char *string) {
                 break;
             case HTTP_PATH:
                 if (curChar == '#') {
+                    hasFragment = 1;
                     currentState = HTTP_FRAGMENT;
                     currentIndex = 0;
                     break;
@@ -184,6 +205,11 @@ struct http_url* http_url_from_string(char *string) {
         path[0] = '/';
     }
 
+    if (!didGetToProtocolEnd) {
+        hostname = protocol;
+        protocol = makeStrCpy("http");
+    }
+
     if (strlen(port) == 0) {
         if (!strcmp(protocol, "http")) {
             strcpy(port, "80");
@@ -206,11 +232,39 @@ struct http_url* http_url_from_string(char *string) {
     result_mem->fragment = fragment;
     result_mem->has_explicit_port = isPortExplicit;
     result_mem->had_protocol_slashes = hasProtocolSlashes;
+    result_mem->had_explicit_path = hasPath;
+    result_mem->had_explicit_fragment = hasFragment;
 
     free(hostname);
     free(port);
 
     return result_mem;
+}
+
+char *http_urlToString(struct http_url *url) {
+    char *newAlloc = (char *) calloc(strlen(url->protocol) + 9 + strlen(url->hostname) + strlen(url->path) + strlen(url->fragment), sizeof(char));
+    strcpy(newAlloc, url->protocol);
+    if (url->had_protocol_slashes) {
+        strcat(newAlloc, "://");
+    } else {
+        strcat(newAlloc, ":");
+    }
+    strcat(newAlloc, url->hostname);
+    if (url->has_explicit_port) {
+        strcat(newAlloc, ":");
+        char *al2 = (char *) calloc(16, sizeof(char));
+        sprintf(al2, "%d", url->port);
+        strcat(newAlloc, al2);
+        free(al2);
+    }
+    if (url->had_explicit_path) {
+        strcat(newAlloc, url->path);
+        if (url->had_explicit_fragment) {
+            strcat(newAlloc, "#");
+            strcat(newAlloc, url->fragment);
+        }
+    }
+    return newAlloc;
 }
 
 char* http_resolveRelativeURL(struct http_url *base, char *baseString, char *string) {
