@@ -457,7 +457,10 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                             linkDescriptor[strlen(linkDescriptor)] = linkIdx2;
                             strcat(linkDescriptor, result);
                             if (getButtonByDescriptor(state, linkDescriptor)) {
-                                // Already exists, don't create again
+                                // Already exists, don't create again, but do update position
+                                struct nc_button *linkButton = getButtonByDescriptor(state, linkDescriptor);
+                                linkButton->x = posx;
+                                linkButton->y = posy;
                                 free(linkDescriptor);
                             } else {
                                 createNewButton(state, posx, posy, makeStrCpy(buttonSpace), nc_templinkpresshandler, linkDescriptor);
@@ -478,7 +481,10 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                             noopDescriptor[strlen(noopDescriptor)] = linkIdx2;
                             strcat(noopDescriptor, "NOOP");
                             if (getButtonByDescriptor(state, noopDescriptor)) {
-                                // Already exists, don't create again
+                                // Already exists, don't create again, but do update position
+                                struct nc_button *noopButton = getButtonByDescriptor(state, noopDescriptor);
+                                noopButton->x = posx;
+                                noopButton->y = posy;
                                 free(noopDescriptor);
                             } else {
                                 createNewButton(state, posx, posy, makeStrCpy(buttonSpace), nc_noopbuttonhandler, noopDescriptor);
