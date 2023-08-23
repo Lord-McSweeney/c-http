@@ -63,9 +63,7 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
         char *total = (char *) calloc(128 + strlen(url) + 8, sizeof(char));
         strcpy(total, "Page has no title\n");
         strcat(total, url);
-        strcat(total, "\n");
-        strcat(total, "\\H");
-        strcat(total, "\n");
+        strcat(total, "\n\\H\n");
         strcat(total, err);
         return total;
     }
@@ -77,9 +75,27 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
         render_nc(state);
 
         struct http_url *curURL = http_url_from_string(state->currentPageUrl);
+        if (curURL == NULL) {
+            char *total = (char *) calloc(64 + strlen(state->currentPageUrl) + 8, sizeof(char));
+            strcpy(total, "Page has no title\n");
+            strcat(total, state->currentPageUrl);
+            strcat(total, "\n\\H\nPlease enter a valid URL..");
+            return total;
+        }
+
         char *absoluteURL = http_resolveRelativeURL(curURL, state->currentPageUrl, parsedResponse.redirect);
         state->currentPageUrl = absoluteURL;
-        getTextAreaByDescriptor(state, "urlField")->currentText = http_urlToString(http_url_from_string(absoluteURL));
+
+        struct http_url *absURL = http_url_from_string(absoluteURL);
+        if (absURL == NULL) {
+            char *total = (char *) calloc(64 + strlen(absoluteURL) + 8, sizeof(char));
+            strcpy(total, "Page has no title\n");
+            strcat(total, absoluteURL);
+            strcat(total, "\n\\H\nInvalid redirected URL.");
+            return total;
+        }
+
+        getTextAreaByDescriptor(state, "urlField")->currentText = http_urlToString(absURL);
 
         return downloadAndOpenPage(state, absoluteURL, handler, finishHandler, redirect_depth + 1);
     }
@@ -98,9 +114,7 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
             char *total = (char *) calloc(parsedResponse.response_body.length + strlen(url) + 32, sizeof(char));
             strcpy(total, "Page has no title\n");
             strcat(total, url);
-            strcat(total, "\n");
-            strcat(total, "\\H");
-            strcat(total, "\n");
+            strcat(total, "\n\\H\n");
             strcat(total, parsedResponse.response_body.data);
             return total;
 
@@ -134,9 +148,7 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
     strcpy(total, result.title);
     strcat(total, "\n");
     strcat(total, url);
-    strcat(total, "\n");
-    strcat(total, "\\H");
-    strcat(total, "\n");
+    strcat(total, "\n\\H\n");
     strcat(total, result.text);
 
     strcat(getTextByDescriptor(state, "documentText")->text, "\nDone parsing HTML as rich text.");
@@ -197,16 +209,29 @@ void ongotourl(void *state, char *_) {
     getTextByDescriptor(realState, "helpText")->visible = 0;
 
     realState->currentPageUrl = getTextAreaByDescriptor(realState, "urltextarea")->currentText;
-    getTextAreaByDescriptor(realState, "urlField")->currentText = http_urlToString(http_url_from_string(realState->currentPageUrl));
 
-    getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
-    strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");
-    render_nc(realState);
-    char *data = downloadAndOpenPage(realState, getTextAreaByDescriptor(realState, "urltextarea")->currentText, onReceiveData, onFinishData, 0);
-    free(getTextByDescriptor(realState, "documentText")->text);
-    getTextByDescriptor(realState, "documentText")->text = data;
-    if (data == NULL) {
-        getTextByDescriptor(realState, "documentText")->text = makeStrCpy("ERROR: Serialized document was NULL!");
+    struct http_url *curURL = http_url_from_string(realState->currentPageUrl);
+    if (curURL == NULL) {
+        char *total = (char *) calloc(64 + strlen(realState->currentPageUrl) + 8, sizeof(char));
+        strcpy(total, "Page has no title\n");
+        strcat(total, realState->currentPageUrl);
+        strcat(total, "\n\\H\nPlease enter a valid URL.\n");
+        free(getTextByDescriptor(realState, "documentText")->text);
+        getTextByDescriptor(realState, "documentText")->text = makeStrCpy(total);
+        free(total);
+        getTextAreaByDescriptor(realState, "urlField")->currentText = makeStrCpy(realState->currentPageUrl);
+    } else {
+        getTextAreaByDescriptor(realState, "urlField")->currentText = http_urlToString(http_url_from_string(realState->currentPageUrl));
+
+        getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
+        strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");
+        render_nc(realState);
+        char *data = downloadAndOpenPage(realState, getTextAreaByDescriptor(realState, "urltextarea")->currentText, onReceiveData, onFinishData, 0);
+        free(getTextByDescriptor(realState, "documentText")->text);
+        getTextByDescriptor(realState, "documentText")->text = data;
+        if (data == NULL) {
+            getTextByDescriptor(realState, "documentText")->text = makeStrCpy("ERROR: Serialized document was NULL!");
+        }
     }
 
     getTextAreaByDescriptor(realState, "urlField")->visible = 1;
@@ -234,11 +259,6 @@ void onlinkpressed(void *state, char *url) {
         realState->numButtons --;
     }
 
-    char *realURL = url + 9;
-
-    struct http_url *curURL = http_url_from_string(realState->currentPageUrl);
-    char *absoluteURL = http_resolveRelativeURL(curURL, realState->currentPageUrl, realURL);
-
     realState->selectableIndex = -1;
     realState->currentPage = PAGE_DOCUMENT_LOADED;
     realState->globalScrollX = 0;
@@ -253,17 +273,32 @@ void onlinkpressed(void *state, char *url) {
     getButtonByDescriptor(state, "smallgobutton")->visible = 0;
     getTextByDescriptor(realState, "helpText")->visible = 0;
 
-    realState->currentPageUrl = absoluteURL;
-    getTextAreaByDescriptor(realState, "urlField")->currentText = http_urlToString(http_url_from_string(absoluteURL));
+    char *realURL = url + 9;
 
-    getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
-    strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");
-    render_nc(realState);
-    char *data = downloadAndOpenPage(realState, absoluteURL, onReceiveData, onFinishData, 0);
-    free(getTextByDescriptor(realState, "documentText")->text);
-    getTextByDescriptor(realState, "documentText")->text = data;
-    if (data == NULL) {
-        getTextByDescriptor(realState, "documentText")->text = makeStrCpy("ERROR: Serialized document was NULL!");
+    struct http_url *curURL = http_url_from_string(realState->currentPageUrl);
+    if (curURL == NULL) {
+        char *total = (char *) calloc(64 + strlen(realState->currentPageUrl) + 8, sizeof(char));
+        strcpy(total, "Page has no title\n");
+        strcat(total, realState->currentPageUrl);
+        strcat(total, "\n\\H\nInvalid URL.");
+        free(getTextByDescriptor(realState, "documentText")->text);
+        getTextByDescriptor(realState, "documentText")->text = makeStrCpy(total);
+        free(total);
+        getTextAreaByDescriptor(realState, "urlField")->currentText = makeStrCpy(realState->currentPageUrl);
+    } else {
+        char *absoluteURL = http_resolveRelativeURL(curURL, realState->currentPageUrl, realURL);
+
+        realState->currentPageUrl = absoluteURL;
+
+        getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
+        strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");
+        render_nc(realState);
+        char *data = downloadAndOpenPage(realState, absoluteURL, onReceiveData, onFinishData, 0);
+        free(getTextByDescriptor(realState, "documentText")->text);
+        getTextByDescriptor(realState, "documentText")->text = data;
+        if (data == NULL) {
+            getTextByDescriptor(realState, "documentText")->text = makeStrCpy("ERROR: Serialized document was NULL!");
+        }
     }
 
     getTextAreaByDescriptor(realState, "urlField")->visible = 1;

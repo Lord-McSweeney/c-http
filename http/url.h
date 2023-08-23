@@ -58,9 +58,22 @@ struct http_url* http_url_from_string(char *string) {
         char curChar = string[i];
         switch (currentState) {
             case HTTP_PROTOCOL:
-                if (curChar == 0) {
-                    errno = 1;
-                    return NULL;
+                if (currentIndex == 1) {
+                    if (
+                        curChar == ':' ||
+                        curChar == '#' ||
+                        curChar == '/' ||
+                        curChar == '!' ||
+                        curChar == '?' ||
+                        curChar == '&' ||
+                        curChar == '=' ||
+                        curChar == '+' ||
+                        curChar == '(' ||
+                        curChar == ')'
+                    ) {
+                        errno = 3;
+                        return NULL;
+                    }
                 }
 
                 if (curChar == ':') {
