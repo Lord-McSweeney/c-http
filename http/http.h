@@ -256,11 +256,16 @@ struct http_response http_makeNetworkHTTPRequest(
             char *extra = NULL;
 
             while (parsedResponse.content_length > parsedResponse.response_body.length) {
+                if (totalBytesRead + maxSegmentLength > curBufLen) {
+                    curBufLen *= 2;
+                    buffer = realloc(buffer, curBufLen);
+                }
+
                 if (extra) free(extra);
 
                 currentPosition = buffer + totalBytesRead;
                 errno = 0;
-                tcpResult = rsocket(tcpResult, currentPosition, (maxResponseSize - 8) - totalBytesRead);
+                tcpResult = rsocket(tcpResult, currentPosition, maxSegmentLength);
                 totalBytesRead += tcpResult.bytesRead;
 
                 if (chunkHandler != NULL) chunkHandler(chunkArg);
