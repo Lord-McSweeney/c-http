@@ -120,7 +120,6 @@ int lookupIP(char *hostname, char *buffer) {
 		int i;
 
 		if ((he = gethostbyname(hostname)) == NULL) {
-			// printf("Error while using gethostbyname.\n");
 			return h_errno;
 		}
 

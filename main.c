@@ -140,10 +140,7 @@ int isCharAllowed(int is_extended, char ch) {
     return cur;
 }
 
-void onKeyPress(struct nc_state *browserState, int ch) {/*
-    endwin();
-    printf("%d\n", ch);
-    exit(4);*/
+void onKeyPress(struct nc_state *browserState, int ch) {
     switch(ch) {
         case 15: // CTRL+O
             openGotoPageDialog(browserState);

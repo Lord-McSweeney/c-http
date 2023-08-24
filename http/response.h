@@ -197,8 +197,6 @@ struct http_response parsePossiblyIncompleteHTTPResponse(struct http_data rawRes
                 }
                 char *nameString = headers[header_index].name;
                 nameString[strlen(nameString)] = curChar;
-                //nameString[1] = 'h';
-                //printf("name string: %c%c%c (%d %d %d), %ld\n", nameString[0], nameString[1], nameString[2], nameString[0], nameString[1], nameString[2], strlen(nameString));
                 break;
             case PARSE_HTTP_HEADER_SEPARATOR:
                 if (curChar == ' ') {

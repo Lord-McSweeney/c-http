@@ -166,10 +166,7 @@ struct http_response http_makeNetworkHTTPRequest(
 
     struct http_data initialHttpResponse;
     initialHttpResponse.length = tcpResult.bytesRead;
-    initialHttpResponse.data = buffer;/*
-    if (tcpResult.error) {
-        printf("Error code: %d", tcpResult.error);
-    }*/
+    initialHttpResponse.data = buffer;
 
     struct http_response parsedResponse = parsePossiblyIncompleteHTTPResponse(initialHttpResponse, "1.1");
 
@@ -184,6 +181,13 @@ struct http_response http_makeNetworkHTTPRequest(
         int initialBytesRead = tcpResult.bytesRead;
         char *currentPosition = buffer + initialBytesRead;
         tcpResult = rsocket(tcpResult, currentPosition, (maxResponseSize - 8) - tcpResult.bytesRead);
+
+        if (tcpResult.error) {
+            errorResponse.error = 200;
+            free(buffer);
+            return errorResponse;
+        }
+
         tcpResult.bytesRead = initialBytesRead + tcpResult.bytesRead;
 
         initialHttpResponse.length = tcpResult.bytesRead;
@@ -207,7 +211,6 @@ struct http_response http_makeNetworkHTTPRequest(
 
         struct chunked_response_state chunkedResponse = parseChunkedResponse(parsedResponse.response_body);
         if (chunkedResponse.error) {
-            //fprintf(stderr, "Encountered error while parsing chunked response: %d\n", chunkedResponse.error);
             errorResponse.error = 199;
             free(buffer);
             csocket(tcpResult);
@@ -222,7 +225,6 @@ struct http_response http_makeNetworkHTTPRequest(
                 buffer = realloc(buffer, curBufLen);
             }
 
-            //fprintf(stderr, "Current position: %ld\n", (long) currentPosition);
             currentPosition = buffer + totalBytesRead;
             errno = 0;
             tcpResult = rsocket(tcpResult, currentPosition, maxSegmentLength);
@@ -232,9 +234,7 @@ struct http_response http_makeNetworkHTTPRequest(
 
             initialHttpResponse.data = currentPosition;
             initialHttpResponse.length = tcpResult.bytesRead;
-            //fprintf(stderr, "About to append chunk to body\n");
             appendChunkToBody(&chunkedResponse, initialHttpResponse);
-            //fprintf(stderr, "Appended chunk to body\n");
 
             if (chunkedResponse.error) {
                 errorResponse.error = 199;
@@ -247,7 +247,6 @@ struct http_response http_makeNetworkHTTPRequest(
         }
         if (finishHandler != NULL) finishHandler(chunkArg);
     } else if (parsedResponse.content_length == -2) {
-        // puts("WARNING: Content-Length header was not returned, assuming that that was the whole response");
         // This is pretty normal, no reason to warn
     } else {
         if (parsedResponse.content_length != parsedResponse.response_body.length) {
