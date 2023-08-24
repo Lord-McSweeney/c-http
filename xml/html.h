@@ -299,49 +299,13 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
         } else {
             nextChar2 = '\0';
         }
-        char nextChar3;
-        if (i + 3 < xml_string.length) {
-            nextChar3 = xml_string.data[i + 3];
-        } else {
-            nextChar3 = '\0';
-        }
-        char nextChar4;
-        if (i + 4 < xml_string.length) {
-            nextChar4 = xml_string.data[i + 4];
-        } else {
-            nextChar4 = '\0';
-        }
-        char nextChar5;
-        if (i + 5 < xml_string.length) {
-            nextChar5 = xml_string.data[i + 5];
-        } else {
-            nextChar5 = '\0';
-        }
-        char nextChar6;
-        if (i + 6 < xml_string.length) {
-            nextChar6 = xml_string.data[i + 6];
-        } else {
-            nextChar6 = '\0';
-        }
-        char nextChar7;
-        if (i + 7 < xml_string.length) {
-            nextChar7 = xml_string.data[i + 7];
-        } else {
-            nextChar7 = '\0';
-        }
-        char nextChar8;
-        if (i + 8 < xml_string.length) {
-            nextChar8 = xml_string.data[i + 8];
-        } else {
-            nextChar8 = '\0';
-        }
         
         switch(currentState) {
             case PARSE_ELEMENT_TEXT:
                 if (curChar == '<') {
-                    int isScriptTag = (nextChar == '/' && nextChar2 == 's' && nextChar3 == 'c' && nextChar4 == 'r' && nextChar5 == 'i' && nextChar6 == 'p' && nextChar7 == 't' && nextChar8 == '>');
-                    int isStyleTag = (nextChar == '/' && nextChar2 == 's' && nextChar3 == 't' && nextChar4 == 'y' && nextChar5 == 'l' && nextChar6 == 'e' && nextChar7 == '>');
-                    int isTitleTag = (nextChar == '/' && nextChar2 == 't' && nextChar3 == 'i' && nextChar4 == 't' && nextChar5 == 'l' && nextChar6 == 'e' && nextChar7 == '>');
+                    int isScriptTag = !strncmp(xml_string.data + i + 1, "/script>", 8);
+                    int isStyleTag = !strncmp(xml_string.data + i + 1, "/style>", 7);
+                    int isTitleTag = !strncmp(xml_string.data + i + 1, "/title>", 7);
                     
                     // why, HTML?
                     if ((strcmp(closingTag, "script") || isScriptTag) && (strcmp(closingTag, "style") || isStyleTag) && (strcmp(closingTag, "title") || isTitleTag)) {
@@ -360,7 +324,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                     memset(currentTextContent + maxTextContent, 0, maxTextContent);
                     maxTextContent *= 2;
                 }
-                currentTextContent[strlen(currentTextContent)] = curChar;
+                currentTextContent[currentTextContentUsage - 1] = curChar;
                 break;
             case PARSE_ELEMENT_NAME:
                 if (currentIndex == 1) {
