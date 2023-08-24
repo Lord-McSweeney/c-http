@@ -61,6 +61,7 @@ struct chunked_response_state parseChunkedResponse(struct http_data body) {
     
     struct chunked_response_state responseStruct;
     responseStruct.finished = 0;
+
     responseStruct.current_chunked_data = body;
     responseStruct.was_incomplete = 0;
     responseStruct.error = 0;
@@ -142,11 +143,12 @@ void appendChunkToBody(struct chunked_response_state *state, struct http_data ch
     char *newData = (char *) calloc(newLength + 2, sizeof(char));
     memcpy(newData, curState.current_chunked_data.data, curState.current_chunked_data.length);
     memcpy(newData + curState.current_chunked_data.length, chunk.data, chunk.length);
-    
+
     struct http_data data;
     data.length = newLength;
     data.data = newData;
-    
+
+    free(state->current_chunked_data.data);
     *state = parseChunkedResponse(data);
 }
 

@@ -13,7 +13,8 @@
 #ifndef _HTTP_HTTP
 
     #define _HTTP_HTTP 1
-    #define maxResponseSize 1048578
+    #define maxResponseSize 16384
+    #define maxSegmentLength 4096
 
 typedef void (*dataReceiveHandler)(void *);
 
@@ -90,8 +91,9 @@ struct http_response http_makeNetworkHTTPRequest(
     struct http_response errorResponse;
     errorResponse.error = 1;
 
+    int curBufLen = maxResponseSize;
     char *buffer = (char *) calloc(maxResponseSize, sizeof(char)); // this should be dynamically returned by rwsocket, but 1mb is probably good for now
-    char *ipBuffer = (char *) calloc(4096, sizeof(char)); // this should be dynamic, but 4kb is probably good for now
+    char *ipBuffer = (char *) calloc(4096, sizeof(char)); // this should be dynamic, but 4kb is probably good
 
     char *baseString = "GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\n\r\n";
     char *requestString = (char *) calloc(strlen(baseString) + strlen(url->path) + strlen(url->hostname) + strlen(userAgent) + 1, sizeof(char));
@@ -181,7 +183,7 @@ struct http_response http_makeNetworkHTTPRequest(
     while(!parsedResponse.has_body) {
         int initialBytesRead = tcpResult.bytesRead;
         char *currentPosition = buffer + initialBytesRead;
-        tcpResult = rsocket(tcpResult, currentPosition, 1048570 - tcpResult.bytesRead);
+        tcpResult = rsocket(tcpResult, currentPosition, (maxResponseSize - 8) - tcpResult.bytesRead);
         tcpResult.bytesRead = initialBytesRead + tcpResult.bytesRead;
 
         initialHttpResponse.length = tcpResult.bytesRead;
@@ -215,10 +217,15 @@ struct http_response http_makeNetworkHTTPRequest(
 
         char *currentPosition = buffer + totalBytesRead;
         while (!chunkedResponse.finished) {
+            if (totalBytesRead + maxSegmentLength > curBufLen) {
+                curBufLen *= 2;
+                buffer = realloc(buffer, curBufLen);
+            }
+
             //fprintf(stderr, "Current position: %ld\n", (long) currentPosition);
             currentPosition = buffer + totalBytesRead;
             errno = 0;
-            tcpResult = rsocket(tcpResult, currentPosition, 1048570 - totalBytesRead);
+            tcpResult = rsocket(tcpResult, currentPosition, maxSegmentLength);
             totalBytesRead += tcpResult.bytesRead;
 
             if (chunkHandler != NULL) chunkHandler(chunkArg);
@@ -253,7 +260,7 @@ struct http_response http_makeNetworkHTTPRequest(
 
                 currentPosition = buffer + totalBytesRead;
                 errno = 0;
-                tcpResult = rsocket(tcpResult, currentPosition, 1048570 - totalBytesRead);
+                tcpResult = rsocket(tcpResult, currentPosition, (maxResponseSize - 8) - totalBytesRead);
                 totalBytesRead += tcpResult.bytesRead;
 
                 if (chunkHandler != NULL) chunkHandler(chunkArg);
