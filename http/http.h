@@ -13,7 +13,7 @@
 #ifndef _HTTP_HTTP
 
     #define _HTTP_HTTP 1
-    #define maxResponseSize 16384
+    #define maxInitialResponseSize 8192
     #define maxSegmentLength 4096
 
 typedef void (*dataReceiveHandler)(void *);
@@ -91,8 +91,8 @@ struct http_response http_makeNetworkHTTPRequest(
     struct http_response errorResponse;
     errorResponse.error = 1;
 
-    int curBufLen = maxResponseSize;
-    char *buffer = (char *) calloc(maxResponseSize, sizeof(char)); // this should be dynamically returned by rwsocket, but 1mb is probably good for now
+    int curBufLen = maxInitialResponseSize;
+    char *buffer = (char *) calloc(maxInitialResponseSize, sizeof(char)); // this should be dynamically returned by rwsocket, but 1mb is probably good for now
     char *ipBuffer = (char *) calloc(4096, sizeof(char)); // this should be dynamic, but 4kb is probably good
 
     char *baseString = "GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\n\r\n";
@@ -116,7 +116,7 @@ struct http_response http_makeNetworkHTTPRequest(
     }
 
     errno = 0;
-    struct socket_info tcpResult = rwsocket(ipBuffer, url->port, requestString, buffer, maxResponseSize);
+    struct socket_info tcpResult = rwsocket(ipBuffer, url->port, requestString, buffer, maxInitialResponseSize);
     free(ipBuffer);
     free(url->protocol);
     free(url->hostname);
@@ -180,7 +180,7 @@ struct http_response http_makeNetworkHTTPRequest(
     while(!parsedResponse.has_body) {
         int initialBytesRead = tcpResult.bytesRead;
         char *currentPosition = buffer + initialBytesRead;
-        tcpResult = rsocket(tcpResult, currentPosition, (maxResponseSize - 8) - tcpResult.bytesRead);
+        tcpResult = rsocket(tcpResult, currentPosition, (maxInitialResponseSize - 8) - tcpResult.bytesRead);
 
         if (tcpResult.error) {
             errorResponse.error = 200;
