@@ -27,7 +27,11 @@ struct nc_text_area {
     int width;
     int height;
     int visible;
+
     char *currentText;
+    int allocatedTextLen;
+    int currentTextLength;
+
     char *descriptor;
     int selected;
     int scrolledAmount;
@@ -220,6 +224,7 @@ struct nc_text_area createNewTextarea(struct nc_state *state, int x, int y, int 
     textarea.visible = 1;
     textarea.selected = 0;
     textarea.currentText = (char *) calloc(1024, sizeof(char));
+    textarea.allocatedTextLen = 1024;
     textarea.descriptor = nc_strcpy(descriptor);
     textarea.scrolledAmount = 0;
     textarea.allowMoreChars = 0;
@@ -281,6 +286,59 @@ char *getTextAreaRendered(struct nc_text_area textarea) {
     }
 
     return resultingText;
+}
+
+void setTextOf(struct nc_text_area *textarea, char *newText) {
+    int len = strlen(newText);
+    if (len > getTextAreaWidth(*textarea)) {
+        textarea->scrolledAmount = len - getTextAreaWidth(*textarea);
+    } else {
+        textarea->scrolledAmount = 0;
+    }
+
+    textarea->currentText = realloc(textarea->currentText, len + 2);
+    textarea->allocatedTextLen = len + 2;
+    textarea->currentTextLength = len;
+
+    strcpy(textarea->currentText, newText);
+}
+
+void appendCharTo(struct nc_text_area *textarea, char newChar) {
+    textarea->allocatedTextLen ++;
+    textarea->currentText = realloc(textarea->currentText, textarea->allocatedTextLen);
+    textarea->currentText[textarea->currentTextLength] = newChar;
+
+    textarea->currentTextLength ++;
+    textarea->currentText[textarea->currentTextLength] = 0;
+
+    int len = strlen(textarea->currentText);
+    if (len > getTextAreaWidth(*textarea)) {
+        textarea->scrolledAmount = len - getTextAreaWidth(*textarea);
+    } else {
+        textarea->scrolledAmount = 0;
+    }
+}
+
+void popCharFrom(struct nc_text_area *textarea) {
+    if (textarea->currentText[0] == 0) return;
+
+    textarea->allocatedTextLen --;
+    textarea->currentTextLength --;
+    textarea->currentText[textarea->currentTextLength] = '\0';
+    textarea->currentText = realloc(textarea->currentText, textarea->allocatedTextLen);
+
+    int len = strlen(textarea->currentText);
+    if (len > getTextAreaWidth(*textarea)) {
+        textarea->scrolledAmount = len - getTextAreaWidth(*textarea);
+    } else {
+        textarea->scrolledAmount = 0;
+    }
+}
+
+void clearCharsOf(struct nc_text_area *textarea) {
+    memset(textarea->currentText, 0, textarea->allocatedTextLen);
+    textarea->scrolledAmount = 0;
+    textarea->currentTextLength = 0;
 }
 
 void updateFocus_nc(struct nc_state *state) {

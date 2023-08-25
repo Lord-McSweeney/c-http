@@ -61,9 +61,7 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
             err = makeStrCpy("Error while connecting to host or receiving data from host.\n");
         }
         char *total = (char *) calloc(128 + strlen(url) + 8, sizeof(char));
-        strcpy(total, "Page has no title\n");
-        strcat(total, url);
-        strcat(total, "\n\\H\n");
+        strcpy(total, "Page has no title\n\n\\H\n");
         strcat(total, err);
         return total;
     }
@@ -77,9 +75,7 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
         struct http_url *curURL = http_url_from_string(state->currentPageUrl);
         if (curURL == NULL) {
             char *total = (char *) calloc(64 + strlen(state->currentPageUrl) + 8, sizeof(char));
-            strcpy(total, "Page has no title\n");
-            strcat(total, state->currentPageUrl);
-            strcat(total, "\n\\H\nPlease enter a valid URL..");
+            strcpy(total, "Page has no title\n\n\\H\nPlease enter a valid URL..");
             return total;
         }
 
@@ -89,13 +85,11 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
         struct http_url *absURL = http_url_from_string(absoluteURL);
         if (absURL == NULL) {
             char *total = (char *) calloc(64 + strlen(absoluteURL) + 8, sizeof(char));
-            strcpy(total, "Page has no title\n");
-            strcat(total, absoluteURL);
-            strcat(total, "\n\\H\nInvalid redirected URL.");
+            strcpy(total, "Page has no title\n\n\\H\nInvalid redirected URL.");
             return total;
         }
 
-        getTextAreaByDescriptor(state, "urlField")->currentText = http_urlToString(absURL);
+        setTextOf(getTextAreaByDescriptor(state, "urlField"), http_urlToString(absURL));
 
         return downloadAndOpenPage(state, absoluteURL, handler, finishHandler, redirect_depth + 1);
     }
@@ -112,9 +106,7 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
             free(lowerData);
 
             char *total = (char *) calloc(parsedResponse.response_body.length + strlen(url) + 32, sizeof(char));
-            strcpy(total, "Page has no title\n");
-            strcat(total, url);
-            strcat(total, "\n\\H\n");
+            strcpy(total, "Page has no title\n\n\\H\n");
             strcat(total, parsedResponse.response_body.data);
             return total;
 
@@ -146,9 +138,7 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
     struct html2nc_result result = htmlToText(xml.list, parsedResponse.response_body.data);
     char *total = (char *) calloc(strlen(result.text) + strlen(url) + strlen(result.title) + 8, sizeof(char));
     strcpy(total, result.title);
-    strcat(total, "\n");
-    strcat(total, url);
-    strcat(total, "\n\\H\n");
+    strcat(total, "\n\n\\H\n");
     strcat(total, result.text);
 
     strcat(getTextByDescriptor(state, "documentText")->text, "\nDone parsing HTML as rich text.");
@@ -219,9 +209,9 @@ void ongotourl(void *state, char *_) {
         free(getTextByDescriptor(realState, "documentText")->text);
         getTextByDescriptor(realState, "documentText")->text = makeStrCpy(total);
         free(total);
-        getTextAreaByDescriptor(realState, "urlField")->currentText = makeStrCpy(realState->currentPageUrl);
+        setTextOf(getTextAreaByDescriptor(realState, "urlField"), realState->currentPageUrl);
     } else {
-        getTextAreaByDescriptor(realState, "urlField")->currentText = http_urlToString(http_url_from_string(realState->currentPageUrl));
+        setTextOf(getTextAreaByDescriptor(realState, "urlField"), http_urlToString(http_url_from_string(realState->currentPageUrl)));
 
         getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
         strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");
@@ -240,7 +230,7 @@ void ongotourl(void *state, char *_) {
 
 void ongotourlfield(void *state, char *_) {
     struct nc_state *realState = (struct nc_state *) state;
-    getTextAreaByDescriptor(realState, "urltextarea")->currentText = makeStrCpy(getTextAreaByDescriptor(realState, "urlField")->currentText);
+    setTextOf(getTextAreaByDescriptor(realState, "urltextarea"), getTextAreaByDescriptor(realState, "urlField")->currentText);
     ongotourl(state, _);
 }
 
@@ -284,12 +274,12 @@ void onlinkpressed(void *state, char *url) {
         free(getTextByDescriptor(realState, "documentText")->text);
         getTextByDescriptor(realState, "documentText")->text = makeStrCpy(total);
         free(total);
-        getTextAreaByDescriptor(realState, "urlField")->currentText = makeStrCpy(realState->currentPageUrl);
+        setTextOf(getTextAreaByDescriptor(realState, "urlField"), realState->currentPageUrl);
     } else {
         char *absoluteURL = http_resolveRelativeURL(curURL, realState->currentPageUrl, realURL);
 
         realState->currentPageUrl = absoluteURL;
-        getTextAreaByDescriptor(realState, "urlField")->currentText = absoluteURL;
+        setTextOf(getTextAreaByDescriptor(realState, "urlField"), absoluteURL);
 
         getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
         strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");

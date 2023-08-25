@@ -45,7 +45,7 @@ void initializeDisplayObjects(struct nc_state *state) {
     getTextByDescriptor(state, "helpText")->visible = 1;
     getTextByDescriptor(state, "userAgentDetail")->visible = 0;
     getTextAreaByDescriptor(state, "userAgent")->visible = 0;
-    strcpy(getTextAreaByDescriptor(state, "userAgent")->currentText, "uqers");
+    setTextOf(getTextAreaByDescriptor(state, "userAgent"), "uqers");
     getTextAreaByDescriptor(state, "urlField")->visible = 0;
     getButtonByDescriptor(state, "smallgobutton")->visible = 0;
     getTextAreaByDescriptor(state, "userAgent")->allowMoreChars = 1;
@@ -75,12 +75,8 @@ void openGotoPageDialog(struct nc_state *state) {
     // Should this save the global scroll when appearing over the current document?
     state->globalScrollX = 0;
     state->globalScrollY = 0;
-    
-    int curlen = strlen(textarea->currentText);
-    while(curlen > 0) {
-        textarea->currentText[curlen - 1] = '\0';
-        curlen = strlen(textarea->currentText);
-    }
+
+    clearCharsOf(textarea);
     textarea->scrolledAmount = 0;
 }
 
@@ -193,21 +189,10 @@ void onKeyPress(struct nc_state *browserState, int ch) {
     }
     struct nc_text_area *textarea = getCurrentSelectedTextarea(browserState);
     if (textarea != NULL) {
-        int curlen = strlen(textarea->currentText);
         if (isCharAllowed(textarea->allowMoreChars, ch)) {
-            if (curlen <= 1023) {
-                if (curlen >= getTextAreaWidth(*textarea)) {
-                    textarea->scrolledAmount ++;
-                }
-                textarea->currentText[curlen] = ch;
-            }
+            appendCharTo(textarea, ch);
         } else if (ch == KEY_BACKSPACE) { // backspace
-            if (curlen > 0) {
-                textarea->currentText[curlen - 1] = '\0';
-            }
-            if (textarea->scrolledAmount > 0) {
-                textarea->scrolledAmount --;
-            }
+            popCharFrom(textarea);
         }
         if (ch != KEY_UP && ch != KEY_DOWN) {
             browserState->shouldCheckAutoScroll = 1;
@@ -348,18 +333,10 @@ int main(int argc, char **argv) {
     nc_onInitFinish(&browserState);
 
     if (url != NULL) {
-        int len = strlen(url);
         struct nc_text_area *textarea = getTextAreaByDescriptor(&browserState, "urltextarea");
-        for (int i = 0; i < len; i ++) {
-            if (strlen(textarea->currentText) >= textarea->width) {
-                textarea->scrolledAmount ++;
-            }
-            textarea->currentText[strlen(textarea->currentText)] = url[i];
-            if (i > 1022) {
-                break;
-            }
-        }
-        getTextAreaByDescriptor(&browserState, "urlField")->currentText = url;
+        struct nc_text_area *textarea2 = getTextAreaByDescriptor(&browserState, "urlField");
+        setTextOf(textarea, url);
+        setTextOf(textarea2, url);
         ongotourl(&browserState, "<unused>");
     }
 
