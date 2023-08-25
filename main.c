@@ -111,6 +111,10 @@ void closeDocumentPage(struct nc_state *state) {
     getTextByDescriptor(state, "documentText")->text = makeStrCpy("");
     state->currentPageUrl = NULL;
     freeButtons(state);
+
+    // Should this save the global scroll when appearing over the current document?
+    state->globalScrollX = 0;
+    state->globalScrollY = 0;
 }
 
 void closeCurrentWindow(struct nc_state *state) {
