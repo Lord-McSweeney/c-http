@@ -156,10 +156,7 @@ struct http_url* http_url_from_string(char *string) {
                     break;
                 }
                 if (curChar == '/') {
-                    if (currentIndex == 1) {
-                        errno = 3;
-                        return NULL;
-                    }
+
                     hasPath = 1;
                     currentState = HTTP_PATH;
                     currentIndex = 0;
