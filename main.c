@@ -14,6 +14,20 @@ void freeButtons(struct nc_state *state) {
         state->buttons[i].enabled = 0;
         state->numButtons --;
     }
+    for (int i = state->numSelectables - 1; i >= 0; i --) {
+        struct nc_selected *selectable = &state->selectables[i];
+        // this is a little silly
+        if (selectable->button) {
+            if (getButtonByDescriptor(state, selectable->button)->descriptor == NULL) {
+                selectable->button = NULL;
+            }
+        } else if (selectable->textarea) {
+            if (getTextAreaByDescriptor(state, selectable->textarea)->descriptor == NULL) {
+                selectable->textarea = NULL;
+            }
+        }
+    }
+    state->buttons = realloc(state->buttons, state->initialButtons * sizeof(struct nc_button));
 }
 
 void hideButtons(struct nc_state *state) {
@@ -152,7 +166,7 @@ void onKeyPress(struct nc_state *browserState, int ch) {
                 browserState->selectableIndex = browserState->numSelectables - 1;
             }
             int i1 = 0;
-            while(!isSelectable(browserState->selectables[browserState->selectableIndex])) {
+            while(!isSelectable(browserState, browserState->selectables[browserState->selectableIndex])) {
                 browserState->selectableIndex --;
                 if (browserState->selectableIndex < 0) {
                     browserState->selectableIndex = browserState->numSelectables - 1;
@@ -173,7 +187,7 @@ void onKeyPress(struct nc_state *browserState, int ch) {
                 browserState->selectableIndex = 0;
             }
             int i2 = 0;
-            while(!isSelectable(browserState->selectables[browserState->selectableIndex])) {
+            while(!isSelectable(browserState, browserState->selectables[browserState->selectableIndex])) {
                 browserState->selectableIndex ++;
                 if (browserState->selectableIndex >= browserState->numSelectables) {
                     browserState->selectableIndex = 0;
@@ -330,6 +344,8 @@ int main(int argc, char **argv) {
     browserState.globalScrollY = 0;
     browserState.shouldCheckAutoScroll = 0;
     browserState.currentPageUrl = NULL;
+
+    browserState.buttons = (struct nc_button *) calloc(1, sizeof(struct nc_button));
 
     initWindow();
     initializeDisplayObjects(&browserState);

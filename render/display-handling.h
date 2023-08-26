@@ -60,13 +60,13 @@ struct nc_text {
 };
 
 struct nc_selected {
-    struct nc_text_area *textarea;
-    struct nc_button *button;
+    char *textarea;
+    char *button;
 };
 
 struct nc_selected selectableFromButton(struct nc_button *button) {
     struct nc_selected select;
-    select.button = button;
+    select.button = button->descriptor;
     select.textarea = NULL;
     return select;
 }
@@ -74,7 +74,7 @@ struct nc_selected selectableFromButton(struct nc_button *button) {
 struct nc_selected selectableFromTextarea(struct nc_text_area *textarea) {
     struct nc_selected select;
     select.button = NULL;
-    select.textarea = textarea;
+    select.textarea = textarea->descriptor;
     return select;
 }
 
@@ -82,7 +82,7 @@ struct nc_state {
     enum nc_page currentPage;
 
     struct nc_text_area text_areas[256];
-    struct nc_button buttons[1536];
+    struct nc_button *buttons;
     struct nc_text texts[256];
     int numTextAreas;
     int numButtons;
@@ -101,54 +101,6 @@ struct nc_state {
 
     // todo: add a forward/back buffer
 };
-
-struct nc_text_area *getCurrentSelectedTextarea(struct nc_state *state) {
-    for (int i = 0; i < state->numTextAreas; i ++) {
-        if (state->text_areas[i].selected && state->text_areas[i].visible) {
-            return &state->text_areas[i];
-        }
-    }
-    return NULL;
-}
-
-struct nc_button *getCurrentSelectedButton(struct nc_state *state) {
-    for (int i = 0; i < state->numButtons; i ++) {
-        if (state->buttons[i].selected && state->buttons[i].visible && state->buttons[i].enabled) {
-            return &state->buttons[i];
-        }
-    }
-    return NULL;
-}
-
-int *getYPosOfCurrentSelected(struct nc_state *state) {
-    int *data = (int *) calloc(1, sizeof(int));
-    for (int i = 0; i < state->numButtons; i ++) {
-        if (state->buttons[i].selected && state->buttons[i].visible && state->buttons[i].enabled) {
-            data[0] = state->buttons[i].y;
-            return data;
-        }
-    }
-    for (int i = 0; i < state->numTextAreas; i ++) {
-        if (state->text_areas[i].selected && state->text_areas[i].visible) {
-            data[0] = state->text_areas[i].y;
-            return data;
-        }
-    }
-    free(data);
-    return NULL;
-}
-
-int isSelectable(struct nc_selected selectable) {
-    if (selectable.button != NULL) {
-        return selectable.button->visible && selectable.button->enabled;
-    } else if (selectable.textarea != NULL) {
-        return selectable.textarea->visible;
-    } else {
-        // Somehow both are none???
-        fprintf(stderr, "Neither selectable of a selectable enum was selectable. This is a bug!\n");
-        return 0;
-    }
-}
 
 struct nc_button *getButtonByDescriptor(struct nc_state *state, char *descriptor) {
     int num = state->numButtons;
@@ -186,6 +138,55 @@ struct nc_text *getTextByDescriptor(struct nc_state *state, char *descriptor) {
     return NULL;
 }
 
+struct nc_text_area *getCurrentSelectedTextarea(struct nc_state *state) {
+    for (int i = 0; i < state->numTextAreas; i ++) {
+        if (state->text_areas[i].selected && state->text_areas[i].visible) {
+            return &state->text_areas[i];
+        }
+    }
+    return NULL;
+}
+
+struct nc_button *getCurrentSelectedButton(struct nc_state *state) {
+    for (int i = 0; i < state->numButtons; i ++) {
+        if (state->buttons[i].selected && state->buttons[i].visible && state->buttons[i].enabled) {
+            return &state->buttons[i];
+        }
+    }
+    return NULL;
+}
+
+int *getYPosOfCurrentSelected(struct nc_state *state) {
+    int *data = (int *) calloc(1, sizeof(int));
+    for (int i = 0; i < state->numButtons; i ++) {
+        if (state->buttons[i].selected && state->buttons[i].visible && state->buttons[i].enabled) {
+            data[0] = state->buttons[i].y;
+            return data;
+        }
+    }
+    for (int i = 0; i < state->numTextAreas; i ++) {
+        if (state->text_areas[i].selected && state->text_areas[i].visible) {
+            data[0] = state->text_areas[i].y;
+            return data;
+        }
+    }
+    free(data);
+    return NULL;
+}
+
+int isSelectable(struct nc_state *state, struct nc_selected selectable) {
+    if (selectable.button != NULL) {
+        struct nc_button *btn = getButtonByDescriptor(state, selectable.button);
+        return btn->visible && btn->enabled;
+    } else if (selectable.textarea != NULL) {
+        struct nc_text_area *txtar = getTextAreaByDescriptor(state, selectable.textarea);
+        return txtar->visible;
+    } else {
+        // Selectable was invalidated because the button/textarea it contained was removed
+        return 0;
+    }
+}
+
 struct nc_button createNewButton(struct nc_state *state, int x, int y, char *text, clickHandler onclick, char *descriptor) {
     if (getButtonByDescriptor(state, descriptor) != NULL) {
         printf("Attempted to initialize a button with duplicate descriptor!\n");
@@ -202,8 +203,9 @@ struct nc_button createNewButton(struct nc_state *state, int x, int y, char *tex
     button.overrideMinX = -1;
     button.descriptor = nc_strcpy(descriptor);
 
-    state->buttons[state->numButtons] = button;
     state->numButtons ++;
+    state->buttons = realloc(state->buttons, state->numButtons * sizeof(struct nc_button));
+    state->buttons[state->numButtons - 1] = button;
 
     state->selectables = (struct nc_selected *) realloc(state->selectables, (state->numSelectables + 1) * sizeof(struct nc_selected));
     state->selectables[state->numSelectables] = selectableFromButton(&state->buttons[state->numButtons - 1]);
@@ -355,15 +357,14 @@ void updateFocus_nc(struct nc_state *state) {
         return;
     }
     struct nc_selected curSelected = state->selectables[state->selectableIndex];
-    if (curSelected.textarea == NULL) {
-        struct nc_button *button = curSelected.button;
-        button->selected = 1;
-    } else if (curSelected.button == NULL) {
-        struct nc_text_area *textarea = curSelected.textarea;
-        //textarea.currentText[0] = 'Z';
+    if (curSelected.textarea != NULL) {
+        struct nc_text_area *textarea = getTextAreaByDescriptor(state, curSelected.textarea);
         textarea->selected = 1;
+    } else if (curSelected.button != NULL) {
+        struct nc_button *button = getButtonByDescriptor(state, curSelected.button);
+        button->selected = 1;
     } else {
-        // ...both are selected????????
+        // neither are selected, this is an "empty" selectable
     }
 
     if (state->shouldCheckAutoScroll) {
