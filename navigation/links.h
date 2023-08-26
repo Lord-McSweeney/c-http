@@ -99,7 +99,7 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
         if (strncmp(lowerData, "<!doctype html", 14)) {
             for (int i = 0; i < parsedResponse.num_headers; i ++) {
                 free(parsedResponse.headers[i].name);
-                free(parsedResponse.headers[i].value);
+                if (parsedResponse.headers[i].value) free(parsedResponse.headers[i].value);
             }
             free(parsedResponse.headers);
             free(parsedResponse.response_description);
@@ -108,8 +108,6 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
             char *total = (char *) calloc(parsedResponse.response_body.length + strlen(url) + 32, sizeof(char));
             strcpy(total, "Page has no title\n\n\\H\n");
             strcat(total, parsedResponse.response_body.data);
-            return total;
-
             return total;
         }
         free(lowerData);
@@ -147,7 +145,7 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
     free(parsedResponse.response_body.data);
     for (int i = 0; i < parsedResponse.num_headers; i ++) {
         free(parsedResponse.headers[i].name);
-        free(parsedResponse.headers[i].value);
+        if (parsedResponse.headers[i].value) free(parsedResponse.headers[i].value);
     }
     free(parsedResponse.headers);
     free(parsedResponse.response_description);

@@ -194,6 +194,7 @@ struct http_response parsePossiblyIncompleteHTTPResponse(struct http_data rawRes
                     header_index = numHeaders - 1;
                     headers = (struct http_header *) realloc(headers, sizeof(struct http_header) * numHeaders);
                     headers[header_index].name = (char *) calloc(rawResponse.length - 7, sizeof(char));
+                    headers[header_index].value = NULL;
                 }
                 char *nameString = headers[header_index].name;
                 nameString[strlen(nameString)] = curChar;
