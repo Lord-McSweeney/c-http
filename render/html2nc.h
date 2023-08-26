@@ -34,9 +34,9 @@ int HTML_headerLevel(const char *nodeName) {
 }
 
 char *getXMLTrimmedTextContent(const char *content, int removeStart) {
-    char *allocated = (char *) calloc(strlen(content) + 1, sizeof(char));
+    int len = strlen(content);
+    char *allocated = (char *) calloc(len + 1, sizeof(char));
     char *textContent = makeStrCpy(content);
-    int len = strlen(textContent);
     
     int alreadyEncounteredSpace = 0;
     int alreadyEncounteredText = 0;
@@ -44,6 +44,7 @@ char *getXMLTrimmedTextContent(const char *content, int removeStart) {
         alreadyEncounteredText = 1;
     }
 
+    int curAllocIdx = 0;
     for (int i = 0; i < len; i ++) {
         if (textContent[i] == '\n') textContent[i] = ' ';
         if (textContent[i] == '\r') textContent[i] = ' ';
@@ -53,7 +54,8 @@ char *getXMLTrimmedTextContent(const char *content, int removeStart) {
                 alreadyEncounteredSpace = 0;
                 alreadyEncounteredText = 1;
             }
-            allocated[strlen(allocated)] = textContent[i];
+            allocated[curAllocIdx] = textContent[i];
+            curAllocIdx ++;
         }
         if (textContent[i] == ' ') {
             alreadyEncounteredSpace = 1;
@@ -95,8 +97,8 @@ char *getInputRendered(char *text, int width) {
     return resultingText;
 }
 
-char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct html2nc_state *state, char *originalHTML, int uppercase, int listNestAmount) {
-    char *alloc = (char *) calloc(strlen(originalHTML) + 2, sizeof(char));
+char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct html2nc_state *state, int originalHTMLLen, int uppercase, int listNestAmount) {
+    char *alloc = (char *) calloc(originalHTMLLen + 2, sizeof(char));
 
     int currentOrderedListNum = 1;
 
@@ -178,7 +180,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
 
             // Only the first <title> is taken into account- the rest aren't special
             if (!strcmp(lower, "title") && state->title == NULL) {
-                state->title = recursiveXMLToText(&node, node.children, state, originalHTML, 0, 0);
+                state->title = recursiveXMLToText(&node, node.children, state, originalHTMLLen, 0, 0);
                 free(lower);
                 freeXMLAttributes(attributes);
                 freeXMLAttributes(parent_attributes);
@@ -251,8 +253,8 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     }
                 }
 
-                char *text = recursiveXMLToText(&node, node.children, state, originalHTML, (hLevel >= 2) || uppercase, listNestAmount);
-                int wasDisplayed = strlen(text);
+                char *text = recursiveXMLToText(&node, node.children, state, originalHTMLLen, (hLevel >= 2) || uppercase, listNestAmount);
+                int wasDisplayed = text[0] != 0;
 
                 if (!strcmp(lower, "img") && isVisible) {
                     char *altText = XML_getAttributeByName(attributes, "alt");
@@ -405,7 +407,7 @@ struct html2nc_result htmlToText(struct xml_list xml, char *originalHTML) {
     state.title = NULL;
     
     struct html2nc_result result;
-    result.text = recursiveXMLToText(NULL, xml, &state, originalHTML, 0, 0);
+    result.text = recursiveXMLToText(NULL, xml, &state, strlen(originalHTML), 0, 0);
 
     // Default title, if title wasn't set
     if (state.title == NULL) {
