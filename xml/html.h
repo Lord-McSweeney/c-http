@@ -653,14 +653,18 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                 currentTextContent[strlen(currentTextContent)] = curChar;
                 break;
             case PARSE_UNKNOWN:
-                if (curChar == '<' && !html_isChildlessElement(xml_toLowerCase(parentClosingTag))) {
-                    currentIndex = 0;
-                    currentState = PARSE_ELEMENT_NAME;
-                } else {
-                    i --;
-                    bytesParsed --;
-                    currentIndex = 0;
-                    currentState = PARSE_ELEMENT_TEXT;
+                {
+                    char *lower = xml_toLowerCase(parentClosingTag);
+                    if (curChar == '<' && !html_isChildlessElement(lower)) {
+                        currentIndex = 0;
+                        currentState = PARSE_ELEMENT_NAME;
+                    } else {
+                        i --;
+                        bytesParsed --;
+                        currentIndex = 0;
+                        currentState = PARSE_ELEMENT_TEXT;
+                    }
+                    free(lower);
                 }
                 break;
         }
