@@ -173,14 +173,7 @@ void onFinishData(void *ptrState) {
 
 void ongotourl(void *state, char *_) {
     struct nc_state *realState = (struct nc_state *) state;
-
-    for (int i = realState->numButtons - 1; i >= realState->initialButtons; i --) {
-        realState->buttons[i].descriptor = NULL;
-        realState->buttons[i].text = NULL;
-        realState->buttons[i].visible = 0;
-        realState->buttons[i].enabled = 0;
-        realState->numButtons --;
-    }
+    freeButtons(realState);
 
     realState->selectableIndex = -1;
     realState->currentPage = PAGE_DOCUMENT_LOADED;
@@ -233,19 +226,12 @@ void ongotourlfield(void *state, char *_) {
 }
 
 void onlinkpressed(void *state, char *url) {
-    if (strncmp(url, "linkto_", 7)) {
+    if (strncmp(url, "_temp_linkto_", 13)) {
         return;
     }
 
     struct nc_state *realState = (struct nc_state *) state;
-
-    for (int i = realState->numButtons - 1; i >= realState->initialButtons; i --) {
-        realState->buttons[i].descriptor = NULL;
-        realState->buttons[i].text = NULL;
-        realState->buttons[i].visible = 0;
-        realState->buttons[i].enabled = 0;
-        realState->numButtons --;
-    }
+    freeButtons(realState);
 
     realState->selectableIndex = -1;
     realState->currentPage = PAGE_DOCUMENT_LOADED;
@@ -261,7 +247,7 @@ void onlinkpressed(void *state, char *url) {
     getButtonByDescriptor(state, "smallgobutton")->visible = 0;
     getTextByDescriptor(realState, "helpText")->visible = 0;
 
-    char *realURL = url + 9;
+    char *realURL = url + 15;
 
     struct http_url *curURL = http_url_from_string(realState->currentPageUrl);
     if (curURL == NULL) {

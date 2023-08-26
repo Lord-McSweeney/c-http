@@ -174,17 +174,41 @@ int *getYPosOfCurrentSelected(struct nc_state *state) {
     return NULL;
 }
 
-int isSelectable(struct nc_state *state, struct nc_selected selectable) {
-    if (selectable.button != NULL) {
-        struct nc_button *btn = getButtonByDescriptor(state, selectable.button);
+int isSelectable(struct nc_state *state, struct nc_selected *selectable) {
+    if (selectable->button != NULL) {
+        struct nc_button *btn = getButtonByDescriptor(state, selectable->button);
         return btn->visible && btn->enabled;
-    } else if (selectable.textarea != NULL) {
-        struct nc_text_area *txtar = getTextAreaByDescriptor(state, selectable.textarea);
+    } else if (selectable->textarea != NULL) {
+        struct nc_text_area *txtar = getTextAreaByDescriptor(state, selectable->textarea);
         return txtar->visible;
     } else {
         // Selectable was invalidated because the button/textarea it contained was removed
         return 0;
     }
+}
+
+void freeButtons(struct nc_state *state) {
+    for (int i = state->numSelectables - 1; i >= 0; i --) {
+        struct nc_selected *selectable = &state->selectables[i];
+        // this is a little silly
+        if (selectable->button) {
+            if (!strncmp(selectable->button, "_temp_", 6) && getButtonByDescriptor(state, selectable->button)->descriptor != NULL) {
+                selectable->button = NULL;
+            }
+        } else if (selectable->textarea) {
+            if (!strncmp(selectable->textarea, "_temp_", 6) && getTextAreaByDescriptor(state, selectable->textarea)->descriptor != NULL) {
+                selectable->textarea = NULL;
+            }
+        }
+    }
+    for (int i = state->numButtons - 1; i >= state->initialButtons; i --) {
+        state->buttons[i].descriptor = NULL;
+        state->buttons[i].text = NULL;
+        state->buttons[i].visible = 0;
+        state->buttons[i].enabled = 0;
+        state->numButtons --;
+    }
+    state->buttons = realloc(state->buttons, state->initialButtons * sizeof(struct nc_button));
 }
 
 struct nc_button createNewButton(struct nc_state *state, int x, int y, char *text, clickHandler onclick, char *descriptor) {
@@ -512,8 +536,8 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                             char *addr = text + i + 2;
                             char *result = safeDecodeString(addr);
 
-                            char *linkDescriptor = (char *) calloc(strlen(result) + 10, sizeof(char));
-                            strcpy(linkDescriptor, "linkto_");
+                            char *linkDescriptor = (char *) calloc(strlen(result) + 20, sizeof(char));
+                            strcpy(linkDescriptor, "_temp_linkto_");
                             linkDescriptor[strlen(linkDescriptor)] = linkIdx1;
                             linkDescriptor[strlen(linkDescriptor)] = linkIdx2;
                             strcat(linkDescriptor, result);
@@ -536,8 +560,8 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                             aboutToCreateButton = 0;
                             buttonSpace[strlen(buttonSpace) - 1] = 0; // remove \ 
                             buttonSpace[strlen(buttonSpace) - 1] = 0; // remove n
-                            char *noopDescriptor = (char *) calloc(16, sizeof(char));
-                            strcpy(noopDescriptor, "noop_");
+                            char *noopDescriptor = (char *) calloc(32, sizeof(char));
+                            strcpy(noopDescriptor, "_temp_noop_");
                             noopDescriptor[strlen(noopDescriptor)] = linkIdx1;
                             noopDescriptor[strlen(noopDescriptor)] = linkIdx2;
                             strcat(noopDescriptor, "NOOP");
