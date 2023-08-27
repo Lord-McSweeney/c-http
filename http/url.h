@@ -155,11 +155,11 @@ struct http_url* http_url_from_string(char *string) {
                     currentIndex = 0;
                     break;
                 }
-                if (curChar == '/') {
-
+                if (curChar == '/' || curChar == '?') {
                     hasPath = 1;
                     currentState = HTTP_PATH;
                     currentIndex = 0;
+                    i --;
                     break;
                 }
                 hostname[strlen(hostname)] = curChar;
