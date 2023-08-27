@@ -3,6 +3,7 @@
 #include "../xml/html.h"
 #include "../xml/attributes.h"
 #include "../css/styles.h"
+#include "../css/parse-selectors.h"
 #include "../utils/string.h"
 
 int shouldBeDisplayed(const char *nodeName) {
@@ -97,7 +98,7 @@ char *getInputRendered(char *text, int width) {
     return resultingText;
 }
 
-char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct html2nc_state *state, int originalHTMLLen, int uppercase, int listNestAmount) {
+char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct html2nc_state *state, int originalHTMLLen, int uppercase, int listNestAmount, struct css_persistent_styles *persistentStyles) {
     char *alloc = (char *) calloc(originalHTMLLen + 2, sizeof(char));
 
     int currentOrderedListNum = 1;
@@ -146,7 +147,13 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                 }
             }
 
-            struct css_styling elementStyling = CSS_getDefaultStylesFromElement(node, attributes);
+            struct css_styling elementStyling = CSS_getDefaultStylesFromElement(node, attributes, persistentStyles);
+            struct css_styling parentStyling;
+            if (parent) {
+                parentStyling = CSS_getDefaultStylesFromElement(*parent, parent_attributes, persistentStyles);
+            } else {
+                parentStyling = CSS_getDefaultStyles();
+            }
 
             char *lower = xml_toLowerCase(node.name);
             int hLevel = HTML_headerLevel(node.name);
@@ -172,7 +179,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                      && 
                     parent
                      && 
-                    CSS_isStyleBlock(CSS_getDefaultStylesFromElement(*parent, parent_attributes)) // If we already had a block-level element as our parent and this is the first child, it doesn't count
+                    CSS_isStyleBlock(parentStyling) // If we already had a block-level element as our parent and this is the first child, it doesn't count
                 )
                ) {
                 strcat(alloc, "\n");
@@ -180,12 +187,34 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
 
             // Only the first <title> is taken into account- the rest aren't special
             if (!strcmp(lower, "title") && state->title == NULL) {
-                state->title = recursiveXMLToText(&node, node.children, state, originalHTMLLen, 0, 0);
+                state->title = recursiveXMLToText(&node, node.children, state, originalHTMLLen, 0, 0, persistentStyles);
                 free(lower);
                 freeXMLAttributes(attributes);
                 freeXMLAttributes(parent_attributes);
                 hasBlocked = 0;
                 continue;
+            }
+
+            if (!strcmp(lower, "style")) {
+                char *lowerParent = !parent ? makeStrCpy("no parent") : xml_toLowerCase(parent->name);
+                if (strcmp(lowerParent, "head") && strcmp(lowerParent, "noscript")) {
+                    fprintf(stderr, "Warning: <style> tag in invalid place (%s)\n", lowerParent);
+                }
+                char *type = XML_getAttributeByName(attributes, "type");
+                if (!type || !strcmp(type, "text/css")) {
+                    if (node.children.count) {
+                        if (node.children.nodes[0].text_content) {
+                            CSS_applyStyleData(persistentStyles, node.children.nodes[0].text_content);
+                        } else {
+                            fprintf(stderr, "Warning: <style> tag had child with no text content\n");
+                        }
+                    } else {
+                        fprintf(stderr, "Warning: <style> tag had no child nodes\n");
+                    }
+                } else {
+                    fprintf(stderr, "Warning: <style> tag with unknown type (%s)\n", type);
+                }
+                free(lowerParent);
             }
 
             if (!strcmp(lower, "br") && !CSS_isStyleHidden(elementStyling)) {
@@ -253,7 +282,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     }
                 }
 
-                char *text = recursiveXMLToText(&node, node.children, state, originalHTMLLen, (hLevel >= 2) || uppercase, listNestAmount);
+                char *text = recursiveXMLToText(&node, node.children, state, originalHTMLLen, (hLevel >= 2) || uppercase, listNestAmount, persistentStyles);
                 int wasDisplayed = text[0] != 0;
 
                 if (!strcmp(lower, "img") && isVisible) {
@@ -403,11 +432,13 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
 }
 
 struct html2nc_result htmlToText(struct xml_list xml, char *originalHTML) {
+    struct css_persistent_styles persistentStyles = CSS_makePersistentStyles();
+
     struct html2nc_state state;
     state.title = NULL;
     
     struct html2nc_result result;
-    result.text = recursiveXMLToText(NULL, xml, &state, strlen(originalHTML), 0, 0);
+    result.text = recursiveXMLToText(NULL, xml, &state, strlen(originalHTML), 0, 0, &persistentStyles);
 
     // Default title, if title wasn't set
     if (state.title == NULL) {
@@ -415,6 +446,8 @@ struct html2nc_result htmlToText(struct xml_list xml, char *originalHTML) {
     } else {
         result.title = makeStrCpy(state.title);
     }
+
+    CSS_freePersistentStyles(&persistentStyles);
 
     free(state.title);
 

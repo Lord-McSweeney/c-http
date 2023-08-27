@@ -369,7 +369,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                     isEscapeEnabled = 1;
                 }
                 
-                if (curChar == ' ' || curChar == '\n') {
+                if (isWhiteSpace(curChar)) {
                     if (doneParsingName) {
                         currentAttributeContentUsage ++;
                         if (currentAttributeContentUsage > maxAttributeContent - 2) {
@@ -524,7 +524,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                     doneParsingName = 0;
                     startedParsingName = 0;
                 }
-                if (curChar == ' ') {
+                if (isWhiteSpace(curChar)) {
                     if (startedParsingName) {
                         doneParsingName = 1;
                     }

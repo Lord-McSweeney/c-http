@@ -138,7 +138,7 @@ void CSS_parseInlineStyles(struct css_styles *styles, char *inputString) {
                 } else if (curChar == '\'') {
                     // TODO
                     startedParsingValue = 1;
-                }*/ else if (curChar == ' ' && !startedParsingValue) {
+                }*/ else if (isWhiteSpace(curChar) && !startedParsingValue) {
                     // Do nothing
                 } else if (currentDataUsage <= 16382) {
                     currentDataContent[currentDataUsage] = curChar;
@@ -159,7 +159,7 @@ void CSS_parseInlineStyles(struct css_styles *styles, char *inputString) {
                 }
                 break;
             case CSS_PARSE_UNKNOWN:
-                if (curChar != ' ' && curChar != '\n') {
+                if (!isWhiteSpace(curChar)) {
                     currentState = CSS_PARSE_STYLE_NAME;
                     i --;
                 }

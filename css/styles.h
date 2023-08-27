@@ -1,5 +1,6 @@
 #include "../xml/attributes.h"
 
+#include "selectors.h"
 #include "parse.h"
 
 #ifndef _CSS_STYLES
@@ -84,7 +85,21 @@ enum css_display CSS_styleNameToDisplay(char *name) {
     return DISPLAY_DEFAULT;
 }
 
-struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct xml_attributes *attribs) {
+struct css_styling CSS_getDefaultStyles() {
+    struct css_styling styling;
+    styling.display = DISPLAY_UNKNOWN;
+    styling.color = CSS_COLOR_BLACK;
+    styling.position = POSITION_STATIC;
+    styling.bold = 0;
+    styling.italic = 0;
+    styling.underline = 0;
+    styling.strikethrough = 0;
+    styling.tabbed = 0;
+
+    return styling;
+}
+
+struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct xml_attributes *attribs, struct css_persistent_styles *persistentStyles) {
     struct css_styling styling;
     styling.display = DISPLAY_UNKNOWN;
     styling.color = CSS_COLOR_BLACK;
@@ -128,66 +143,70 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
 
 
     // TODO: support more styles
+    struct css_styles *styles = CSS_makeEmptyStyles();
+
+    char *cssText = CSS_getCSSTextForNode(&node, attribs, persistentStyles);
+    CSS_parseInlineStyles(styles, cssText);
+
     char *attrib = XML_getAttributeByName(attribs, "style");
     if (attrib != NULL) {
-        struct css_styles *styles = CSS_makeEmptyStyles();
         CSS_parseInlineStyles(styles, attrib);
-
-        char *displayStyle = CSS_getStyleByName(styles, "display");
-
-        enum css_display display = CSS_styleNameToDisplay(displayStyle);
-        if (display != DISPLAY_DEFAULT) {
-            styling.display = display;
-        }
-
-
-        char *textDecorationStyle = CSS_getStyleByName(styles, "text-decoration");
-        if (textDecorationStyle != NULL) {
-            if (!strcmp(textDecorationStyle, "underline")) {
-                styling.underline = 1;
-            } else if (!strcmp(textDecorationStyle, "line-through")) {
-                styling.strikethrough = 1;
-            } else if (!strcmp(textDecorationStyle, "none")) {
-                // FIXME: It's more complex than this, see https://developer.mozilla.org/en-US/docs/Web/CSS/text-decoration
-                styling.strikethrough = 0;
-                styling.underline = 0;
-            } else {
-                fprintf(stderr, "Warning: Unsupported text-decoration \"%s\"\n", textDecorationStyle);
-            }
-        }
-
-
-        char *colorStyle = CSS_getStyleByName(styles, "color");
-        if (colorStyle != NULL) {
-            if (!strcmp(colorStyle, "blue")) {
-                styling.color = CSS_COLOR_BLUE;
-            } else if (!strcmp(colorStyle, "lime") || !strcmp(colorStyle, "green")) {
-                styling.color = CSS_COLOR_GREEN;
-            } else if (!strcmp(colorStyle, "red")) {
-                styling.color = CSS_COLOR_RED;
-            }
-        }
-
-
-        char *positionStyle = CSS_getStyleByName(styles, "position");
-        if (positionStyle != NULL) {
-            if (!strcmp(positionStyle, "absolute")) {
-                styling.position = POSITION_ABSOLUTE;
-            } else if (!strcmp(positionStyle, "relative")) {
-                styling.position = POSITION_RELATIVE;
-            } else if (!strcmp(positionStyle, "static")) {
-                styling.position = POSITION_STATIC;
-            } else if (!strcmp(positionStyle, "fixed")) {
-                styling.position = POSITION_FIXED;
-            } else if (!strcmp(positionStyle, "sticky")) {
-                styling.position = POSITION_STICKY;
-            } else {
-                styling.position = POSITION_UNKNOWN;
-            }
-        }
-
-        freeCSSStyles(styles);
     }
+
+    char *displayStyle = CSS_getStyleByName(styles, "display");
+
+    enum css_display display = CSS_styleNameToDisplay(displayStyle);
+    if (display != DISPLAY_DEFAULT) {
+        styling.display = display;
+    }
+
+
+    char *textDecorationStyle = CSS_getStyleByName(styles, "text-decoration");
+    if (textDecorationStyle != NULL) {
+        if (!strcmp(textDecorationStyle, "underline")) {
+            styling.underline = 1;
+        } else if (!strcmp(textDecorationStyle, "line-through")) {
+            styling.strikethrough = 1;
+        } else if (!strcmp(textDecorationStyle, "none")) {
+            // FIXME: It's more complex than this, see https://developer.mozilla.org/en-US/docs/Web/CSS/text-decoration
+            styling.strikethrough = 0;
+            styling.underline = 0;
+        } else {
+            fprintf(stderr, "Warning: Unsupported text-decoration \"%s\"\n", textDecorationStyle);
+        }
+    }
+
+
+    char *colorStyle = CSS_getStyleByName(styles, "color");
+    if (colorStyle != NULL) {
+        if (!strcmp(colorStyle, "blue")) {
+            styling.color = CSS_COLOR_BLUE;
+        } else if (!strcmp(colorStyle, "lime") || !strcmp(colorStyle, "green")) {
+            styling.color = CSS_COLOR_GREEN;
+        } else if (!strcmp(colorStyle, "red")) {
+            styling.color = CSS_COLOR_RED;
+        }
+    }
+
+
+    char *positionStyle = CSS_getStyleByName(styles, "position");
+    if (positionStyle != NULL) {
+        if (!strcmp(positionStyle, "absolute")) {
+            styling.position = POSITION_ABSOLUTE;
+        } else if (!strcmp(positionStyle, "relative")) {
+            styling.position = POSITION_RELATIVE;
+        } else if (!strcmp(positionStyle, "static")) {
+            styling.position = POSITION_STATIC;
+        } else if (!strcmp(positionStyle, "fixed")) {
+            styling.position = POSITION_FIXED;
+        } else if (!strcmp(positionStyle, "sticky")) {
+            styling.position = POSITION_STICKY;
+        } else {
+            styling.position = POSITION_UNKNOWN;
+        }
+    }
+
+    freeCSSStyles(styles);
 
     free(lower);
     return styling;

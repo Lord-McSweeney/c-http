@@ -61,4 +61,51 @@ void clrStr(char *string) {
     }
 }
 
+int isWhiteSpace(char t) {
+    return t == ' ' || t == '\n' || t == '\t' || t == '\r';
+}
+
+char *trimString(char *string) {
+    int isAtStringYet = 0;
+    int len = strlen(string);
+
+    char *res = (char *) calloc(len + 1, sizeof(char));
+    int idx = 0;
+
+    for (int i = 0; i < len; i ++) {
+        if (!isWhiteSpace(string[i])) {
+            isAtStringYet = 1;
+        }
+        if (isAtStringYet) {
+            int foundChars = 1;
+            if (isWhiteSpace(string[i])) {
+                foundChars = 0;
+                for (int j = i; j < len; j ++) {
+                    if (!isWhiteSpace(string[j])) {
+                        foundChars = 1;
+                    }
+                }
+            }
+            if (foundChars) {
+                res[idx] = string[i];
+                idx ++;
+            } else {
+                break;
+            }
+        }
+    }
+
+    return makeStrCpy(res);
+}
+
+int stringContains(char *string, char t) {
+    int len = strlen(string);
+    for (int i = 0; i < len; i ++) {
+        if (string[i] == t) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 #endif
