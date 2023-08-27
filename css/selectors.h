@@ -44,7 +44,7 @@ int doesSelectorMatchNode(char *selector, struct xml_node *node, struct xml_attr
 }
 
 char *CSS_getCSSTextForNode(struct xml_node *node, struct xml_attributes *attribs, struct css_persistent_styles *styles) {
-    // CSS has an importance level (e.g. !important). So far, this is unimplemented- later styles will override newer ones.
+    // CSS has an importance level (!important, user agent stylesheets, etc). So far, this is unimplemented- later styles will override newer ones.
     for (int i = styles->count - 1; i >= 0; i --) {
         struct css_selectors curSelectors = styles->selectors[i];
         for (int j = 0; j < curSelectors.count; j ++) {
