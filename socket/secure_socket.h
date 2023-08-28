@@ -46,7 +46,9 @@ struct socket_info secure_rwsocket(const char *address, int port, char *senddata
 
     SSL *ssl = SSL_new(ctx);
     SSL_set_fd(ssl, socket_desc);
-    if (SSL_connect(ssl) != 1) {
+
+    int conn = SSL_connect(ssl);
+    if (conn != 1) {
         errorStruct.error = -7;
         return errorStruct;
     }
