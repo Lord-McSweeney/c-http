@@ -179,12 +179,12 @@ void CSS_parseInlineStyles(struct css_styles *styles, char *inputString) {
     
     switch(currentState) {
         case CSS_PARSE_STYLE_IMPORTANT:
-            currentStyle.value = makeStrCpy(currentDataContent);
+            currentStyle.important = !strcmp(trimString(currentDataContent), "important");
 
             CSS_appendStyle(styles, currentStyle);
             break;
         case CSS_PARSE_STYLE_VALUE:
-            currentStyle.important = !strcmp(trimString(currentDataContent), "important");
+            currentStyle.value = trimString(currentDataContent);
 
             CSS_appendStyle(styles, currentStyle);
             break;

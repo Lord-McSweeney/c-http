@@ -91,6 +91,7 @@ void CSS_applyStyleData(struct css_persistent_styles *originalStyles, char *cont
     int currentDataUsage = 0;
 
     int len = strlen(content);
+    int bracketNum = 0;
     for (int i = 0; i < len; i ++) {
         char curChar = content[i];
 
@@ -107,6 +108,7 @@ void CSS_applyStyleData(struct css_persistent_styles *originalStyles, char *cont
                     clrStr(currentDataContent);
                     currentDataUsage = 0;
                     currentState = CSS_PARSE_INSIDE_BRACKET_CONTENT;
+                    bracketNum ++;
                 } else if (curChar == ',') {
                     CSS_addSelectorTo(&currentSelector, trimString(currentDataContent));
                     clrStr(currentDataContent);
@@ -127,12 +129,17 @@ void CSS_applyStyleData(struct css_persistent_styles *originalStyles, char *cont
             case CSS_PARSE_INSIDE_BRACKET_CONTENT:
                 // TODO: quotes
                 if (curChar == '}') {
-                    currentSelector.styleContent[strlen(currentSelector.styleContent)] = 0; // just to make sure
-                    CSS_addStyleTo(originalStyles, currentSelector);
-                    currentState = CSS_PARSE_OUTSIDE_BRACKET_WHITESPACE;
-                    currentSelector.selectors = NULL;
-                    currentSelector.count = 0;
-                    currentSelector.styleContent = (char *) calloc(strlen(content) + 1, sizeof(char));
+                    bracketNum --;
+                    if (!bracketNum) {
+                        currentSelector.styleContent[strlen(currentSelector.styleContent)] = 0; // just to make sure
+                        CSS_addStyleTo(originalStyles, currentSelector);
+                        currentState = CSS_PARSE_OUTSIDE_BRACKET_WHITESPACE;
+                        currentSelector.selectors = NULL;
+                        currentSelector.count = 0;
+                        currentSelector.styleContent = (char *) calloc(strlen(content) + 1, sizeof(char));
+                    }
+                } else if (curChar == '{') {
+                    bracketNum ++;
                 } else {
                     currentSelector.styleContent[strlen(currentSelector.styleContent)] = curChar;
                 }
