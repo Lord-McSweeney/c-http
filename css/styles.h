@@ -15,7 +15,7 @@ int CSS_isDefaultBlock(struct xml_node *node) {
 
 int CSS_isDefaultInline(const char *nodeName) {
     char *lower = xml_toLowerCase(nodeName);
-    int res = !strcmp(lower, "a") || !strcmp(lower, "span") || !strcmp(lower, "font") || !strcmp(lower, "b") || !strcmp(lower, "i") || !strcmp(lower, "u") || !strcmp(lower, "img") || !strcmp(lower, "strong") || !strcmp(lower, "em") || !strcmp(lower, "sup") || !strcmp(lower, "td") || !strcmp(lower, "input") || !strcmp(lower, "kbd");
+    int res = !strcmp(lower, "a") || !strcmp(lower, "span") || !strcmp(lower, "font") || !strcmp(lower, "b") || !strcmp(lower, "i") || !strcmp(lower, "u") || !strcmp(lower, "img") || !strcmp(lower, "strong") || !strcmp(lower, "em") || !strcmp(lower, "sup") || !strcmp(lower, "td") || !strcmp(lower, "input") || !strcmp(lower, "kbd") || !strcmp(lower, "code");
     free(lower);
     return res;
 }
