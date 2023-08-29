@@ -6,6 +6,7 @@
 struct css_style {
     char *name;
     char *value;
+    int important;
 };
 
 struct css_styles {
@@ -40,10 +41,15 @@ int CSS_getStyleIndexByName(struct css_styles *styles, const char *name) {
 }
 
 void CSS_appendStyle(struct css_styles *styles, struct css_style style) {
-    if (CSS_getStyleIndexByName(styles, style.name) != -1) {
-       int idx = CSS_getStyleIndexByName(styles, style.name);
-       styles->styles[idx].value = style.value;
-       return;
+   int idx = CSS_getStyleIndexByName(styles, style.name);
+    if (idx != -1) {
+       struct css_style *styleAtIdx = &styles->styles[idx];
+       int does_override = !styleAtIdx->important || style.important;
+
+       if (does_override) {
+           styleAtIdx->value = style.value;
+           return;
+       }
     }
 
     styles->count ++;
@@ -68,6 +74,7 @@ struct css_styles *CSS_makeEmptyStyles() {
 enum _css_internal_style_parser_state {
     CSS_PARSE_STYLE_NAME,
     CSS_PARSE_STYLE_VALUE,
+    CSS_PARSE_STYLE_IMPORTANT,
     CSS_PARSE_SINGLE_QUOTED_VALUE,
     CSS_PARSE_DOUBLE_QUOTED_VALUE,
     CSS_PARSE_UNKNOWN,
@@ -82,25 +89,6 @@ void freeCSSStyles(struct css_styles *styles) {
     free(styles);
 }
 
-char *trimWhiteSpaceAtEndOfString(const char *string) {
-    char *allocated = (char *) calloc(strlen(string) + 2, sizeof(char));
-    for (int i = 0; i < strlen(string); i ++) {
-        int wereAllSpace = 1;
-        for (int j = i; j < strlen(string); j ++) {
-            // Should tabs count as whitespace?
-            if (string[j] != ' ' && string[j] != '\n') {
-                wereAllSpace = 0;
-            }
-        }
-        if (wereAllSpace) {
-            return allocated;
-        }
-        allocated[i] = string[i];
-    }
-
-    return allocated;
-}
-
 // This will add/overwrite the styles to the styles pointer passed to the function.
 // The function is infallible. Large CSS (names/values >16384 bytes) will simply be ignored.
 void CSS_parseInlineStyles(struct css_styles *styles, char *inputString) {
@@ -109,10 +97,10 @@ void CSS_parseInlineStyles(struct css_styles *styles, char *inputString) {
     struct css_style currentStyle;
     currentStyle.name = NULL;
     currentStyle.value = NULL;
+    currentStyle.important = 0;
 
     char *currentDataContent = (char *) calloc(16384, sizeof(char));
     int currentDataUsage = 0;
-    int startedParsingValue = 0;
 
     int len = strlen(inputString);
 
@@ -122,37 +110,59 @@ void CSS_parseInlineStyles(struct css_styles *styles, char *inputString) {
             // TODO
             case CSS_PARSE_STYLE_VALUE:
                 if (curChar == ';') {
-                    currentStyle.value = trimWhiteSpaceAtEndOfString(currentDataContent);
+                    currentStyle.value = trimString(currentDataContent);
                     currentDataUsage = 0;
                     clrStr(currentDataContent);
 
                     CSS_appendStyle(styles, currentStyle);
                     currentStyle.name = NULL;
                     currentStyle.value = NULL;
+                    currentStyle.important = 0;
 
                     currentState = CSS_PARSE_UNKNOWN;
-                    startedParsingValue = 0;
-                }/* else if (curChar == '"') { // These are TODO but leaving them uncommented breaks the if-elseif, since then quotes don't get parsed as style
+                } else if (curChar == '!') {
+                    currentStyle.value = trimString(currentDataContent);
+                    currentDataUsage = 0;
+                    clrStr(currentDataContent);
+
+                    currentState = CSS_PARSE_STYLE_IMPORTANT;
+                } /* else if (curChar == '"') { // These are TODO but leaving them uncommented breaks the if-elseif, since then quotes don't get parsed as style
                     // TODO
                     startedParsingValue = 1;
                 } else if (curChar == '\'') {
                     // TODO
                     startedParsingValue = 1;
-                }*/ else if (isWhiteSpace(curChar) && !startedParsingValue) {
-                    // Do nothing
-                } else if (currentDataUsage <= 16382) {
+                }*/ else if (currentDataUsage <= 16382) {
                     currentDataContent[currentDataUsage] = curChar;
                     currentDataUsage ++;
-                    startedParsingValue = 1;
                 }
                 break;
             case CSS_PARSE_STYLE_NAME:
                 if (curChar == ':') {
-                    currentStyle.name = trimWhiteSpaceAtEndOfString(currentDataContent);
+                    currentStyle.name = trimString(currentDataContent);
                     currentDataUsage = 0;
                     clrStr(currentDataContent);
                     
                     currentState = CSS_PARSE_STYLE_VALUE;
+                } else if (curChar == ';') {
+                    currentState = CSS_PARSE_UNKNOWN;
+                } else if (currentDataUsage <= 16382) {
+                    currentDataContent[currentDataUsage] = curChar;
+                    currentDataUsage ++;
+                }
+                break;
+            case CSS_PARSE_STYLE_IMPORTANT:
+                if (curChar == ';') {
+                    currentStyle.important = !strcmp(trimString(currentDataContent), "important");
+                    currentDataUsage = 0;
+                    clrStr(currentDataContent);
+
+                    CSS_appendStyle(styles, currentStyle);
+                    currentStyle.name = NULL;
+                    currentStyle.value = NULL;
+                    currentStyle.important = 0;
+
+                    currentState = CSS_PARSE_UNKNOWN;
                 } else if (currentDataUsage <= 16382) {
                     currentDataContent[currentDataUsage] = curChar;
                     currentDataUsage ++;
@@ -168,8 +178,13 @@ void CSS_parseInlineStyles(struct css_styles *styles, char *inputString) {
     }
     
     switch(currentState) {
-        case CSS_PARSE_STYLE_VALUE:
+        case CSS_PARSE_STYLE_IMPORTANT:
             currentStyle.value = makeStrCpy(currentDataContent);
+
+            CSS_appendStyle(styles, currentStyle);
+            break;
+        case CSS_PARSE_STYLE_VALUE:
+            currentStyle.important = !strcmp(trimString(currentDataContent), "important");
 
             CSS_appendStyle(styles, currentStyle);
             break;

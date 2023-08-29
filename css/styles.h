@@ -145,8 +145,7 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
     // TODO: support more styles
     struct css_styles *styles = CSS_makeEmptyStyles();
 
-    char *cssText = CSS_getCSSTextForNode(&node, attribs, persistentStyles);
-    CSS_parseInlineStyles(styles, cssText);
+    CSS_getCSSTextForNode(styles, &node, attribs, persistentStyles);
 
     char *attrib = XML_getAttributeByName(attribs, "style");
     if (attrib != NULL) {

@@ -98,6 +98,54 @@ char *trimString(char *string) {
     return makeStrCpy(res);
 }
 
+struct split_string {
+    char **result;
+    int count;
+};
+
+struct split_string splitStringWithWhitespaceDelimiter(char *string) {
+    struct split_string result;
+    result.count = 0;
+    result.result = NULL;
+
+    int len = strlen(string);
+
+    int spaceChunkSize = 16;
+
+    int maxSpace = spaceChunkSize;
+    char *currentSpace = (char *) calloc(maxSpace, sizeof(char));
+    int usedSpace = 0;
+    for (int i = 0; i < len; i ++) {
+        char curChar = string[i];
+        if (isWhiteSpace(curChar)) {
+            if (currentSpace[0]) {
+                result.count ++;
+                result.result = (char **) realloc(result.result, result.count * sizeof(char *));
+                result.result[result.count - 1] = makeStrCpy(currentSpace);
+                clrStr(currentSpace);
+                usedSpace = 0;
+            }
+        } else {
+            if (usedSpace + spaceChunkSize/2 == maxSpace) {
+                maxSpace += spaceChunkSize;
+                currentSpace = realloc(currentSpace, maxSpace * sizeof(char));
+                memset(currentSpace + (maxSpace - spaceChunkSize), 0, spaceChunkSize);
+            }
+            currentSpace[usedSpace] = curChar;
+            usedSpace ++;
+        }
+    }
+    if (currentSpace[0]) {
+        result.count ++;
+        result.result = (char **) realloc(result.result, result.count * sizeof(char *));
+        result.result[result.count - 1] = makeStrCpy(currentSpace);
+    }
+
+    free(currentSpace);
+
+    return result;
+}
+
 int stringContains(char *string, char t) {
     int len = strlen(string);
     for (int i = 0; i < len; i ++) {
