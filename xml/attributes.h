@@ -1,5 +1,7 @@
 #include "../utils/string.h"
 
+#include "html.h"
+
 #ifndef _XML_ATTRIBUTE
     #define _XML_ATTRIBUTE 1
 

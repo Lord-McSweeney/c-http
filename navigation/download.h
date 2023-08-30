@@ -1,7 +1,11 @@
 // Download a URL.
 
+#ifndef _NAV_DOWNLOAD
+    #define _NAV_DOWNLOAD 1
+
 #include "../http/http.h"
 #include "../http/response.h"
+#include "../http/url.h"
 #include "../utils/string.h"
 
 // Returns: String to return
@@ -19,10 +23,26 @@ typedef void (*onredirectsuccess)(void *, char *, int);
 // Params: (relative) redirect URL, number of redirects
 typedef char *(*onredirecterror)(void *, char *, int);
 
+char *defaultonerrorhandler(void *state, int code) {
+    return makeStrCpy("");
+}
+
+char *defaultonredirecthandler(void *ptr, char *to, int num) {
+    return NULL;
+}
+
+void defaultonredirectsuccesshandler(void *ptr, char *to, int num) {
+    //
+}
+
+char *defaultonredirecterrorhandler(void *ptr, char *to, int num) {
+    return makeStrCpy("");
+}
+
 struct http_response downloadPage(
     void *ptr,
     char *userAgent,
-    char *url,
+    char **url,
     dataReceiveHandler handler,
     dataReceiveHandler finishHandler,
     int redirect_depth,
@@ -31,7 +51,7 @@ struct http_response downloadPage(
     onredirectsuccess onredirectsuccesshandler,
     onredirecterror onredirecterrorhandler
 ) {
-    struct http_response parsedResponse = http_makeHTTPRequest(url, userAgent, handler, finishHandler, ptr);
+    struct http_response parsedResponse = http_makeHTTPRequest(*url, userAgent, handler, finishHandler, ptr);
     
     if (parsedResponse.error) {
         char *handlerResult = onerrorhandler(ptr, parsedResponse.error);
@@ -44,13 +64,13 @@ struct http_response downloadPage(
             return HTTP_responseFromString(result, 0);
         }
 
-        struct http_url *curURL = http_url_from_string(url);
+        struct http_url *curURL = http_url_from_string(*url);
         if (curURL == NULL) {
              // should be impossible, since we just made an HTTP request successfully with this URL
              int _ = (*(char *)(0x0)); // segfault so we can figure out what's going on
         }
 
-        char *absoluteURL = http_resolveRelativeURL(curURL, url, parsedResponse.redirect);
+        char *absoluteURL = http_resolveRelativeURL(curURL, *url, parsedResponse.redirect);
 
         struct http_url *absURL = http_url_from_string(absoluteURL);
         if (absURL == NULL) {
@@ -58,10 +78,14 @@ struct http_response downloadPage(
             return HTTP_responseFromString(handlerResult, 0);
         }
 
+        *url = absoluteURL;
+
         onredirectsuccesshandler(ptr, http_urlToString(absURL), redirect_depth);
 
-        return downloadPage(ptr, userAgent, absoluteURL, handler, finishHandler, redirect_depth + 1, onerrorhandler, onredirecthandler, onredirectsuccesshandler, onredirecterrorhandler);
+        return downloadPage(ptr, userAgent, url, handler, finishHandler, redirect_depth + 1, onerrorhandler, onredirecthandler, onredirectsuccesshandler, onredirecterrorhandler);
     }
 
     return parsedResponse;
 }
+
+#endif

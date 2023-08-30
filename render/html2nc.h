@@ -1,10 +1,12 @@
 // Converts XML/HTML nodes to rich text.
 
+#include "../css/parse-selectors.h"
+#include "../css/styles.h"
+#include "../http/url.h"
+#include "../navigation/download.h"
+#include "../utils/string.h"
 #include "../xml/html.h"
 #include "../xml/attributes.h"
-#include "../css/styles.h"
-#include "../css/parse-selectors.h"
-#include "../utils/string.h"
 
 int shouldBeDisplayed(const char *nodeName) {
     return strcmp(nodeName, "script") && strcmp(nodeName, "style");
@@ -98,7 +100,16 @@ char *getInputRendered(char *text, int width) {
     return resultingText;
 }
 
-char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct html2nc_state *state, int originalHTMLLen, int uppercase, int listNestAmount, struct css_persistent_styles *persistentStyles) {
+char *recursiveXMLToText(
+    struct xml_node *parent,
+    struct xml_list xml,
+    struct html2nc_state *state,
+    int originalHTMLLen,
+    int uppercase,
+    int listNestAmount,
+    struct css_persistent_styles *persistentStyles,
+    char *baseURL
+) {
     char *alloc = (char *) calloc(originalHTMLLen + 2, sizeof(char));
 
     int currentOrderedListNum = 1;
@@ -190,7 +201,7 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
 
             // Only the first <title> is taken into account- the rest aren't special
             if (!strcmp(lower, "title") && state->title == NULL) {
-                state->title = recursiveXMLToText(&node, node.children, state, originalHTMLLen, 0, 0, persistentStyles);
+                state->title = recursiveXMLToText(&node, node.children, state, originalHTMLLen, 0, 0, persistentStyles, baseURL);
                 free(lower);
                 freeXMLAttributes(attributes);
                 freeXMLAttributes(parent_attributes);
@@ -218,6 +229,42 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     fprintf(stderr, "Warning: <style> tag with unknown type (%s)\n", type);
                 }
                 free(lowerParent);
+            }
+
+            if (!strcmp(lower, "link")) {
+                char *rel = XML_getAttributeByName(attributes, "rel");
+                if (rel && !strcmp(rel, "stylesheet")) {
+                    char *type = XML_getAttributeByName(attributes, "type");
+                    if (!type || (!strcmp(type, "text/css") || !strcmp(type, ""))) {
+                        char *href = XML_getAttributeByName(attributes, "href");
+                        if (href) {
+                            struct http_url *url = http_url_from_string(baseURL);
+
+                            char *absoluteURL = http_resolveRelativeURL(url, baseURL, href);
+
+                            struct http_response initialResponse = downloadPage(
+                                (void *) 0,
+                                "uqers",
+                                &absoluteURL,
+                                NULL,
+                                NULL,
+                                0,
+                                defaultonerrorhandler,
+                                defaultonredirecthandler,
+                                defaultonredirectsuccesshandler,
+                                defaultonredirecterrorhandler
+                            );
+                            // Should this check the content type of the response?
+
+                            char *styling = initialResponse.response_body.data;
+                            CSS_applyStyleData(persistentStyles, styling);
+                        } else {
+                            fprintf(stderr, "Warning: <link rel=\"stylesheet\"> with no href attribute\n");
+                        }
+                    } else {
+                        fprintf(stderr, "Warning: <link rel=\"stylesheet\"> with invalid type attribute (%s)\n", type);
+                    }
+                }
             }
 
             if (!strcmp(lower, "br") && !CSS_isStyleHidden(elementStyling)) {
@@ -285,7 +332,17 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
                     }
                 }
 
-                char *text = recursiveXMLToText(&node, node.children, state, originalHTMLLen, (hLevel >= 2) || uppercase, listNestAmount, persistentStyles);
+                char *text = recursiveXMLToText(
+                    &node,
+                    node.children,
+                    state,
+                    originalHTMLLen,
+                    (hLevel >= 2) || uppercase,
+                    listNestAmount,
+                    persistentStyles,
+                    baseURL
+                );
+
                 int wasDisplayed = text[0] != 0;
 
                 if (!strcmp(lower, "img") && isVisible) {
@@ -434,14 +491,14 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
     return copy;
 }
 
-struct html2nc_result htmlToText(struct xml_list xml, char *originalHTML) {
+struct html2nc_result htmlToText(struct xml_list xml, char *originalHTML, char *baseURL) {
     struct css_persistent_styles persistentStyles = CSS_makePersistentStyles();
 
     struct html2nc_state state;
     state.title = NULL;
     
     struct html2nc_result result;
-    result.text = recursiveXMLToText(NULL, xml, &state, strlen(originalHTML), 0, 0, &persistentStyles);
+    result.text = recursiveXMLToText(NULL, xml, &state, strlen(originalHTML), 0, 0, &persistentStyles, baseURL);
 
     // Default title, if title wasn't set
     if (state.title == NULL) {

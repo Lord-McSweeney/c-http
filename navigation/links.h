@@ -81,7 +81,7 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
     struct http_response parsedResponse = downloadPage(
         (void *) state,
         getTextAreaByDescriptor(state, "userAgent")->currentText,
-        url,
+        &url,
         handler,
         finishHandler,
         0,
@@ -130,7 +130,7 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
         return t;
     }
 
-    struct html2nc_result result = htmlToText(xml.list, parsedResponse.response_body.data);
+    struct html2nc_result result = htmlToText(xml.list, parsedResponse.response_body.data, url);
     char *total = (char *) calloc(strlen(result.text) + strlen(url) + strlen(result.title) + 8, sizeof(char));
     strcpy(total, result.title);
     strcat(total, "\n\n\\H\n");

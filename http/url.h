@@ -34,9 +34,9 @@ errno list
 4: Illegal port
 */
 
-struct http_url* http_url_from_string(char *string) {
+struct http_url *http_url_from_string(char *string) {
     errno = 0;
-    struct http_url* result_mem = (struct http_url*) calloc(1, sizeof(struct http_url));
+    struct http_url *result_mem = (struct http_url*) calloc(1, sizeof(struct http_url));
 
     int urllen = strlen(string);
     
