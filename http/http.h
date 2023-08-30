@@ -1,16 +1,16 @@
 #include <errno.h>
 
-#include "../socket/secure_socket.h"
-#include "../socket/socket.h"
-#include "../utils/string.h"
+#ifndef _HTTP_HTTP
 
-#include "response.h"
-#include "chunked.h"
-#include "url.h"
+    #include "../socket/secure_socket.h"
+    #include "../socket/socket.h"
+    #include "../utils/string.h"
+
+    #include "response.h"
+    #include "chunked.h"
+    #include "url.h"
 
 // see https://aticleworld.com/ssl-server-client-using-openssl-in-c/ for TLS 1.2 example
-
-#ifndef _HTTP_HTTP
 
     #define _HTTP_HTTP 1
     #define maxInitialResponseSize 8192

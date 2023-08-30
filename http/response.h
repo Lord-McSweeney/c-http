@@ -1,6 +1,6 @@
 #include <errno.h>
-#include <string.h>
-#include <stdio.h>
+
+#include "../utils/string.h"
 
 #ifndef _HTTP_RESPONSE
     #define _HTTP_RESPONSE 1
@@ -58,6 +58,28 @@ struct http_response {
     int has_body;
     int error;
 };
+
+struct http_response HTTP_responseFromString(char *string, int is_html) {
+    struct http_data data;
+    data.length = strlen(string);
+    data.data = string;
+    
+    struct http_response res;
+    res.response_code = 200;
+    res.response_description = makeStrCpy("OK");
+    res.num_headers = 0;
+    res.headers = NULL;
+    res.response_body = data;
+    res.is_chunked = 0;
+    res.is_html = is_html;
+    res.content_length = strlen(string);
+    res.redirect = NULL;
+    res.do_redirect = 0;
+    res.has_body = 1;
+    res.error = 0;
+
+    return res;
+}
 
 // error codes:
 /*

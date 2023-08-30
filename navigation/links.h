@@ -3,96 +3,93 @@
 #ifndef _NAVIGATION
     #define _NAVIGATION 1
 
-#include <string.h>
-#include <stdlib.h>
-
 #include "../http/http.h"
+#include "../http/response.h"
 #include "../http/url.h"
 #include "../render/display-handling.h"
 #include "../render/html2nc.h"
 #include "../utils/string.h"
 #include "../xml/html.h"
 
-char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler handler, dataReceiveHandler finishHandler, int redirect_depth) {
-    if (redirect_depth > 15) {
+#include "download.h"
+
+char *onerrorhandler(void *state, int code) {
+    char *err;
+    if (code == 4) {
+        err = makeStrCpy("Please enter a valid URL.\n");
+    } else if (code < 4) {
+        err = makeStrCpy("Malformed HTTP response.\n");
+    } else if (code == 5) {
+        err = makeStrCpy("Host not found.\n");
+    } else if (code == 6) {
+        err = makeStrCpy("Error while resolving domain.\n");
+    } else if (code == 7) {
+        err = makeStrCpy("Temporary error in name resolution.\n");
+    } else if (code == 101) {
+        err = makeStrCpy("Network unreachable.\n");
+    } else if (code == 104) {
+        err = makeStrCpy("Connection reset by peer.\n");
+    } else if (code == 111) {
+        err = makeStrCpy("Connection refused.\n");
+    } else if (code == 113) {
+        err = makeStrCpy("No route to host.\n");
+    } else if (code == 192) {
+        err = makeStrCpy("Error initializing SSL/TLS.\n");
+    } else if (code == 193) {
+        err = makeStrCpy("SSL/TLS error.\n");
+    } else if (code == 194) {
+        err = makeStrCpy("Unsupported protocol.\n");
+    } else if (code == 195) {
+        err = makeStrCpy("Invalid HTTP response (possibly HTTPS).\n");
+    } else if (code == 196) {
+        err = makeStrCpy("Read access denied.\n");
+    } else if (code == 197) {
+        err = makeStrCpy("File is a directory.\n");
+    } else if (code == 198) {
+        err = makeStrCpy("No such file or directory.\n");
+    } else if (code == 199) {
+        err = makeStrCpy("Invalid chunked response (possible memory corruption?).\n");
+    } else {
+        err = makeStrCpy("Error while connecting to host or receiving data from host.\n");
+    }
+    return err;
+}
+
+char *onredirecthandler(void *ptr, char *to, int num) {
+    struct nc_state *state = (struct nc_state *) ptr;
+    if (num > 15) {
         return makeStrCpy("Too many redirects (>15)");
     }
+    strcat(getTextByDescriptor(state, "documentText")->text, "\nEncountered redirect to \"");
+    strcat(getTextByDescriptor(state, "documentText")->text, to);
+    strcat(getTextByDescriptor(state, "documentText")->text, "\".");
+    render_nc(state);
 
-    char *userAgent = getTextAreaByDescriptor(state, "userAgent")->currentText;
-    struct http_response parsedResponse = http_makeHTTPRequest(url, userAgent, handler, finishHandler, (void *) state);
-    
-    if (parsedResponse.error) {
-        char *err;
-        if (parsedResponse.error == 4) {
-            err = makeStrCpy("Please enter a valid URL.\n");
-        } else if (parsedResponse.error < 4) {
-            err = makeStrCpy("Malformed HTTP response.\n");
-        } else if (parsedResponse.error == 5) {
-            err = makeStrCpy("Host not found.\n");
-        } else if (parsedResponse.error == 6) {
-            err = makeStrCpy("Error while resolving domain.\n");
-        } else if (parsedResponse.error == 7) {
-            err = makeStrCpy("Temporary error in name resolution.\n");
-        } else if (parsedResponse.error == 101) {
-            err = makeStrCpy("Network unreachable.\n");
-        } else if (parsedResponse.error == 104) {
-            err = makeStrCpy("Connection reset by peer.\n");
-        } else if (parsedResponse.error == 111) {
-            err = makeStrCpy("Connection refused.\n");
-        } else if (parsedResponse.error == 113) {
-            err = makeStrCpy("No route to host.\n");
-        } else if (parsedResponse.error == 192) {
-            err = makeStrCpy("Error initializing SSL/TLS.\n");
-        } else if (parsedResponse.error == 193) {
-            err = makeStrCpy("SSL/TLS error.\n");
-        } else if (parsedResponse.error == 194) {
-            err = makeStrCpy("Unsupported protocol.\n");
-        } else if (parsedResponse.error == 195) {
-            err = makeStrCpy("Invalid HTTP response (possibly HTTPS).\n");
-        } else if (parsedResponse.error == 196) {
-            err = makeStrCpy("Read access denied.\n");
-        } else if (parsedResponse.error == 197) {
-            err = makeStrCpy("File is a directory.\n");
-        } else if (parsedResponse.error == 198) {
-            err = makeStrCpy("No such file or directory.\n");
-        } else if (parsedResponse.error == 199) {
-            err = makeStrCpy("Invalid chunked response (possible memory corruption?).\n");
-        } else {
-            err = makeStrCpy("Error while connecting to host or receiving data from host.\n");
-        }
-        char *total = (char *) calloc(128 + strlen(url) + 8, sizeof(char));
-        strcpy(total, "Page has no title\n\n\\H\n");
-        strcat(total, err);
-        return total;
-    }
+    return NULL;
+}
 
-    if (parsedResponse.do_redirect) {
-        strcat(getTextByDescriptor(state, "documentText")->text, "\nEncountered redirect to \"");
-        strcat(getTextByDescriptor(state, "documentText")->text, parsedResponse.redirect);
-        strcat(getTextByDescriptor(state, "documentText")->text, "\".");
-        render_nc(state);
+void onredirectsuccesshandler(void *ptr, char *to, int num) {
+    struct nc_state *state = (struct nc_state *) ptr;
+    setTextOf(getTextAreaByDescriptor(state, "urlField"), to);
+}
 
-        struct http_url *curURL = http_url_from_string(state->currentPageUrl);
-        if (curURL == NULL) {
-            char *total = (char *) calloc(64 + strlen(state->currentPageUrl) + 8, sizeof(char));
-            strcpy(total, "Page has no title\n\n\\H\nPlease enter a valid URL..");
-            return total;
-        }
+char *onredirecterrorhandler(void *ptr, char *to, int num) {
+    return makeStrCpy("Invalid redirected URL.");
+}
 
-        char *absoluteURL = http_resolveRelativeURL(curURL, state->currentPageUrl, parsedResponse.redirect);
-        state->currentPageUrl = absoluteURL;
-
-        struct http_url *absURL = http_url_from_string(absoluteURL);
-        if (absURL == NULL) {
-            char *total = (char *) calloc(64 + strlen(absoluteURL) + 8, sizeof(char));
-            strcpy(total, "Page has no title\n\n\\H\nInvalid redirected URL.");
-            return total;
-        }
-
-        setTextOf(getTextAreaByDescriptor(state, "urlField"), http_urlToString(absURL));
-
-        return downloadAndOpenPage(state, absoluteURL, handler, finishHandler, redirect_depth + 1);
-    }
+char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler handler, dataReceiveHandler finishHandler, int redirect_depth) {
+    struct http_response parsedResponse = downloadPage(
+        (void *) state,
+        getTextAreaByDescriptor(state, "userAgent")->currentText,
+        url,
+        handler,
+        finishHandler,
+        0,
+        onerrorhandler,
+        onredirecthandler,
+        onredirectsuccesshandler,
+        onredirecterrorhandler
+    );
 
     if (!parsedResponse.is_html) {
         char *lowerData = HTTP_toLowerCase(parsedResponse.response_body.data);
