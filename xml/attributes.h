@@ -147,10 +147,6 @@ char *XML_parseHTMLEscapes(const char *content) {
                 allocated[realIndex] = curChar;
                 realIndex ++;
             }
-        } else if (curChar == '\\') {
-            allocated[realIndex] = curChar;
-            allocated[realIndex + 1] = curChar;
-            realIndex += 2;
         } else {
             allocated[realIndex] = curChar;
             realIndex ++;

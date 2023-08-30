@@ -104,7 +104,7 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
 
             char *total = (char *) calloc(parsedResponse.response_body.length + strlen(url) + 32, sizeof(char));
             strcpy(total, "Page has no title\n\n\\H\n");
-            strcat(total, parsedResponse.response_body.data);
+            strcat(total, doubleStringBackslashes(parsedResponse.response_body.data));
             return total;
         }
         free(lowerData);

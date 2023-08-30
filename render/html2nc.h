@@ -113,7 +113,10 @@ char *recursiveXMLToText(struct xml_node *parent, struct xml_list xml, struct ht
             // ignore
         } else if (node.type == NODE_TEXT) {
             char *text = getXMLTrimmedTextContent(node.text_content, justHadInlineInsideBlockWithText);
-            char *allocated = XML_parseHTMLEscapes(text);
+            char *allocated_no_double = XML_parseHTMLEscapes(text);
+            char *allocated = doubleStringBackslashes(allocated_no_double);
+            free(allocated_no_double);
+
             if (uppercase) {
                 char *upper = xml_toUpperCase(allocated);
                 strcat(alloc, upper);

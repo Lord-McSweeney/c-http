@@ -146,6 +146,32 @@ struct split_string splitStringWithWhitespaceDelimiter(char *string) {
     return result;
 }
 
+char *doubleStringBackslashes(char *string) {
+    int len = strlen(string);
+    int numBackslashes = 0;
+    for (int i = 0; i < len; i ++) {
+        if (string[i] == '\\') {
+            numBackslashes ++;
+        }
+    }
+
+    char *alloc = (char *) calloc(len + numBackslashes + 1, sizeof(char));
+    int idx = 0;
+
+    for (int i = 0; i < len; i ++) {
+        if (string[i] == '\\') {
+            alloc[idx] = string[i];
+            alloc[idx + 1] = string[i];
+            idx += 2;
+        } else {
+            alloc[idx] = string[i];
+            idx ++;
+        }
+    }
+
+    return alloc;
+}
+
 int stringContains(char *string, char t) {
     int len = strlen(string);
     for (int i = 0; i < len; i ++) {
