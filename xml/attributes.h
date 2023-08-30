@@ -182,6 +182,8 @@ struct xml_attrib_result XML_parseAttributes(char *inputString) {
     char *currentDataContent = (char *) calloc(4096, sizeof(char));
     int currentDataUsage = 0;
 
+    int hasStartedValue = 0;
+
     int len = strlen(inputString);
 
     for (int i = 0; i < len; i ++) {
@@ -266,28 +268,34 @@ struct xml_attrib_result XML_parseAttributes(char *inputString) {
                 }
                 break;
             case APARSE_ATTRIBUTE_VALUE:
+                if (currentIndex == 1) {
+                    hasStartedValue = 0;
+                }
                 if (curChar == '"' && currentIndex == 1) {
                     currentIndex = 0;
                     currentState = APARSE_ATTRIBUTE_DOUBLE_QUOTED_VALUE;
+                    hasStartedValue = 1;
                 } else if (curChar == '\'' && currentIndex == 1) {
                     currentIndex = 0;
                     currentState = APARSE_ATTRIBUTE_SINGLE_QUOTED_VALUE;
+                    hasStartedValue = 1;
                 } else if (curChar == ' ') {
-                    if (currentIndex == 1) {
-                        // this should be unreachable
-                    } else {
-                        currentAttrib.value = XML_parseHTMLEscapes(currentDataContent);
-                        currentDataUsage = 0;
-                        clrStr(currentDataContent);
-
-                        currentIndex = 0;
-                        currentState = APARSE_UNKNOWN;
+                    if (!hasStartedValue) {
+                        continue;
                     }
+
+                    currentAttrib.value = XML_parseHTMLEscapes(currentDataContent);
+                    currentDataUsage = 0;
+                    clrStr(currentDataContent);
+
+                    currentIndex = 0;
+                    currentState = APARSE_UNKNOWN;
 
                     XML_appendAttribute(&attribs, currentAttrib);
                     currentAttrib.name = NULL;
                     currentAttrib.value = NULL;
                 } else {
+                    hasStartedValue = 1;
                     if (currentDataUsage > 4094) {
                         free(currentDataContent);
     
