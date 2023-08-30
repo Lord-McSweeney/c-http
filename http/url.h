@@ -232,7 +232,7 @@ struct http_url* http_url_from_string(char *string) {
 
     if (!strcmp(protocol, "file")) {
         strcpy(port, "0");
-        hostname = makeStrCpy("localhost");
+        hostname = makeStrCpy("");
     }
 
     result_mem->protocol = protocol;
