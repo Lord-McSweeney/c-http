@@ -40,6 +40,7 @@ enum css_color {
     CSS_COLOR_RED,
     CSS_COLOR_BLUE,
     CSS_COLOR_GREEN,
+    CSS_COLOR_WHEAT,
     CSS_COLOR_BLACK, // default
     CSS_COLOR_UNKNOWN,
 };
@@ -184,6 +185,8 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
             styling.color = CSS_COLOR_GREEN;
         } else if (!strcmp(colorStyle, "red")) {
             styling.color = CSS_COLOR_RED;
+        } else if (!strcmp(colorStyle, "wheat")) {
+            styling.color = CSS_COLOR_WHEAT;
         }
     }
 

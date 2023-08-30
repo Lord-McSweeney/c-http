@@ -297,6 +297,9 @@ char *recursiveXMLToText(
                     case CSS_COLOR_BLUE:
                         strcat(alloc, "\\4");
                         break;
+                    case CSS_COLOR_WHEAT:
+                        strcat(alloc, "\\9");
+                        break;
                 }
                 if (elementStyling.bold || hLevel >= 1) {
                     strcat(alloc, "\\b");
@@ -441,6 +444,7 @@ char *recursiveXMLToText(
                     case CSS_COLOR_RED:
                     case CSS_COLOR_GREEN:
                     case CSS_COLOR_BLUE:
+                    case CSS_COLOR_WHEAT:
                         strcat(alloc, "\\0");
                         break;
                 }

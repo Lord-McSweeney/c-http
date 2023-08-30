@@ -647,6 +647,14 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                         colorStackNum --;
                     }
                     break;
+                case '9':
+                    colorsP[colorStackNum] = 9;
+                    colorStackNum ++;
+                    if (colorStackNum > 62) {
+                        // This limit should (hopefully) never be reached, but let's just make sure.
+                        colorStackNum --;
+                    }
+                    break;
 
                 case '0':
                     if (colorStackNum > 0) {
@@ -786,6 +794,10 @@ void createColorPair(char num, int fgColor, int bgColor) {
     init_pair(256 - num, bgColor, fgColor);
 }
 
+void createColor(char num, int r, int g, int b) {
+    init_color(num, r * (1000/255), g * (1000/255), b * (1000/255));
+}
+
 void initWindow() {
     initscr();
     cbreak();
@@ -797,6 +809,10 @@ void initWindow() {
     createColorPair(3, COLOR_BLUE, COLOR_BLACK);
     createColorPair(4, COLOR_GREEN, COLOR_BLACK);
     createColorPair(5, COLOR_RED, COLOR_BLACK);
+
+    // Avoid overriding color #8, it's the default color for non-renderable unicode
+    createColor(9, 0xff, 0xe8, 0xbd); // wheat
+    createColorPair(9, 9, COLOR_BLACK);
 }
 
 void nc_onInitFinish(struct nc_state *state) {
