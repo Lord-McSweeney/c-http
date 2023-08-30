@@ -3,7 +3,7 @@ minimal http browser in c
 
 Missing features:
 - HTTP keep-alive support (currently ignored)
-- Non-inline CSS styles (&lt;style> or &lt;link>)
+- Asynchronous HTTP requests (currently everything blocks)
 - All JavaScript
 - Forms
 - Relative query parameter resolving (i.e. links leading to "?param=value")
