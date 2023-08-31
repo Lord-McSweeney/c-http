@@ -201,35 +201,12 @@ int CSS_selectorMatchesElement(struct css_selector_info selector, struct xml_nod
 }
 
 int isSelectorSimple(char *selector) {
-    return !stringContains(selector, '.') &&
-           !stringContains(selector, '>') &&
-           !stringContains(selector, '#') &&
-           !stringContains(selector, ' ') &&
-           !stringContains(selector, '|') &&
-           !stringContains(selector, '~') &&
-           !stringContains(selector, '+') &&
-           !stringContains(selector, ':') &&
-           !stringContains(selector, '(') &&
-           !stringContains(selector, ')') &&
-           !stringContains(selector, '"') &&
-           !stringContains(selector, '[') &&
-           !stringContains(selector, ']') &&
-           !stringContains(selector, '=');
+    // technically this also includes everything from isSelectorUnsupported, but that stuff was already checked
+    return !stringContainsAny(selector, ".#()\"");
 }
 
 int isSelectorUnsupported(char *selector) {
-    return stringContains(selector, '|') ||
-           stringContains(selector, ' ') ||
-           stringContains(selector, '+') ||
-           stringContains(selector, '~') ||
-           stringContains(selector, '>') ||
-           stringContains(selector, '^') ||
-           stringContains(selector, '$') ||
-           stringContains(selector, '[') ||
-           stringContains(selector, ']') ||
-           stringContains(selector, '*') ||
-           stringContains(selector, ':') ||
-           stringContains(selector, '=');
+    return stringContainsAny(selector, " |:+~>^$[]*=");
 }
 
 int doesSelectorMatchNode(char *selector, struct xml_node *node, struct xml_attributes *attribs) {

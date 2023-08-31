@@ -182,4 +182,17 @@ int stringContains(char *string, char t) {
     return 0;
 }
 
+int stringContainsAny(char *string, char *possibilities) {
+    int len = strlen(string);
+    int iLen = strlen(possibilities);
+    for (int i = 0; i < len; i ++) {
+        for (int j = 0; j < iLen; j ++) {
+            if (string[i] == possibilities[j]) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 #endif
