@@ -202,6 +202,7 @@ enum _css_internal_style_tag_parser_state {
     CSS_PARSE_SELECTOR,
     CSS_PARSE_INSIDE_BRACKET_CONTENT,
     CSS_PARSE_OUTSIDE_BRACKET_WHITESPACE,
+    CSS_PARSE_COMMENT_OUTSIDE_BRACKET,
 };
 
 void CSS_addSelectorTo(struct css_selectors *selectors, struct css_selector_info toAdd) {
@@ -261,7 +262,10 @@ void CSS_applyStyleData(struct css_persistent_styles *originalStyles, char *cont
 
         switch (currentState) {
             case CSS_PARSE_OUTSIDE_BRACKET_WHITESPACE:
-                if (!isWhiteSpace(curChar)) {
+                if (curChar == '/' && content[i + 1] == '*') {
+                    currentState = CSS_PARSE_COMMENT_OUTSIDE_BRACKET;
+                    i ++;
+                } else if (!isWhiteSpace(curChar)) {
                     currentState = CSS_PARSE_SELECTOR;
                     i --;
                 }
@@ -306,6 +310,12 @@ void CSS_applyStyleData(struct css_persistent_styles *originalStyles, char *cont
                     bracketNum ++;
                 } else {
                     currentSelector.styleContent[strlen(currentSelector.styleContent)] = curChar;
+                }
+                break;
+            case CSS_PARSE_COMMENT_OUTSIDE_BRACKET:
+                if (curChar == '*' && content[i + 1] == '/') {
+                    currentState = CSS_PARSE_OUTSIDE_BRACKET_WHITESPACE;
+                    i ++;
                 }
                 break;
         }
