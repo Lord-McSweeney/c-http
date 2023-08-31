@@ -3,33 +3,192 @@
 #ifndef _CSS_SELECTORS
     #define _CSS_SELECTORS 1
 
-// Note: separators/combinators are not yet supported.
-enum css_combinator {
-    COMBINATOR_CHILD,
-    COMBINATOR_UNKNOWN,
-    COMBINATOR_NONE // The first individual selector has COMBINATOR_NONE since there's nothing before it
+
+struct css_selector_info {
+    char *tagName; // NULL to match all tags
+
+    char **classes; // NULL to match all classes
+    int numClasses;
+
+    char *id; // NULL to match all ids
+
+    char any; // asterisk
+    char matches_nothing; // two ids in a single selector results in the selector matching nothing
 };
 
-struct css_select {
-    char *elementName;
-    char **classes;
-    char **ids;
+enum _css_internal_selector_parser_state {
+    PARSE_SELECTOR_TAG_NAME,
+    PARSE_SELECTOR_CLASS_NAME,
+    PARSE_SELECTOR_ID,
+    PARSE_SELECTOR_UNKNOWN
 };
 
-struct css_sselector {
-    struct css_select individual;
-    enum css_combinator combinator; // The combinator right before the current selector
-    int count;
-};
+// Note: This function expects a selector trimmed of all surrounding whitespace!
+struct css_selector_info CSS_parseSelector(char *string) {
+    struct css_selector_info result;
+    result.tagName = NULL;
+    result.classes = NULL;
+    result.numClasses = 0;
+    result.id = NULL;
+    result.matches_nothing = 0;
+    result.any = 0;
 
-struct css_selector_parsed {
-    struct css_sselector *selectors; // Individual selectors separated by combinators
-    int count;
-};
+    if (!strcmp(string, "*")) {
+        result.any = 1;
+        return result;
+    }
+
+    int alreadyMatchedId = 0;
+    int currentState = PARSE_SELECTOR_UNKNOWN;
+    int len = strlen(string);
+    int currentIndex = 1;
+    char *currentContent = (char *) calloc(512, sizeof(char));
+    int currentContentUsage = 0;
+    for (int i = 0; i < len; i ++) {
+        char curChar = string[i];
+        if (curChar == '|' ||
+            curChar == ':' ||
+            curChar == '+' ||
+            curChar == '~' ||
+            curChar == '>' ||
+            curChar == '^' ||
+            curChar == '$' ||
+            curChar == '[' ||
+            curChar == ']' ||
+            curChar == '*' ||
+            curChar == '=') {
+
+            // unsupported style
+            result.tagName = NULL;
+            result.id = NULL;
+            result.numClasses = 0;
+            result.matches_nothing = 1;
+            return result;
+        }
+
+        switch (currentState) {
+            case PARSE_SELECTOR_TAG_NAME:
+                if (curChar == '#') {
+                    result.tagName = makeStrCpy(currentContent);
+                    clrStr(currentContent);
+                    currentContentUsage = 0;
+
+                    currentState = PARSE_SELECTOR_ID;
+                    currentIndex = 0;
+                } else if (curChar == '.') {
+                    result.tagName = makeStrCpy(currentContent);
+                    clrStr(currentContent);
+                    currentContentUsage = 0;
+
+                    currentState = PARSE_SELECTOR_CLASS_NAME;
+                    currentIndex = 0;
+                } else {
+                    if (currentContentUsage > 510) {
+                        fprintf(stderr, "Warning: Content usage exceeded maximum content usage while recording a class!");
+                    } else {
+                        currentContent[currentContentUsage] = curChar;
+                        currentContentUsage ++;
+                    }
+                }
+                break;
+            case PARSE_SELECTOR_CLASS_NAME:
+                if (currentIndex == 1) {
+                    result.numClasses ++;
+                    result.classes = (char **) realloc(result.classes, result.numClasses * sizeof(char *));
+                }
+
+                if (curChar == '#') {
+                    result.classes[result.numClasses - 1] = makeStrCpy(currentContent);
+                    clrStr(currentContent);
+                    currentContentUsage = 0;
+
+                    currentState = PARSE_SELECTOR_ID;
+                    currentIndex = 0;
+                } else if (curChar == '.') {
+                    result.classes[result.numClasses - 1] = makeStrCpy(currentContent);
+                    clrStr(currentContent);
+                    currentContentUsage = 0;
+
+                    currentState = PARSE_SELECTOR_CLASS_NAME;
+                    currentIndex = 0;
+                } else {
+                    if (currentContentUsage > 510) {
+                        fprintf(stderr, "Warning: Content usage exceeded maximum content usage while recording a class!");
+                    } else {
+                        currentContent[currentContentUsage] = curChar;
+                        currentContentUsage ++;
+                    }
+                }
+                break;
+            case PARSE_SELECTOR_ID:
+                if (currentIndex == 1) {
+                    if (alreadyMatchedId) {
+                        result.matches_nothing = 1;
+                        free(result.id);
+                    }
+                    alreadyMatchedId = 1;
+                }
+
+                if (curChar == '#') {
+                    result.id = makeStrCpy(currentContent);
+                    clrStr(currentContent);
+                    currentContentUsage = 0;
+
+                    currentState = PARSE_SELECTOR_ID;
+                    currentIndex = 0;
+                } else if (curChar == '.') {
+                    result.id = makeStrCpy(currentContent);
+                    clrStr(currentContent);
+                    currentContentUsage = 0;
+
+                    currentState = PARSE_SELECTOR_CLASS_NAME;
+                    currentIndex = 0;
+                } else {
+                    if (currentContentUsage > 510) {
+                        fprintf(stderr, "Warning: Content usage exceeded maximum content usage while recording ID!");
+                    } else {
+                        currentContent[currentContentUsage] = curChar;
+                        currentContentUsage ++;
+                    }
+                }
+                break;
+            case PARSE_SELECTOR_UNKNOWN:
+                if (curChar == '#') {
+                    currentState = PARSE_SELECTOR_ID;
+                } else if (curChar == '.') {
+                    currentState = PARSE_SELECTOR_CLASS_NAME;
+                } else {
+                    currentState = PARSE_SELECTOR_TAG_NAME;
+                    i --;
+                }
+                currentIndex = 0;
+                break;
+        }
+        currentIndex ++;
+    }
+    switch (currentState) {
+        case PARSE_SELECTOR_ID:
+            result.id = makeStrCpy(currentContent);
+            clrStr(currentContent);
+            break;
+        case PARSE_SELECTOR_CLASS_NAME:
+            result.classes[result.numClasses - 1] = makeStrCpy(currentContent);
+            clrStr(currentContent);
+            break;
+        case PARSE_SELECTOR_TAG_NAME:
+            result.tagName = makeStrCpy(currentContent);
+            clrStr(currentContent);
+            break;
+    }
+
+    free(currentContent);
+    return result;
+}
+
 
 
 struct css_selectors {
-    char **selectors; // Selectors separated by commas
+    struct css_selector_info *selectors; // Selectors separated by commas
     char *styleContent;
     int count;
 };
@@ -45,9 +204,9 @@ enum _css_internal_style_tag_parser_state {
     CSS_PARSE_OUTSIDE_BRACKET_WHITESPACE,
 };
 
-void CSS_addSelectorTo(struct css_selectors *selectors, char *toAdd) {
+void CSS_addSelectorTo(struct css_selectors *selectors, struct css_selector_info toAdd) {
     selectors->count ++;
-    selectors->selectors = (char **) realloc(selectors->selectors, selectors->count * sizeof(char *));
+    selectors->selectors = (struct css_selector_info *) realloc(selectors->selectors, selectors->count * sizeof(struct css_selector_info));
     selectors->selectors[selectors->count - 1] = toAdd;
 }
 
@@ -70,8 +229,13 @@ void CSS_freePersistentStyles(struct css_persistent_styles *originalStyles) {
         struct css_selectors curSelectors = originalStyles->selectors[i];
         free(curSelectors.styleContent);
         for (int j = 0; j < curSelectors.count; j ++) {
-            char *selector = curSelectors.selectors[j];
-            free(selector);
+            struct css_selector_info selector = curSelectors.selectors[j];
+            if (selector.tagName) free(selector.tagName);
+            if (selector.id) free(selector.id);
+            for (int k = 0; k < selector.numClasses; k ++) {
+                free(selector.classes[k]);
+            }
+            if (selector.classes) free(selector.classes);
         }
         free(curSelectors.selectors);
     }
@@ -104,13 +268,13 @@ void CSS_applyStyleData(struct css_persistent_styles *originalStyles, char *cont
                 break;
             case CSS_PARSE_SELECTOR:
                 if (curChar == '{') {
-                    CSS_addSelectorTo(&currentSelector, trimString(currentDataContent));
+                    CSS_addSelectorTo(&currentSelector, CSS_parseSelector(trimString(currentDataContent)));
                     clrStr(currentDataContent);
                     currentDataUsage = 0;
                     currentState = CSS_PARSE_INSIDE_BRACKET_CONTENT;
                     bracketNum ++;
                 } else if (curChar == ',') {
-                    CSS_addSelectorTo(&currentSelector, trimString(currentDataContent));
+                    CSS_addSelectorTo(&currentSelector, CSS_parseSelector(trimString(currentDataContent)));
                     clrStr(currentDataContent);
                     currentDataUsage = 0;
                 } else {
