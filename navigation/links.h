@@ -13,6 +13,35 @@
 
 #include "download.h"
 
+
+void onStyleSheetStart(void *ptr, char *href) {
+    struct nc_state *state = (struct nc_state *) ptr;
+    strcat(getTextByDescriptor(state, "documentText")->text, "\nDownloading stylesheet from \"");
+    strcat(getTextByDescriptor(state, "documentText")->text, href);
+    strcat(getTextByDescriptor(state, "documentText")->text, "\".");
+    render_nc(state);
+}
+
+void onStyleSheetProgress(void *ptr) {
+    struct nc_state *state = (struct nc_state *) ptr;
+    strcat(getTextByDescriptor(state, "documentText")->text, ".");
+    render_nc(state);
+}
+
+void onStyleSheetComplete(void *ptr) {
+    struct nc_state *state = (struct nc_state *) ptr;
+    strcat(getTextByDescriptor(state, "documentText")->text, "\n    Finished downloading stylesheet.\n\n");
+    render_nc(state);
+}
+
+char *onStyleSheetError(void *ptr, int _) {
+    struct nc_state *state = (struct nc_state *) ptr;
+    strcat(getTextByDescriptor(state, "documentText")->text, "\n    Error downloading stylesheet.\n\n");
+    render_nc(state);
+    return makeStrCpy("");
+}
+
+
 char *onerrorhandler(void *state, int code) {
     char *err;
     if (code == 4) {
@@ -130,7 +159,16 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
         return t;
     }
 
-    struct html2nc_result result = htmlToText(xml.list, parsedResponse.response_body.data, url);
+    struct html2nc_result result = htmlToText(
+        xml.list,
+        parsedResponse.response_body.data,
+        url,
+        (void *) state,
+        onStyleSheetStart,
+        onStyleSheetProgress,
+        onStyleSheetComplete,
+        onStyleSheetError
+    );
     char *total = (char *) calloc(strlen(result.text) + strlen(url) + strlen(result.title) + 8, sizeof(char));
     strcpy(total, result.title);
     strcat(total, "\n\n\\H\n");

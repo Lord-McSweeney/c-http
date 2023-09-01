@@ -8,6 +8,18 @@
 #include "../xml/html.h"
 #include "../xml/attributes.h"
 
+// Ptr passed, along with URL of stylesheet
+typedef void (*onStyleSheetDownloadStart)(void *, char *);
+
+// Ptr passed
+typedef void (*onStyleSheetDownloadProgress)(void *);
+
+// Ptr passed
+typedef void (*onStyleSheetDownloadComplete)(void *);
+
+// Ptr passed, along with HTTP error code: returns default response in case of error
+typedef char *(*onStyleSheetDownloadError)(void *, int);
+
 int shouldBeDisplayed(const char *nodeName) {
     return strcmp(nodeName, "script") && strcmp(nodeName, "style");
 }
@@ -108,7 +120,12 @@ char *recursiveXMLToText(
     int uppercase,
     int listNestAmount,
     struct css_persistent_styles *persistentStyles,
-    char *baseURL
+    char *baseURL,
+    void *ptr,
+    onStyleSheetDownloadStart onStart,
+    onStyleSheetDownloadProgress onProgress,
+    onStyleSheetDownloadComplete onComplete,
+    onStyleSheetDownloadError onError
 ) {
     char *alloc = (char *) calloc(originalHTMLLen + 2, sizeof(char));
 
@@ -201,7 +218,21 @@ char *recursiveXMLToText(
 
             // Only the first <title> is taken into account- the rest aren't special
             if (!strcmp(lower, "title") && state->title == NULL) {
-                state->title = recursiveXMLToText(&node, node.children, state, originalHTMLLen, 0, 0, persistentStyles, baseURL);
+                state->title = recursiveXMLToText(
+                    &node,
+                    node.children,
+                    state,
+                    originalHTMLLen,
+                    0,
+                    0,
+                    persistentStyles,
+                    baseURL,
+                    ptr,
+                    onStart,
+                    onProgress,
+                    onComplete,
+                    onError
+                );
                 free(lower);
                 freeXMLAttributes(attributes);
                 freeXMLAttributes(parent_attributes);
@@ -238,18 +269,19 @@ char *recursiveXMLToText(
                     if (!type || (!strcmp(type, "text/css") || !strcmp(type, ""))) {
                         char *href = XML_getAttributeByName(attributes, "href");
                         if (href) {
+                            onStart(ptr, href);
                             struct http_url *url = http_url_from_string(baseURL);
 
                             char *absoluteURL = http_resolveRelativeURL(url, baseURL, href);
 
                             struct http_response initialResponse = downloadPage(
-                                (void *) 0,
+                                ptr,
                                 "uqers",
                                 &absoluteURL,
-                                NULL,
+                                onProgress,
                                 NULL,
                                 0,
-                                defaultonerrorhandler,
+                                onError,
                                 defaultonredirecthandler,
                                 defaultonredirectsuccesshandler,
                                 defaultonredirecterrorhandler
@@ -258,6 +290,8 @@ char *recursiveXMLToText(
 
                             char *styling = initialResponse.response_body.data;
                             CSS_applyStyleData(persistentStyles, styling);
+
+                            onComplete(ptr);
                         } else {
                             fprintf(stderr, "Warning: <link rel=\"stylesheet\"> with no href attribute\n");
                         }
@@ -348,7 +382,12 @@ char *recursiveXMLToText(
                     (hLevel >= 2) || uppercase,
                     listNestAmount,
                     persistentStyles,
-                    baseURL
+                    baseURL,
+                    ptr,
+                    onStart,
+                    onProgress,
+                    onComplete,
+                    onError
                 );
 
                 int wasDisplayed = text[0] != 0;
@@ -503,14 +542,23 @@ char *recursiveXMLToText(
     return copy;
 }
 
-struct html2nc_result htmlToText(struct xml_list xml, char *originalHTML, char *baseURL) {
+struct html2nc_result htmlToText(
+    struct xml_list xml,
+    char *originalHTML,
+    char *baseURL,
+    void *ptr,
+    onStyleSheetDownloadStart onStart,
+    onStyleSheetDownloadProgress onProgress,
+    onStyleSheetDownloadComplete onComplete,
+    onStyleSheetDownloadError onError
+) {
     struct css_persistent_styles persistentStyles = CSS_makePersistentStyles();
 
     struct html2nc_state state;
     state.title = NULL;
     
     struct html2nc_result result;
-    result.text = recursiveXMLToText(NULL, xml, &state, strlen(originalHTML), 0, 0, &persistentStyles, baseURL);
+    result.text = recursiveXMLToText(NULL, xml, &state, strlen(originalHTML), 0, 0, &persistentStyles, baseURL, ptr, onStart, onProgress, onComplete, onError);
 
     // Default title, if title wasn't set
     if (state.title == NULL) {
