@@ -274,6 +274,11 @@ char *recursiveXMLToText(
             } else {
                 int isVisible = !CSS_isStyleHidden(elementStyling);
 
+                if (elementStyling.pointer_events == POINTER_EVENTS_ALL) {
+                    strcat(alloc, "\\e");
+                } else if (elementStyling.pointer_events == POINTER_EVENTS_NONE) {
+                    strcat(alloc, "\\d");
+                }
                 if (isVisible && !strcmp(lower, "a") && XML_getAttributeByName(attributes, "href")) {
                     strcat(alloc, "\\m");
                 }
@@ -434,12 +439,6 @@ char *recursiveXMLToText(
                 if (elementStyling.bold || hLevel >= 1) {
                     strcat(alloc, "\\c");
                 }
-                if (elementStyling.italic) {
-                    strcat(alloc, "\\j");
-                }
-                if (elementStyling.tabbed) {
-                    strcat(alloc, "\\u");
-                }
                 switch (elementStyling.color) {
                     case CSS_COLOR_RED:
                     case CSS_COLOR_GREEN:
@@ -451,6 +450,12 @@ char *recursiveXMLToText(
                 if (elementStyling.underline) {
                     strcat(alloc, "\\r");
                 }
+                if (elementStyling.italic) {
+                    strcat(alloc, "\\j");
+                }
+                if (elementStyling.tabbed) {
+                    strcat(alloc, "\\u");
+                }
 
                 if (isVisible && !strcmp(lower, "a") && XML_getAttributeByName(attributes, "href")) {
                     char *encoded = safeEncodeString(XML_getAttributeByName(attributes, "href"));
@@ -458,6 +463,9 @@ char *recursiveXMLToText(
                     strcat(alloc, "\\nL");
                     strcat(alloc, encoded);
                     free(encoded);
+                }
+                if (elementStyling.pointer_events == POINTER_EVENTS_ALL || elementStyling.pointer_events == POINTER_EVENTS_NONE) {
+                    strcat(alloc, "\\f");
                 }
 
                 if (!strcmp(lower, "li")) {

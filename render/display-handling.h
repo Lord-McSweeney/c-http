@@ -457,6 +457,8 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
     int aboutToCreateButton = 0;
     int colorsP[64] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     int colorStackNum = 0;
+    char clickableStack[64] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    int clickableStackNum = 0;
     unsigned int linkIdx1 = 0;
     unsigned int linkIdx2 = 1;
     int tooManyLinks = 0;
@@ -495,6 +497,29 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                 case 'c':
                     if (bold > 0) {
                         bold --;
+                    }
+                    break;
+
+                case 'd':
+                    clickableStack[clickableStackNum] = 1;
+                    clickableStackNum ++;
+                    if (clickableStackNum > 62) {
+                        // This limit should (hopefully) never be reached, but let's just make sure.
+                        clickableStackNum --;
+                    }
+                    break;
+                case 'e':
+                    clickableStack[clickableStackNum] = 0;
+                    clickableStackNum ++;
+                    if (clickableStackNum > 62) {
+                        // This limit should (hopefully) never be reached, but let's just make sure.
+                        clickableStackNum --;
+                    }
+                    break;
+                case 'f':
+                    if (clickableStackNum > 0) {
+                        clickableStackNum --;
+                        clickableStack[clickableStackNum] = 0;
                     }
                     break;
 
@@ -541,16 +566,18 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                             linkDescriptor[strlen(linkDescriptor)] = linkIdx1;
                             linkDescriptor[strlen(linkDescriptor)] = linkIdx2;
                             strcat(linkDescriptor, result);
-                            if (getButtonByDescriptor(state, linkDescriptor)) {
-                                // Already exists, don't create again, but do update position
-                                struct nc_button *linkButton = getButtonByDescriptor(state, linkDescriptor);
-                                linkButton->x = posx;
-                                linkButton->y = posy;
-                                free(linkDescriptor);
-                            } else {
-                                createNewButton(state, posx, posy, makeStrCpy(buttonSpace), nc_templinkpresshandler, linkDescriptor);
-                                struct nc_button *linkButton = getButtonByDescriptor(state, linkDescriptor);
-                                linkButton->overrideMinX = minX;
+                            if (!clickableStack[clickableStackNum - 1]) {
+                                if (getButtonByDescriptor(state, linkDescriptor)) {
+                                    // Already exists, don't create again, but do update position
+                                    struct nc_button *linkButton = getButtonByDescriptor(state, linkDescriptor);
+                                    linkButton->x = posx;
+                                    linkButton->y = posy;
+                                    free(linkDescriptor);
+                                } else {
+                                    createNewButton(state, posx, posy, makeStrCpy(buttonSpace), nc_templinkpresshandler, linkDescriptor);
+                                    struct nc_button *linkButton = getButtonByDescriptor(state, linkDescriptor);
+                                    linkButton->overrideMinX = minX;
+                                }
                             }
                             free(result);
                             clrStr(buttonSpace);
@@ -565,16 +592,18 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                             noopDescriptor[strlen(noopDescriptor)] = linkIdx1;
                             noopDescriptor[strlen(noopDescriptor)] = linkIdx2;
                             strcat(noopDescriptor, "NOOP");
-                            if (getButtonByDescriptor(state, noopDescriptor)) {
-                                // Already exists, don't create again, but do update position
-                                struct nc_button *noopButton = getButtonByDescriptor(state, noopDescriptor);
-                                noopButton->x = posx;
-                                noopButton->y = posy;
-                                free(noopDescriptor);
-                            } else {
-                                createNewButton(state, posx, posy, makeStrCpy(buttonSpace), nc_noopbuttonhandler, noopDescriptor);
-                                struct nc_button *linkButton = getButtonByDescriptor(state, noopDescriptor);
-                                linkButton->overrideMinX = minX;
+                            if (!clickableStack[clickableStackNum - 1]) {
+                                if (getButtonByDescriptor(state, noopDescriptor)) {
+                                    // Already exists, don't create again, but do update position
+                                    struct nc_button *noopButton = getButtonByDescriptor(state, noopDescriptor);
+                                    noopButton->x = posx;
+                                    noopButton->y = posy;
+                                    free(noopDescriptor);
+                                } else {
+                                    createNewButton(state, posx, posy, makeStrCpy(buttonSpace), nc_noopbuttonhandler, noopDescriptor);
+                                    struct nc_button *linkButton = getButtonByDescriptor(state, noopDescriptor);
+                                    linkButton->overrideMinX = minX;
+                                }
                             }
                             clrStr(buttonSpace);
                             i += 1;

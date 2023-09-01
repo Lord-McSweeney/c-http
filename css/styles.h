@@ -54,6 +54,13 @@ enum css_position {
     POSITION_UNKNOWN,
 };
 
+enum css_pointer_events {
+    POINTER_EVENTS_NONE,
+    POINTER_EVENTS_UNKNOWN,
+    POINTER_EVENTS_DEFAULT, // default
+    POINTER_EVENTS_ALL,
+};
+
 struct css_styling {
     int bold;
     int italic;
@@ -63,6 +70,7 @@ struct css_styling {
     enum css_position position;
     enum css_color color;
     enum css_display display;
+    enum css_pointer_events pointer_events;
 };
 
 int CSS_isStyleBlock(struct css_styling style) {
@@ -105,6 +113,7 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
     styling.display = DISPLAY_UNKNOWN;
     styling.color = CSS_COLOR_BLACK;
     styling.position = POSITION_STATIC;
+    styling.pointer_events = POINTER_EVENTS_DEFAULT;
     styling.bold = 0;
     styling.italic = 0;
     styling.underline = 0;
@@ -122,6 +131,7 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
 
     char *lower = xml_toLowerCase(node.name);
 
+    // Should these be set from some sort of embedded stylesheet rather than being hard-coded in?
     if (!strcmp(lower, "a")) {
         styling.color = CSS_COLOR_BLUE;
         styling.underline = 1;
@@ -168,7 +178,6 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
         } else if (!strcmp(textDecorationStyle, "line-through")) {
             styling.strikethrough = 1;
         } else if (!strcmp(textDecorationStyle, "none")) {
-            // FIXME: It's more complex than this, see https://developer.mozilla.org/en-US/docs/Web/CSS/text-decoration
             styling.strikethrough = 0;
             styling.underline = 0;
         } else {
@@ -205,6 +214,18 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
             styling.position = POSITION_STICKY;
         } else {
             styling.position = POSITION_UNKNOWN;
+        }
+    }
+
+
+    char *pointerEventsStyle = CSS_getStyleByName(styles, "pointer-events");
+    if (pointerEventsStyle != NULL) {
+        if (!strcmp(pointerEventsStyle, "none")) {
+            styling.pointer_events = POINTER_EVENTS_NONE;
+        } else if (!strcmp(pointerEventsStyle, "all")) {
+            styling.pointer_events = POINTER_EVENTS_ALL;
+        } else {
+            styling.pointer_events = POINTER_EVENTS_UNKNOWN;
         }
     }
 
