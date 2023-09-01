@@ -62,7 +62,6 @@ struct http_url *http_url_from_string(char *string) {
                     if (
                         curChar == ':' ||
                         curChar == '#' ||
-                        curChar == '/' ||
                         curChar == '!' ||
                         curChar == '?' ||
                         curChar == '&' ||
@@ -81,8 +80,16 @@ struct http_url *http_url_from_string(char *string) {
                     currentState = HTTP_PROTOCOL_1;
                     currentIndex = 0;
                     break;
+                } else if (curChar == '/') {
+                    didGetToProtocolEnd = 1;
+                    strcpy(protocol, "file");
+                    hasPath = 1;
+                    currentState = HTTP_PATH;
+                    currentIndex = 0;
+                    i --;
+                    break;
                 }
-                
+
                 // Protocols cannot have periods inside them; if they do, turns out we were parsing a hostname 
                 if (curChar == '.') {
                     didGetToProtocolEnd = 1;
