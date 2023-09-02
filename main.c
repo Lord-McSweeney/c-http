@@ -2,6 +2,7 @@
 // Compile with gcc main.c -lncurses -lssl -lcrypto
 #include <stdlib.h>
 
+#include "http/http.h"
 #include "navigation/links.h"
 #include "render/display-handling.h"
 #include "utils/string.h"
@@ -21,10 +22,11 @@ void showButtons(struct nc_state *state) {
 void initializeDisplayObjects(struct nc_state *state) {
     createNewText(state, 1, 1, "Go to a URL:", "gotoURL");
     createNewText(state, 0, 0, "No document loaded", "documentText");
-    createNewText(state, 0, 0, "This is the browser's home page.\n\nNavigation tools:\nCTRL+O: Go to site\nCTRL+X: Close current page\nUp/Down arrows: scroll current document\nTab/Shift+Tab (or left arrow/right arrow): Cycle through buttons/links/text fields\n\n\nCreated by uqers.", "helpText");
+    createNewText(state, 0, 0, "This is the browser's home page.\n\nNavigation tools:\nCTRL+O: Go to site\nCTRL+X: Close current page\nUp/Down arrows: scroll current document\nTab/Shift+Tab (or left arrow/right arrow): Cycle through buttons/links/text fields\n\nWhen a document is loaded:\nCTRL+O: Go to site (same as UI)\nCTRL+K: View host cookies\nCTRL+X: Close document\n\nCookies are not saved to disk.\n\nCreated by uqers.", "helpText");
     createNewTextarea(state, 1, 3, 29, 1, "urltextarea");
     createNewButton(state, 1, 5, "OK", ongotourl, "gotobutton");
     createNewText(state, 1, 13, "Use a custom user agent", "userAgentDetail");
+    createNewText(state, 0, 0, "Cookies:\n\n(not initialized)", "cookiesDetail");
     createNewTextarea(state, 1, 14, 29, 1, "userAgent");
     createNewTextarea(state, 0, 1, -5, 1, "urlField");
     createNewButton(state, -3, 1, "Go!", ongotourlfield, "smallgobutton");
@@ -34,6 +36,7 @@ void initializeDisplayObjects(struct nc_state *state) {
     getTextByDescriptor(state, "documentText")->visible = 0;
     getTextByDescriptor(state, "helpText")->visible = 1;
     getTextByDescriptor(state, "userAgentDetail")->visible = 0;
+    getTextByDescriptor(state, "cookiesDetail")->visible = 0;
     getTextAreaByDescriptor(state, "userAgent")->visible = 0;
     setTextOf(getTextAreaByDescriptor(state, "userAgent"), "uqers");
     getTextAreaByDescriptor(state, "urlField")->visible = 0;
@@ -68,6 +71,49 @@ void openGotoPageDialog(struct nc_state *state) {
 
     clearCharsOf(textarea);
     textarea->scrolledAmount = 0;
+}
+
+void openCookieDialog(struct nc_state *state) {
+    struct nc_text *cookiesDetail = getTextByDescriptor(state, "cookiesDetail");
+
+    state->selectableIndex = -1;
+    state->currentPage = PAGE_VIEW_COOKIES;
+    hideButtons(state);
+    getTextByDescriptor(state, "helpText")->visible = 0;
+    getTextByDescriptor(state, "gotoURL")->visible = 0;
+    getButtonByDescriptor(state, "gotobutton")->visible = 0;
+    getTextByDescriptor(state, "documentText")->visible = 0;
+    getTextAreaByDescriptor(state, "urlField")->visible = 0;
+    getButtonByDescriptor(state, "smallgobutton")->visible = 0;
+    getTextByDescriptor(state, "userAgentDetail")->visible = 0;
+    getTextAreaByDescriptor(state, "userAgent")->visible = 0;
+    cookiesDetail->visible = 1;
+
+    // Should this save the global scroll?
+    state->globalScrollX = 0;
+    state->globalScrollY = 0;
+
+    char *hostname = http_url_from_string(state->currentPageUrl)->hostname;
+    char *cookieText = HTTP_cookieStoreToStringPretty(HTTP_getGlobalCookieStore(), hostname);
+
+    cookiesDetail->text = (char *) calloc(strlen(cookieText) + 16, sizeof(char));
+    strcpy(cookiesDetail->text, "Cookies: \n\n");
+    strcat(cookiesDetail->text, cookieText);
+}
+
+void closeCookieDialog(struct nc_state *state) {
+    state->selectableIndex = -1;
+    state->currentPage = PAGE_DOCUMENT_LOADED;
+    getTextByDescriptor(state, "documentText")->visible = 1;
+    getTextAreaByDescriptor(state, "urlField")->visible = 1;
+    getButtonByDescriptor(state, "smallgobutton")->visible = 1;
+    showButtons(state);
+    getTextByDescriptor(state, "gotoURL")->visible = 0;
+    getTextAreaByDescriptor(state, "urltextarea")->visible = 0;
+    getButtonByDescriptor(state, "gotobutton")->visible = 0;
+    getTextByDescriptor(state, "userAgentDetail")->visible = 0;
+    getTextAreaByDescriptor(state, "userAgent")->visible = 0;
+    getTextByDescriptor(state, "cookiesDetail")->visible = 0;
 }
 
 void closeGotoPageDialog(struct nc_state *state) {
@@ -113,6 +159,9 @@ void closeCurrentWindow(struct nc_state *state) {
         case PAGE_GOTO_DIALOG:
             closeGotoPageDialog(state);
             break;
+        case PAGE_VIEW_COOKIES:
+            closeCookieDialog(state);
+            break;
         case PAGE_DOCUMENT_LOADED:
             closeDocumentPage(state);
             break;
@@ -132,8 +181,15 @@ int isCharAllowed(int is_extended, char ch) {
 
 void onKeyPress(struct nc_state *browserState, int ch) {
     switch(ch) {
+        case 11:
+            if (browserState->currentPage == PAGE_DOCUMENT_LOADED) {
+                openCookieDialog(browserState);
+            }
+            break;
         case 15: // CTRL+O
-            openGotoPageDialog(browserState);
+            if (browserState->currentPage != PAGE_VIEW_COOKIES) {
+                openGotoPageDialog(browserState);
+            }
             break;
         case KEY_BTAB: // SHIFT+TAB
         case KEY_LEFT:
@@ -327,6 +383,8 @@ int main(int argc, char **argv) {
     initializeDisplayObjects(&browserState);
 
     nc_onInitFinish(&browserState);
+
+    HTTP_setGlobalCookieStore(HTTP_makeCookieStore());
 
     if (url != NULL) {
         struct nc_text_area *textarea = getTextAreaByDescriptor(&browserState, "urltextarea");
