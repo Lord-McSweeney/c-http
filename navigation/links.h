@@ -30,13 +30,13 @@ void onStyleSheetProgress(void *ptr) {
 
 void onStyleSheetComplete(void *ptr) {
     struct nc_state *state = (struct nc_state *) ptr;
-    strcat(getTextByDescriptor(state, "documentText")->text, "\n    Finished downloading stylesheet.\n\n");
+    strcat(getTextByDescriptor(state, "documentText")->text, "\n    Finished downloading stylesheet.\n");
     render_nc(state);
 }
 
 char *onStyleSheetError(void *ptr, int _) {
     struct nc_state *state = (struct nc_state *) ptr;
-    strcat(getTextByDescriptor(state, "documentText")->text, "\n    Error downloading stylesheet.\n\n");
+    strcat(getTextByDescriptor(state, "documentText")->text, "\n    Error downloading stylesheet.\n");
     render_nc(state);
     return makeStrCpy("");
 }

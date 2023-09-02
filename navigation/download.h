@@ -31,9 +31,7 @@ char *defaultonredirecthandler(void *ptr, char *to, int num) {
     return NULL;
 }
 
-void defaultonredirectsuccesshandler(void *ptr, char *to, int num) {
-    //
-}
+void defaultonredirectsuccesshandler(void *ptr, char *to, int num) { }
 
 char *defaultonredirecterrorhandler(void *ptr, char *to, int num) {
     return makeStrCpy("");
