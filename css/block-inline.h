@@ -5,7 +5,7 @@
 
 int CSS_isDefaultBlock(const char *nodeName) {
     char *lower = toLowerCase(nodeName);
-    int res = !strcmp(lower, "div") || !strcmp(lower, "p") || !strcmp(lower, "hr") || !strcmp(lower, "header") || !strcmp(lower, "aside") || !strcmp(lower, "h1") || !strcmp(lower, "h2") || !strcmp(lower, "h3") || !strcmp(lower, "h4") || !strcmp(lower, "h5") || !strcmp(lower, "h6") || !strcmp(lower, "blockquote") || !strcmp(lower, "dt") || !strcmp(lower, "tspan") || !strcmp(lower, "li") || !strcmp(lower, "dd") || !strcmp(lower, "tr") || !strcmp(lower, "button");
+    int res = !strcmp(lower, "div") || !strcmp(lower, "p") || !strcmp(lower, "hr") || !strcmp(lower, "header") || !strcmp(lower, "aside") || !strcmp(lower, "h1") || !strcmp(lower, "h2") || !strcmp(lower, "h3") || !strcmp(lower, "h4") || !strcmp(lower, "h5") || !strcmp(lower, "h6") || !strcmp(lower, "blockquote") || !strcmp(lower, "dt") || !strcmp(lower, "tspan") || !strcmp(lower, "li") || !strcmp(lower, "dd") || !strcmp(lower, "tr") || !strcmp(lower, "button") || !strcmp(lower, "center") || !strcmp(lower, "ul") || !strcmp(lower, "ol");
     free(lower);
     return res;
 }

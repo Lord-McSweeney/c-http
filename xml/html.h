@@ -51,6 +51,7 @@ struct xml_response {
     struct xml_list list;
     int error;
     int bytesParsed;
+    int closes_two;
 };
 
 struct xml_node XML_createXMLElement(char *name) {
@@ -212,6 +213,8 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
     if (xml_string.length == 0) {
         struct xml_response response;
         response.list = XML_createEmptyXMLList();
+        response.error = 0;
+        response.closes_two = 0;
         return response;
     }
     
@@ -363,16 +366,22 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                     if (startedParsingName) {
                         doneParsingName = 1;
                         // FIXME: <a>s have similar behavior
+                        char *lowerNameParent = toLowerCase(parentClosingTag);
                         char *lowerName = toLowerCase(closingTag);
                         char *lowerCurName = toLowerCase(currentElementName);
-                        int isParagraphClose = !strcmp(lowerName, "p") && CSS_isDefaultBlock(currentElementName);
+                        int isParagraphClose = (!strcmp(lowerName, "p") || !strcmp(lowerNameParent, "p")) && CSS_isDefaultBlock(currentElementName);
                         int isListClose = !strcmp(lowerName, "li") && !strcmp(lowerCurName, "li");
 
                         if (isParagraphClose || isListClose) {
+                            int amt = strlen(currentElementName) + 1;
+                            if (currentAttributeContent[0] != 0) {
+                                amt += strlen(currentAttributeContent) + 1;
+                            }
                             struct xml_response realResponse;
                             realResponse.error = 0;
-                            realResponse.bytesParsed = bytesParsed - (strlen(currentElementName) + 1);
+                            realResponse.bytesParsed = bytesParsed - amt;
                             realResponse.list = response;
+                            realResponse.closes_two = 0;
 
                             free(currentTextContent);
                             free(currentDoctypeContent);
@@ -410,7 +419,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
 
                         i += childResponse.bytesParsed;
                         bytesParsed += childResponse.bytesParsed;
-                        
+
                         if (childResponse.error) {
                             free(currentTextContent);
                             free(currentDoctypeContent);
@@ -433,6 +442,15 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                         clrStr(currentElementName);
                         currentIndex = 0;
                         currentState = PARSE_UNKNOWN;
+
+                        if (childResponse.closes_two) {
+                            struct xml_response realResponse;
+                            realResponse.error = 0;
+                            realResponse.bytesParsed = bytesParsed;
+                            realResponse.list = response;
+                            realResponse.closes_two = 0;
+                            return realResponse;
+                        }
                     } else {
                         free(currentTextContent);
                         free(currentDoctypeContent);
@@ -517,12 +535,21 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                     char *lowerName = toLowerCase(currentElementName);
                     char *lowerClose = toLowerCase(closingTag);
                     char *lowerParent = toLowerCase(parentClosingTag);
-                    if (!strcmp(lowerClose, lowerName)) {
+                    // HTML is very lenient
+                    if (closingTag[0] != 0) {
                         bytesParsed += 1;
+                        int specialNum;
+                        if (!strcmp(lowerParent, lowerName) && strcmp(lowerClose, lowerName)) {
+                            specialNum = 1;
+                        } else {
+                            specialNum = 0;
+                        }
+
                         struct xml_response realResponse;
                         realResponse.error = 0;
-                        realResponse.bytesParsed = bytesParsed;
+                        realResponse.bytesParsed = bytesParsed + specialNum;
                         realResponse.list = response;
+                        realResponse.closes_two = specialNum;
 
                         free(currentTextContent);
                         free(currentDoctypeContent);
@@ -650,6 +677,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
     realResponse.error = 0;
     realResponse.bytesParsed = bytesParsed;
     realResponse.list = response;
+    realResponse.closes_two = 0;
 
     return realResponse;
 }
