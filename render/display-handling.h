@@ -769,14 +769,6 @@ void render_nc(struct nc_state *browserState) {
     }
 
     attron(COLOR_PAIR(1));
-    for (int i = 0; i < numButtons; i ++) {
-        if (browserState->buttons[i].selected) {
-            move(
-                browserState->buttons[i].y,
-                getButtonX(browserState->buttons[i])
-            );
-        }
-    }
 
     int numTextAreas = browserState->numTextAreas;
     for (int i = 0; i < numTextAreas; i ++) {
@@ -814,6 +806,16 @@ void render_nc(struct nc_state *browserState) {
             }
         }
     }
+
+    for (int i = 0; i < numButtons; i ++) {
+        if (browserState->buttons[i].selected) {
+            move(
+                browserState->buttons[i].y + browserState->globalScrollY,
+                getButtonX(browserState->buttons[i]) + browserState->globalScrollX
+            );
+        }
+    }
+
     refresh();
     // `refresh` is automatically called by getch, called after render_nc
 }
