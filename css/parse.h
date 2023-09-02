@@ -15,7 +15,7 @@ struct css_styles {
 };
 
 char *CSS_getStyleByName(struct css_styles *styles, const char *name) {
-    char *n = xml_toLowerCase(name);
+    char *n = toLowerCase(name);
     for (int i = 0; i < styles->count; i ++) {
         if (!strcmp(styles->styles[i].name, n)) {
             free(n);
@@ -28,7 +28,7 @@ char *CSS_getStyleByName(struct css_styles *styles, const char *name) {
 }
 
 int CSS_getStyleIndexByName(struct css_styles *styles, const char *name) {
-    char *n = xml_toLowerCase(name);
+    char *n = toLowerCase(name);
     for (int i = 0; i < styles->count; i ++) {
         if (!strcmp(styles->styles[i].name, n)) {
             free(n);

@@ -1,5 +1,6 @@
 // Converts XML/HTML nodes to rich text.
 
+#include "../css/block-inline.h"
 #include "../css/parse-selectors.h"
 #include "../css/styles.h"
 #include "../http/url.h"
@@ -36,7 +37,7 @@ char *HTML_getTabsRepeated(int amount) {
 // 1: Bold
 // 2: Bold + uppercase
 int HTML_headerLevel(const char *nodeName) {
-    char *lower = xml_toLowerCase(nodeName);
+    char *lower = toLowerCase(nodeName);
     int res = 0;
     if (!strcmp(lower, "h1")) res = 2;
     if (!strcmp(lower, "h2")) res = 2;
@@ -146,7 +147,7 @@ char *recursiveXMLToText(
             free(allocated_no_double);
 
             if (uppercase) {
-                char *upper = xml_toUpperCase(allocated);
+                char *upper = toUpperCase(allocated);
                 strcat(alloc, upper);
                 free(upper);
             } else {
@@ -186,7 +187,7 @@ char *recursiveXMLToText(
                 parentStyling = CSS_getDefaultStyles();
             }
 
-            char *lower = xml_toLowerCase(node.name);
+            char *lower = toLowerCase(node.name);
             int hLevel = HTML_headerLevel(node.name);
             if (
                 (
@@ -241,7 +242,7 @@ char *recursiveXMLToText(
             }
 
             if (!strcmp(lower, "style")) {
-                char *lowerParent = !parent ? makeStrCpy("no parent") : xml_toLowerCase(parent->name);
+                char *lowerParent = !parent ? makeStrCpy("no parent") : toLowerCase(parent->name);
                 if (strcmp(lowerParent, "head") && strcmp(lowerParent, "noscript")) {
                     fprintf(stderr, "Warning: <style> tag in invalid place (%s)\n", lowerParent);
                 }
@@ -353,7 +354,7 @@ char *recursiveXMLToText(
                     if (parent == NULL) {
                         strcat(alloc, "\n - ");
                     } else {
-                        char *parentName = xml_toLowerCase(parent->name);
+                        char *parentName = toLowerCase(parent->name);
                         if (!strcmp(parentName, "ol")) {
                             if (!alreadySetOrderedListNum) {
                                 char *startString = XML_getAttributeByName(parent_attributes, "start");

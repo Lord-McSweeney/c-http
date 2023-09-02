@@ -1,7 +1,5 @@
 #include "../utils/string.h"
 
-#include "html.h"
-
 #ifndef _XML_ATTRIBUTE
     #define _XML_ATTRIBUTE 1
 
@@ -21,7 +19,7 @@ struct xml_attrib_result {
 };
 
 char *XML_getAttributeByName(struct xml_attributes *attribs, const char *name) {
-    char *n = xml_toLowerCase(name);
+    char *n = toLowerCase(name);
     for (int i = 0; i < attribs->count; i ++) {
         if (!strcmp(attribs->attributes[i].name, n)) {
             free(n);
@@ -195,14 +193,14 @@ struct xml_attrib_result XML_parseAttributes(char *inputString) {
         switch(currentState) {
             case APARSE_ATTRIBUTE_NAME:
                 if (curChar == '=') {
-                    currentAttrib.name = xml_toLowerCase(currentDataContent);
+                    currentAttrib.name = toLowerCase(currentDataContent);
                     currentDataUsage = 0;
                     clrStr(currentDataContent);
 
                     currentIndex = 0;
                     currentState = APARSE_ATTRIBUTE_VALUE;
                 } else if (curChar == ' ') {
-                    currentAttrib.name = xml_toLowerCase(currentDataContent);
+                    currentAttrib.name = toLowerCase(currentDataContent);
                     currentAttrib.value = makeStrCpy("");
                     currentDataUsage = 0;
                     clrStr(currentDataContent);
@@ -330,7 +328,7 @@ struct xml_attrib_result XML_parseAttributes(char *inputString) {
         switch(currentState) {
             case APARSE_ATTRIBUTE_VALUE:
                 currentDataUsage = 0;
-                struct xml_attribute attrib1 = XML_makeAttribute(xml_toLowerCase(currentAttrib.name), makeStrCpy(currentDataContent));
+                struct xml_attribute attrib1 = XML_makeAttribute(toLowerCase(currentAttrib.name), makeStrCpy(currentDataContent));
                 XML_appendAttribute(&attribs, attrib1);
                 clrStr(currentDataContent);
                 break;

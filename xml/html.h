@@ -1,3 +1,4 @@
+#include "../css/block-inline.h"
 #include "../utils/string.h"
 
 #ifndef _XML_HTML
@@ -7,7 +8,6 @@
 #define html_numClosingElements 2
 #define html_numChildlessElements 3
 char html_voidElements[][16] = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr", "command", "keygen", "menuitem", "frame"};
-char html_closingElements[][8] = {"p", "li"};
 char html_childlessElements[][8] = {"script", "style", "title"};
 
 struct xml_data {
@@ -52,32 +52,6 @@ struct xml_response {
     int error;
     int bytesParsed;
 };
-
-char *xml_toLowerCase(const char *text) {
-    int len = strlen(text);
-    char *allocated = (char *) calloc(len + 1, sizeof(char));
-    for (int i = 0; i < len; i ++) {
-        if (text[i] >= 'A' && text[i] <= 'Z') {
-            allocated[i] = text[i] + 32;
-        } else {
-            allocated[i] = text[i];
-        }
-    }
-    return allocated;
-}
-
-char *xml_toUpperCase(const char *text) {
-    int len = strlen(text);
-    char *allocated = (char *) calloc(len + 1, sizeof(char));
-    for (int i = 0; i < len; i ++) {
-        if (text[i] >= 'a' && text[i] <= 'z') {
-            allocated[i] = text[i] - 32;
-        } else {
-            allocated[i] = text[i];
-        }
-    }
-    return allocated;
-}
 
 struct xml_node XML_createXMLElement(char *name) {
     struct xml_node node;
@@ -170,7 +144,7 @@ char *XML_nodeTypeToString(enum xml_node_type type) {
 
 int html_isVoidElement(const char *name) {
     int i = html_numVoidElements - 1;
-    char *lower = xml_toLowerCase(name);
+    char *lower = toLowerCase(name);
     while (i >= 0) {
         if (!strcmp(lower, html_voidElements[i])) {
             free(lower);
@@ -182,23 +156,9 @@ int html_isVoidElement(const char *name) {
     return 0;
 }
 
-int html_isClosingElement(const char *name) {
-    int i = html_numClosingElements - 1;
-    char *lower = xml_toLowerCase(name);
-    while (i >= 0) {
-        if (!strcmp(lower, html_closingElements[i])) {
-            free(lower);
-            return 1;
-        }
-        i --;
-    }
-    free(lower);
-    return 0;
-}
-
 int html_isChildlessElement(const char *name) {
     int i = html_numChildlessElements - 1;
-    char *lower = xml_toLowerCase(name);
+    char *lower = toLowerCase(name);
     while (i >= 0) {
         if (!strcmp(lower, html_childlessElements[i])) {
             free(lower);
@@ -402,8 +362,13 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                 if (curChar == '>' && !isInsideString && !isInsideSingleQuoteString) {
                     if (startedParsingName) {
                         doneParsingName = 1;
-                        // TODO: Links have weirder behavior
-                        if ((html_isClosingElement(currentElementName) && html_isClosingElement(closingTag)) || (!strcmp(currentElementName, "a") && !strcmp(closingTag, "a"))) {
+                        // FIXME: <a>s have similar behavior
+                        char *lowerName = toLowerCase(closingTag);
+                        char *lowerCurName = toLowerCase(currentElementName);
+                        int isParagraphClose = !strcmp(lowerName, "p") && CSS_isDefaultBlock(currentElementName);
+                        int isListClose = !strcmp(lowerName, "li") && !strcmp(lowerCurName, "li");
+
+                        if (isParagraphClose || isListClose) {
                             struct xml_response realResponse;
                             realResponse.error = 0;
                             realResponse.bytesParsed = bytesParsed - (strlen(currentElementName) + 1);
@@ -413,9 +378,13 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                             free(currentDoctypeContent);
                             free(currentElementName);
                             free(currentAttributeContent);
+                            free(lowerName);
+                            free(lowerCurName);
 
                             return realResponse;
                         }
+                        free(lowerName);
+                        free(lowerCurName);
                         if (html_isVoidElement(currentElementName)) {
                             struct xml_node node = XML_createXMLElement(makeStrCpy(currentElementName));
                             node.attribute_content = makeStrCpy(currentAttributeContent);
@@ -545,9 +514,9 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                         break;
                     }
 
-                    char *lowerName = xml_toLowerCase(currentElementName);
-                    char *lowerClose = xml_toLowerCase(closingTag);
-                    char *lowerParent = xml_toLowerCase(parentClosingTag);
+                    char *lowerName = toLowerCase(currentElementName);
+                    char *lowerClose = toLowerCase(closingTag);
+                    char *lowerParent = toLowerCase(parentClosingTag);
                     if (!strcmp(lowerClose, lowerName)) {
                         bytesParsed += 1;
                         struct xml_response realResponse;
@@ -565,22 +534,14 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                         free(lowerParent);
 
                         return realResponse;
-                    } else if (!strcmp(lowerParent, lowerName) && html_isClosingElement(closingTag)) {
-                        struct xml_response realResponse;
-                        realResponse.error = 0;
-                        realResponse.bytesParsed = bytesParsed - (strlen(currentElementName) + 2);
-                        realResponse.list = response;
+                    } else if (strcmp(lowerClose, "p") && !strcmp(lowerName, "p")) {
+                        struct xml_node elem = XML_createXMLElement(makeStrCpy(currentElementName));
+                        XML_appendChild(&response, elem);
 
-                        free(currentTextContent);
-                        free(currentDoctypeContent);
-                        free(currentElementName);
-                        free(currentAttributeContent);
-
-                        free(lowerName);
-                        free(lowerClose);
-                        free(lowerParent);
-
-                        return realResponse;
+                        currentElementNameUsage = 0;
+                        clrStr(currentElementName);
+                        currentIndex = 0;
+                        currentState = PARSE_UNKNOWN;
                     } else {
                         // AFAICS Chrome ignores these tags, so I do too
                         currentElementNameUsage = 0;
@@ -654,7 +615,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                 break;
             case PARSE_UNKNOWN:
                 {
-                    char *lower = xml_toLowerCase(parentClosingTag);
+                    char *lower = toLowerCase(parentClosingTag);
                     if (curChar == '<' && !html_isChildlessElement(lower)) {
                         currentIndex = 0;
                         currentState = PARSE_ELEMENT_NAME;

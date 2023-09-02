@@ -195,4 +195,32 @@ int stringContainsAny(char *string, char *possibilities) {
     return 0;
 }
 
+char *toLowerCase(const char *text) {
+    int len = strlen(text);
+    char *allocated = (char *) calloc(len + 1, sizeof(char));
+    for (int i = 0; i < len; i ++) {
+        if (text[i] >= 'A' && text[i] <= 'Z') {
+            allocated[i] = text[i] + 32;
+        } else {
+            allocated[i] = text[i];
+        }
+    }
+    return allocated;
+}
+
+char *toUpperCase(const char *text) {
+    int len = strlen(text);
+    char *allocated = (char *) calloc(len + 1, sizeof(char));
+    for (int i = 0; i < len; i ++) {
+        if (text[i] >= 'a' && text[i] <= 'z') {
+            allocated[i] = text[i] - 32;
+        } else {
+            allocated[i] = text[i];
+        }
+    }
+    return allocated;
+}
+
+
+
 #endif
