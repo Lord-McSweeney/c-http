@@ -62,7 +62,7 @@ void clrStr(char *string) {
 }
 
 int isWhiteSpace(char t) {
-    return t == ' ' || t == '\n' || t == '\t' || t == '\r';
+    return t < 33 && (t == ' ' || t == '\n' || t == '\t' || t == '\r');
 }
 
 char *trimString(char *string) {
