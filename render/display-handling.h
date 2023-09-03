@@ -423,7 +423,7 @@ void nc_templinkpresshandler(void *state, char *url) {}
 
 void nc_noopbuttonhandler(void *state, char *url) {}
 
-void printText(struct nc_state *state, int y, int x, char *text, int invertColors, int overrideMinX) {
+void printText(struct nc_state *state, int y, int x, char *text, int invertColors, int overrideMinX, int hasDynamicButtons) {
     int mx;
     int my;
     getmaxyx(stdscr, my, mx);
@@ -463,7 +463,7 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
     unsigned int linkIdx1 = 0;
     unsigned int linkIdx2 = 1;
     int tooManyLinks = 0;
-    char *buttonSpace = (char *) calloc(strlen(text) + 1, sizeof(char));
+    char *buttonSpace = (char *) calloc(len + 1, sizeof(char));
     int posx = 0;
     int posy = 0;
     for (int i = 0; i < len; i ++) {
@@ -554,11 +554,12 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                     if (tooManyLinks) {
                         break;
                     }
+                    int buttonSpaceLen = strlen(buttonSpace) - 1;
                     switch(text[i + 1]) {
                         case 'L': // Link
                             aboutToCreateButton = 0;
-                            buttonSpace[strlen(buttonSpace) - 1] = 0; // remove \ 
-                            buttonSpace[strlen(buttonSpace) - 1] = 0; // remove n
+                            buttonSpace[buttonSpaceLen] = 0; // remove \ 
+                            buttonSpace[buttonSpaceLen - 1] = 0; // remove n
                             char *addr = text + i + 2;
                             char *result = safeDecodeString(addr);
 
@@ -586,8 +587,8 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                             break;
                         case 'N': // NO-OP
                             aboutToCreateButton = 0;
-                            buttonSpace[strlen(buttonSpace) - 1] = 0; // remove \ 
-                            buttonSpace[strlen(buttonSpace) - 1] = 0; // remove n
+                            buttonSpace[buttonSpaceLen] = 0; // remove \ 
+                            buttonSpace[buttonSpaceLen - 1] = 0; // remove n
                             char *noopDescriptor = (char *) calloc(32, sizeof(char));
                             strcpy(noopDescriptor, "_temp_noop_");
                             noopDescriptor[strlen(noopDescriptor)] = linkIdx1;
@@ -702,39 +703,43 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                 continue;
             }
         }
-        if (realPosY + state->globalScrollY >= 0 && realPosX + state->globalScrollX >= 0 && realPosY + state->globalScrollY < my) {
-            int toPrint = text[i];
-            if (italics) {
-                toPrint = toPrint | A_ITALIC;
-            }
-
-            if (bold) {
-                toPrint = toPrint | A_BOLD;
-            }
-
-            if (underline) {
-                toPrint = toPrint | A_UNDERLINE;
-            }
-
-            if (strikethrough) {
-                // No ncurses support for strikethrough
-            }
-
-            if (invertColors) {
-                if (colorStackNum) {
-                    attron(COLOR_PAIR(256 - colorsP[colorStackNum - 1]));
-                } else {
-                    attron(COLOR_PAIR(255));
+        if (realPosY + state->globalScrollY < my) {
+            if (realPosY + state->globalScrollY >= 0 && realPosX + state->globalScrollX >= 0) {
+                int toPrint = text[i];
+                if (italics) {
+                    toPrint = toPrint | A_ITALIC;
                 }
-            } else {
-                if (colorStackNum) {
-                    attron(COLOR_PAIR(colorsP[colorStackNum - 1]));
-                } else {
-                    attron(COLOR_PAIR(1));
-                }
-            }
 
-            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, toPrint);
+                if (bold) {
+                    toPrint = toPrint | A_BOLD;
+                }
+
+                if (underline) {
+                    toPrint = toPrint | A_UNDERLINE;
+                }
+
+                if (strikethrough) {
+                    // No ncurses support for strikethrough
+                }
+
+                if (invertColors) {
+                    if (colorStackNum) {
+                        attron(COLOR_PAIR(256 - colorsP[colorStackNum - 1]));
+                    } else {
+                        attron(COLOR_PAIR(255));
+                    }
+                } else {
+                    if (colorStackNum) {
+                        attron(COLOR_PAIR(colorsP[colorStackNum - 1]));
+                    } else {
+                        attron(COLOR_PAIR(1));
+                    }
+                }
+
+                mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, toPrint);
+            }
+        } else if (!hasDynamicButtons) {
+            break;
         }
         realPosX ++;
         if (text[i] == '\n' || realPosX >= mx) {
@@ -757,7 +762,7 @@ void render_nc(struct nc_state *browserState) {
     int numTexts = browserState->numTexts;
     for (int i = 0; i < numTexts; i ++) {
         if (browserState->texts[i].visible) {
-            printText(browserState, browserState->texts[i].y, browserState->texts[i].x, browserState->texts[i].text, 0, -1);
+            printText(browserState, browserState->texts[i].y, browserState->texts[i].x, browserState->texts[i].text, 0, -1, 1);
         }
     }
     curs_set(0);
@@ -765,7 +770,15 @@ void render_nc(struct nc_state *browserState) {
     int numButtons = browserState->numButtons;
     for (int i = 0; i < numButtons; i ++) {
         if (browserState->buttons[i].visible) {
-            printText(browserState, browserState->buttons[i].y, getButtonX(browserState->buttons[i]), browserState->buttons[i].text, browserState->buttons[i].selected, browserState->buttons[i].overrideMinX);
+            printText(
+                browserState,
+                browserState->buttons[i].y,
+                getButtonX(browserState->buttons[i]),
+                browserState->buttons[i].text,
+                browserState->buttons[i].selected,
+                browserState->buttons[i].overrideMinX,
+                0
+            );
         }
     }
 
