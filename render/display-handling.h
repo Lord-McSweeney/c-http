@@ -790,8 +790,8 @@ void render_nc(struct nc_state *browserState) {
                 char *resolvedLnk = http_resolveRelativeURL(http_url_from_string(browserState->currentPageUrl), browserState->currentPageUrl, lnk);
                 printText(
                     browserState,
-                    my - 1,
-                    mx - strlen(resolvedLnk),
+                    (my - browserState->globalScrollY) - 1,
+                    (mx - browserState->globalScrollX) - strlen(resolvedLnk),
                     doubleStringBackslashes(resolvedLnk),
                     1,
                     -1,
