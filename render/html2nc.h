@@ -120,6 +120,7 @@ char *recursiveXMLToText(
     int originalHTMLLen,
     int uppercase,
     int listNestAmount,
+    int *jhiibwt,
     struct css_persistent_styles *persistentStyles,
     char *baseURL,
     void *ptr,
@@ -133,7 +134,7 @@ char *recursiveXMLToText(
     int currentOrderedListNum = 1;
 
     int alreadySetOrderedListNum = 0;
-    int justHadInlineInsideBlockWithText = 0;
+    int justHadInlineInsideBlockWithText = *jhiibwt;
     int hasBlocked = 0;
 
     for (int i = 0; i < xml.count; i ++) {
@@ -157,6 +158,7 @@ char *recursiveXMLToText(
             free(allocated);
             hasBlocked = 0;
             justHadInlineInsideBlockWithText = 1;
+            *jhiibwt = 1;
             continue; // necesssary because justHadInlineInsideBlockWithText gets reset at the end of the loop
         } else if (node.type == NODE_ELEMENT) {
             struct xml_attrib_result attrib_result = XML_parseAttributes(node.attribute_content);
@@ -226,6 +228,7 @@ char *recursiveXMLToText(
                     originalHTMLLen,
                     0,
                     0,
+                    (int *) calloc(1, sizeof(int)),
                     persistentStyles,
                     baseURL,
                     ptr,
@@ -375,6 +378,8 @@ char *recursiveXMLToText(
                     }
                 }
 
+                int had = justHadInlineInsideBlockWithText;
+
                 char *text = recursiveXMLToText(
                     &node,
                     node.children,
@@ -382,6 +387,7 @@ char *recursiveXMLToText(
                     originalHTMLLen,
                     (hLevel >= 2) || uppercase,
                     listNestAmount,
+                    jhiibwt,
                     persistentStyles,
                     baseURL,
                     ptr,
@@ -390,6 +396,9 @@ char *recursiveXMLToText(
                     onComplete,
                     onError
                 );
+
+                justHadInlineInsideBlockWithText = had || *jhiibwt;
+                *jhiibwt = justHadInlineInsideBlockWithText;
 
                 int wasDisplayed = text[0] != 0;
 
@@ -411,6 +420,7 @@ char *recursiveXMLToText(
                     freeXMLAttributes(attributes);
                     freeXMLAttributes(parent_attributes);
                     justHadInlineInsideBlockWithText = 1;
+                    *jhiibwt = 1;
                     hasBlocked = 0;
                     continue;
                 }
@@ -422,6 +432,7 @@ char *recursiveXMLToText(
                     freeXMLAttributes(attributes);
                     freeXMLAttributes(parent_attributes);
                     justHadInlineInsideBlockWithText = 1;
+                    *jhiibwt = 1;
                     hasBlocked = 0;
                     continue;
                 }
@@ -468,6 +479,7 @@ char *recursiveXMLToText(
                     freeXMLAttributes(attributes);
                     freeXMLAttributes(parent_attributes);
                     justHadInlineInsideBlockWithText = 1;
+                    *jhiibwt = 1;
                     hasBlocked = 0;
                     continue;
                 }
@@ -519,6 +531,7 @@ char *recursiveXMLToText(
                     freeXMLAttributes(attributes);
                     freeXMLAttributes(parent_attributes);
                     justHadInlineInsideBlockWithText = 1;
+                    *jhiibwt = 1;
                     hasBlocked = 0;
                     continue;
                 }
@@ -536,6 +549,7 @@ char *recursiveXMLToText(
             freeXMLAttributes(parent_attributes);
         }
         justHadInlineInsideBlockWithText = 0;
+        *jhiibwt = 0;
     }
     
     char *copy = makeStrCpy(alloc);
@@ -559,7 +573,22 @@ struct html2nc_result htmlToText(
     state.title = NULL;
     
     struct html2nc_result result;
-    result.text = recursiveXMLToText(NULL, xml, &state, strlen(originalHTML), 0, 0, &persistentStyles, baseURL, ptr, onStart, onProgress, onComplete, onError);
+    result.text = recursiveXMLToText(
+        NULL,
+        xml,
+        &state,
+        strlen(originalHTML),
+        0,
+        0,
+        (int *) calloc(1, sizeof(int)),
+        &persistentStyles,
+        baseURL,
+        ptr,
+        onStart,
+        onProgress,
+        onComplete,
+        onError
+    );
 
     // Default title, if title wasn't set
     if (state.title == NULL) {
