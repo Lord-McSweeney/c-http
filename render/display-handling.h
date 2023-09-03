@@ -3,6 +3,7 @@
 
 #include <ncurses.h>
 
+#include "../http/url.h"
 #include "../utils/string.h"
 
 typedef void (*clickHandler)(void *, char *);
@@ -758,6 +759,9 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
 }
 
 void render_nc(struct nc_state *browserState) {
+    int my;
+    int mx;
+
     clear();
     int numTexts = browserState->numTexts;
     for (int i = 0; i < numTexts; i ++) {
@@ -770,15 +774,30 @@ void render_nc(struct nc_state *browserState) {
     int numButtons = browserState->numButtons;
     for (int i = 0; i < numButtons; i ++) {
         if (browserState->buttons[i].visible) {
+            struct nc_button btn = browserState->buttons[i];
             printText(
                 browserState,
-                browserState->buttons[i].y,
+                btn.y,
                 getButtonX(browserState->buttons[i]),
-                browserState->buttons[i].text,
-                browserState->buttons[i].selected,
-                browserState->buttons[i].overrideMinX,
+                btn.text,
+                btn.selected,
+                btn.overrideMinX,
                 0
             );
+            if (btn.selected && !strncmp(btn.descriptor, "_temp_linkto_", 13)) {
+                getmaxyx(stdscr, my, mx);
+                char *lnk = btn.descriptor + 15;
+                char *resolvedLnk = http_resolveRelativeURL(http_url_from_string(browserState->currentPageUrl), browserState->currentPageUrl, lnk);
+                printText(
+                    browserState,
+                    my - 1,
+                    mx - strlen(resolvedLnk),
+                    doubleStringBackslashes(resolvedLnk),
+                    1,
+                    -1,
+                    0
+                );
+            }
         }
     }
 
@@ -803,8 +822,7 @@ void render_nc(struct nc_state *browserState) {
             attron(COLOR_PAIR(1));
         }
     }
-    int my;
-    int mx;
+
     getmaxyx(stdscr, my, mx);
     for (int i = 0; i < numTextAreas; i ++) {
         if (browserState->text_areas[i].selected) {

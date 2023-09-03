@@ -99,6 +99,7 @@ char *onredirecthandler(void *ptr, char *to, int num) {
 
 void onredirectsuccesshandler(void *ptr, char *to, int num) {
     struct nc_state *state = (struct nc_state *) ptr;
+    state->currentPageUrl = makeStrCpy(to);
     setTextOf(getTextAreaByDescriptor(state, "urlField"), to);
 }
 
