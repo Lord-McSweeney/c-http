@@ -1,3 +1,4 @@
+#include "../utils/log.h"
 #include "../xml/attributes.h"
 
 #include "block-inline.h"
@@ -161,7 +162,7 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
             styling.strikethrough = 0;
             styling.underline = 0;
         } else {
-            fprintf(stderr, "Warning: Unsupported text-decoration \"%s\"\n", textDecorationStyle);
+            log_warn("Unsupported text-decoration \"%s\"\n", textDecorationStyle);
         }
     }
 

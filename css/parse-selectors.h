@@ -1,3 +1,4 @@
+#include "../utils/log.h"
 #include "../utils/string.h"
 
 #ifndef _CSS_SELECTORS
@@ -84,7 +85,7 @@ struct css_selector_info CSS_parseSelector(char *string) {
                     currentIndex = 0;
                 } else {
                     if (currentContentUsage > 510) {
-                        fprintf(stderr, "Warning: Content usage exceeded maximum content usage while recording a class!");
+                        log_warn("Content usage exceeded maximum content usage while recording a class!");
                     } else {
                         currentContent[currentContentUsage] = curChar;
                         currentContentUsage ++;
@@ -113,7 +114,7 @@ struct css_selector_info CSS_parseSelector(char *string) {
                     currentIndex = 0;
                 } else {
                     if (currentContentUsage > 510) {
-                        fprintf(stderr, "Warning: Content usage exceeded maximum content usage while recording a class!");
+                        log_warn("Content usage exceeded maximum content usage while recording a class!");
                     } else {
                         currentContent[currentContentUsage] = curChar;
                         currentContentUsage ++;
@@ -145,7 +146,7 @@ struct css_selector_info CSS_parseSelector(char *string) {
                     currentIndex = 0;
                 } else {
                     if (currentContentUsage > 510) {
-                        fprintf(stderr, "Warning: Content usage exceeded maximum content usage while recording ID!");
+                        log_warn("Content usage exceeded maximum content usage while recording ID!");
                     } else {
                         currentContent[currentContentUsage] = curChar;
                         currentContentUsage ++;

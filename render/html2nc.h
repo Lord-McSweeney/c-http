@@ -5,6 +5,7 @@
 #include "../css/styles.h"
 #include "../http/url.h"
 #include "../navigation/download.h"
+#include "../utils/log.h"
 #include "../utils/string.h"
 #include "../xml/html.h"
 #include "../xml/attributes.h"
@@ -247,7 +248,7 @@ char *recursiveXMLToText(
             if (!strcmp(lower, "style")) {
                 char *lowerParent = !parent ? makeStrCpy("no parent") : toLowerCase(parent->name);
                 if (strcmp(lowerParent, "head") && strcmp(lowerParent, "noscript")) {
-                    fprintf(stderr, "Warning: <style> tag in invalid place (%s)\n", lowerParent);
+                    log_warn("<style> tag in invalid place (%s)\n", lowerParent);
                 }
                 char *type = XML_getAttributeByName(attributes, "type");
                 if (!type || !strcmp(type, "text/css")) {
@@ -255,13 +256,13 @@ char *recursiveXMLToText(
                         if (node.children.nodes[0].text_content) {
                             CSS_applyStyleData(persistentStyles, node.children.nodes[0].text_content);
                         } else {
-                            fprintf(stderr, "Warning: <style> tag had child with no text content\n");
+                            log_warn("<style> tag had child with no text content\n");
                         }
                     } else {
-                        fprintf(stderr, "Warning: <style> tag had no child nodes\n");
+                        log_warn("<style> tag had no child nodes\n");
                     }
                 } else {
-                    fprintf(stderr, "Warning: <style> tag with unknown type (%s)\n", type);
+                    log_warn("<style> tag with unknown type (%s)\n", type);
                 }
                 free(lowerParent);
             }
@@ -297,10 +298,10 @@ char *recursiveXMLToText(
 
                             onComplete(ptr);
                         } else {
-                            fprintf(stderr, "Warning: <link rel=\"stylesheet\"> with no href attribute\n");
+                            log_warn("<link rel=\"stylesheet\"> with no href attribute\n");
                         }
                     } else {
-                        fprintf(stderr, "Warning: <link rel=\"stylesheet\"> with invalid type attribute (%s)\n", type);
+                        log_warn("<link rel=\"stylesheet\"> with invalid type attribute (%s)\n", type);
                     }
                 }
             }
