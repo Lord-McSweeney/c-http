@@ -211,7 +211,7 @@ void onKeyPress(struct nc_state *browserState, int ch) {
                 }
             }
             browserState->shouldCheckAutoScroll = 1;
-            break;
+            return;
         case '\t':
         case KEY_RIGHT:
             browserState->selectableIndex ++;
@@ -232,7 +232,7 @@ void onKeyPress(struct nc_state *browserState, int ch) {
                 }
             }
             browserState->shouldCheckAutoScroll = 1;
-            break;
+            return;
         case 24: // CTRL+X
             closeCurrentWindow(browserState);
             break;
