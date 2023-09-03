@@ -228,7 +228,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
     int maxTextContent = 256; // This will be dynamically resized
     int maxDoctypeContent = 256;
     int maxElementName = 256;
-    int maxAttributeContent = 16384;
+    int maxAttributeContent = 256; // This will be dynamically resized
 
     char *currentTextContent = (char *) calloc(maxTextContent, sizeof(char));
     char *currentDoctypeContent = (char *) calloc(maxDoctypeContent, sizeof(char));
@@ -336,13 +336,9 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                     if (doneParsingName) {
                         currentAttributeContentUsage ++;
                         if (currentAttributeContentUsage > maxAttributeContent - 2) {
-                            free(currentTextContent);
-                            free(currentDoctypeContent);
-                            free(currentElementName);
-                            free(currentAttributeContent);
-
-                            error_xml.error = 2;
-                            return error_xml;
+                            currentAttributeContent = (char *) realloc(currentAttributeContent, maxAttributeContent * 2);
+                            memset(currentAttributeContent + maxAttributeContent, 0, maxAttributeContent);
+                            maxAttributeContent *= 2;
                         }
                         currentAttributeContent[strlen(currentAttributeContent)] = curChar;
                     }
@@ -477,13 +473,9 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                     } else {
                         currentAttributeContentUsage ++;
                         if (currentAttributeContentUsage > maxAttributeContent - 2) {
-                            free(currentTextContent);
-                            free(currentDoctypeContent);
-                            free(currentElementName);
-                            free(currentAttributeContent);
-
-                            error_xml.error = 2;
-                            return error_xml;
+                            currentAttributeContent = (char *) realloc(currentAttributeContent, maxAttributeContent * 2);
+                            memset(currentAttributeContent + maxAttributeContent, 0, maxAttributeContent);
+                            maxAttributeContent *= 2;
                         }
                         currentAttributeContent[strlen(currentAttributeContent)] = curChar;
                     }
