@@ -50,7 +50,7 @@ struct http_response downloadPage(
     onredirecterror onredirecterrorhandler
 ) {
     struct http_response parsedResponse = http_makeHTTPRequest(*url, userAgent, handler, finishHandler, ptr);
-    
+
     if (parsedResponse.error) {
         char *handlerResult = onerrorhandler(ptr, parsedResponse.error);
         return HTTP_responseFromString(handlerResult, 0);

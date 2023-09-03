@@ -246,7 +246,7 @@ void CSS_freePersistentStyles(struct css_persistent_styles *originalStyles) {
 
 void CSS_applyStyleData(struct css_persistent_styles *originalStyles, char *content) {
     int currentState = CSS_PARSE_OUTSIDE_BRACKET_WHITESPACE;
-    
+
     struct css_selectors currentSelector;
     currentSelector.selectors = NULL;
     currentSelector.count = 0;

@@ -39,13 +39,13 @@ struct http_url *http_url_from_string(char *string) {
     struct http_url *result_mem = (struct http_url*) calloc(1, sizeof(struct http_url));
 
     int urllen = strlen(string);
-    
+
     char *protocol = (char *) calloc(urllen + 2, sizeof(char));
     char *hostname = (char *) calloc(urllen + 2, sizeof(char));
     char *port = (char *) calloc(urllen + 6, sizeof(char));
     char *path = (char *) calloc(urllen + 2, sizeof(char));
     char *fragment = (char *) calloc(urllen + 1, sizeof(char));
-    
+
     int currentState = HTTP_PROTOCOL;
     int currentIndex = 1;
     int isIp = 0;
@@ -90,7 +90,7 @@ struct http_url *http_url_from_string(char *string) {
                     break;
                 }
 
-                // Protocols cannot have periods inside them; if they do, turns out we were parsing a hostname 
+                // Protocols cannot have periods inside them; if they do, turns out we were parsing a hostname
                 if (curChar == '.') {
                     didGetToProtocolEnd = 1;
                     i = -1;

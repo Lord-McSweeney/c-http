@@ -258,7 +258,7 @@ struct nc_text_area createNewTextarea(struct nc_state *state, int x, int y, int 
 
     state->text_areas[state->numTextAreas] = textarea;
     state->numTextAreas ++;
-    
+
     state->selectables = (struct nc_selected *) realloc(state->selectables, (state->numSelectables + 1) * sizeof(struct nc_selected));
     state->selectables[state->numSelectables] = selectableFromTextarea(&state->text_areas[state->numTextAreas - 1]);
     state->numSelectables ++;

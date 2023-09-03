@@ -171,7 +171,7 @@ char *XML_parseHTMLEscapes(const char *content) {
 struct xml_attrib_result XML_parseAttributes(char *inputString) {
     struct xml_attrib_result errResult;
     errResult.error = 1;
-    
+
     struct xml_attributes attribs;
     attribs.count = 0;
     attribs.attributes = NULL;
@@ -217,7 +217,7 @@ struct xml_attrib_result XML_parseAttributes(char *inputString) {
                 } else {
                     if (currentDataUsage > 4094) {
                         free(currentDataContent);
-    
+
                         errResult.error = 2;
                         return errResult;
                     }
@@ -240,7 +240,7 @@ struct xml_attrib_result XML_parseAttributes(char *inputString) {
                 } else {
                     if (currentDataUsage > 4094) {
                         free(currentDataContent);
-    
+
                         errResult.error = 2;
                         return errResult;
                     }
@@ -263,7 +263,7 @@ struct xml_attrib_result XML_parseAttributes(char *inputString) {
                 } else {
                     if (currentDataUsage > 4094) {
                         free(currentDataContent);
-    
+
                         errResult.error = 2;
                         return errResult;
                     }
@@ -302,7 +302,7 @@ struct xml_attrib_result XML_parseAttributes(char *inputString) {
                     hasStartedValue = 1;
                     if (currentDataUsage > 4094) {
                         free(currentDataContent);
-    
+
                         errResult.error = 2;
                         return errResult;
                     }

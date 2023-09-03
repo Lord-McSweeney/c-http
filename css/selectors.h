@@ -25,7 +25,7 @@ int CSS_selectorMatchesElement(struct css_selector_info selector, struct xml_nod
         if (!classList) return 0;
 
         struct split_string classes = splitStringWithWhitespaceDelimiter(classList);
-        
+
         for (int k = 0; k < selector.numClasses; k ++) {
             char *selectorClass = selector.classes[k];
             int matched = 0;

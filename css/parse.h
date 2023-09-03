@@ -142,7 +142,7 @@ void CSS_parseInlineStyles(struct css_styles *styles, char *inputString) {
                     currentStyle.name = trimString(currentDataContent);
                     currentDataUsage = 0;
                     clrStr(currentDataContent);
-                    
+
                     currentState = CSS_PARSE_STYLE_VALUE;
                 } else if (curChar == ';') {
                     currentState = CSS_PARSE_UNKNOWN;
@@ -176,7 +176,7 @@ void CSS_parseInlineStyles(struct css_styles *styles, char *inputString) {
                 break;
         }
     }
-    
+
     switch(currentState) {
         case CSS_PARSE_STYLE_IMPORTANT:
             currentStyle.important = !strcmp(trimString(currentDataContent), "important");

@@ -56,23 +56,23 @@ enum _http_internal_chunk_parser_state {
 struct chunked_response_state parseChunkedResponse(struct http_data body) {
     struct chunked_response_state errorStruct;
     errorStruct.error = 1;
-    
+
     struct http_data currentParsedData;
-    
+
     struct chunked_response_state responseStruct;
     responseStruct.finished = 0;
 
     responseStruct.current_chunked_data = body;
     responseStruct.was_incomplete = 0;
     responseStruct.error = 0;
-    
+
     char *overallBody = (char *) calloc(body.length, sizeof(char));
     int overallBodyLength = 0;
 
     char *currentLength = (char *) calloc(body.length, sizeof(char)); // this should probably be optimized and made smaller, but eh
     int currentLen = 0;
     int finished = 0;
-    
+
     int currentState = CHUNK_LENGTH;
     for (int i = 0; i < body.length; i ++) {
         char curChar = body.data[i];
@@ -90,7 +90,7 @@ struct chunked_response_state parseChunkedResponse(struct http_data body) {
                         finished = 1;
                         break;
                     }
-                    
+
                     int length = strlen(currentLength);
                     for (int j = 0; j < length; j ++) {
                         currentLength[j] = '\0';
@@ -127,13 +127,13 @@ struct chunked_response_state parseChunkedResponse(struct http_data body) {
 
     currentParsedData.data = overallBody;
     currentParsedData.length = overallBodyLength;
-    
+
     responseStruct.finished = finished;
     responseStruct.current_parsed_data = currentParsedData;
     if (currentLen > 0) {
         responseStruct.was_incomplete = 1;
     }
-    
+
     return responseStruct;
 }
 

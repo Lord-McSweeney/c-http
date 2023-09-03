@@ -54,7 +54,7 @@ char *getXMLTrimmedTextContent(const char *content, int removeStart) {
     int len = strlen(content);
     char *allocated = (char *) calloc(len + 1, sizeof(char));
     char *textContent = makeStrCpy(content);
-    
+
     int alreadyEncounteredSpace = 0;
     int alreadyEncounteredText = 0;
     if (removeStart) {
@@ -552,7 +552,7 @@ char *recursiveXMLToText(
         justHadInlineInsideBlockWithText = 0;
         *jhiibwt = 0;
     }
-    
+
     char *copy = makeStrCpy(alloc);
     free(alloc);
     return copy;
@@ -572,7 +572,7 @@ struct html2nc_result htmlToText(
 
     struct html2nc_state state;
     state.title = NULL;
-    
+
     struct html2nc_result result;
     result.text = recursiveXMLToText(
         NULL,

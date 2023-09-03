@@ -59,11 +59,11 @@ struct xml_node XML_createXMLElement(char *name) {
     node.name = name;
     node.text_content = NULL;
     node.attribute_content = (char *) calloc(1, sizeof(char));
-    
+
     struct xml_list children;
     children.count = 0;
     children.nodes = NULL;
-    
+
     node.children = children;
     node.type = NODE_ELEMENT;
     return node;
@@ -74,11 +74,11 @@ struct xml_node XML_createXMLText(char *text_content) {
     node.name = NULL;
     node.text_content = text_content;
     node.attribute_content = NULL;
-    
+
     struct xml_list children;
     children.count = 0;
     children.nodes = NULL;
-    
+
     node.children = children;
     node.type = NODE_TEXT;
     return node;
@@ -89,11 +89,11 @@ struct xml_node XML_createDoctype(char *text_content) {
     node.name = NULL;
     node.text_content = text_content;
     node.attribute_content = NULL; // TODO: can DOCTYPE's have attribs?
-    
+
     struct xml_list children;
     children.count = 0;
     children.nodes = NULL;
-    
+
     node.children = children;
     node.type = NODE_DOCTYPE;
     return node;
@@ -104,11 +104,11 @@ struct xml_node XML_createComment(char *text_content) {
     node.name = NULL;
     node.text_content = text_content;
     node.attribute_content = NULL;
-    
+
     struct xml_list children;
     children.count = 0;
     children.nodes = NULL;
-    
+
     node.children = children;
     node.type = NODE_COMMENT;
     return node;
@@ -217,11 +217,11 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
         response.closes_two = 0;
         return response;
     }
-    
+
     struct xml_list response;
     response.count = 0;
     response.nodes = NULL;
-    
+
     int currentState = PARSE_UNKNOWN;
     int currentIndex = 1;
 
@@ -234,20 +234,20 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
     char *currentDoctypeContent = (char *) calloc(maxDoctypeContent, sizeof(char));
     char *currentElementName = (char *) calloc(maxElementName, sizeof(char));
     char *currentAttributeContent = (char *) calloc(maxAttributeContent, sizeof(char));
-    
+
     int currentTextContentUsage = 0;
     int currentDoctypeContentUsage = 0;
     int currentElementNameUsage = 0;
     int currentAttributeContentUsage = 0;
-    
+
     int startedParsingName = 0;
     int doneParsingName = 0;
     int isEscapeEnabled = 0;
     int isInsideString = 0;
     int isInsideSingleQuoteString = 0;
-    
+
     int bytesParsed = 0;
-    
+
     for (int i = 0; i < xml_string.length; i ++) {
         char curChar = xml_string.data[i];
         char nextChar;
@@ -262,14 +262,14 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
         } else {
             nextChar2 = '\0';
         }
-        
+
         switch(currentState) {
             case PARSE_ELEMENT_TEXT:
                 if (curChar == '<') {
                     int isScriptTag = !strncmp(xml_string.data + i + 1, "/script>", 8);
                     int isStyleTag = !strncmp(xml_string.data + i + 1, "/style>", 7);
                     int isTitleTag = !strncmp(xml_string.data + i + 1, "/title>", 7);
-                    
+
                     // why, HTML?
                     if ((strcmp(closingTag, "script") || isScriptTag) && (strcmp(closingTag, "style") || isStyleTag) && (strcmp(closingTag, "title") || isTitleTag)) {
                         struct xml_node node = XML_createXMLText(makeStrCpy(currentTextContent));
@@ -331,7 +331,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                 if (curChar == '\\' && !isEscapeEnabled) {
                     isEscapeEnabled = 1;
                 }
-                
+
                 if (isWhiteSpace(curChar)) {
                     if (doneParsingName) {
                         currentAttributeContentUsage ++;

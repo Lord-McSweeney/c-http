@@ -33,7 +33,7 @@ enum _http_internal_response_parser_state {
     PARSE_HTTP_BODY,
 };
 
-struct http_header {    
+struct http_header {
     char *name;
     char *value;
     int type;
@@ -63,7 +63,7 @@ struct http_response HTTP_responseFromString(char *string, int is_html) {
     struct http_data data;
     data.length = strlen(string);
     data.data = string;
-    
+
     struct http_response res;
     res.response_code = 200;
     res.response_description = makeStrCpy("OK");
@@ -111,24 +111,24 @@ struct http_response parsePossiblyIncompleteHTTPResponse(struct http_data rawRes
         response.error = 195;
         return response;
     }
-    
+
     struct http_data response_body;
     response_body.length = 0;
     response_body.data = "";
-    
+
     char *statusCode = (char *) calloc(5, sizeof(char));
     char *statusName = (char *) calloc(rawResponse.length - 7, sizeof(char));
     char *body = (char *) calloc(rawResponse.length - 7, sizeof(char));
     int bodyLength = 0;
     struct http_header *headers = (struct http_header *) calloc(0, sizeof(struct http_header));
-    
+
     int currentState = PARSE_HTTP_VERSION;
     int currentIndex = 0;
     int numHeaders = 0;
     int contentLengthNotReturned = 1;
     for (int i = 0; i < rawResponse.length; i ++) {
         char curChar = rawResponse.data[i];
-        
+
         char nextChar;
         if (i + 1 < rawResponse.length) {
             nextChar = rawResponse.data[i + 1];

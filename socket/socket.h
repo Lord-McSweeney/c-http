@@ -66,7 +66,7 @@ struct socket_info rwsocket(const char *address, int portnum, char *senddata, ch
         errorStruct.error = -3;
         return errorStruct;
     }
-    
+
     int bytesRead = recv(socket_desc, server_reply, amount, 0);
 
     if (bytesRead < 0) {
