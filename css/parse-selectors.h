@@ -226,18 +226,22 @@ struct css_persistent_styles CSS_makePersistentStyles() {
     return styles;
 }
 
+void CSS_freeSelector(struct css_selector_info selector) {
+    if (selector.tagName) free(selector.tagName);
+    if (selector.id) free(selector.id);
+    for (int k = 0; k < selector.numClasses; k ++) {
+        free(selector.classes[k]);
+    }
+    if (selector.classes) free(selector.classes);
+}
+
 void CSS_freePersistentStyles(struct css_persistent_styles *originalStyles) {
     for (int i = 0; i < originalStyles->count; i ++) {
         struct css_selectors curSelectors = originalStyles->selectors[i];
         free(curSelectors.styleContent);
         for (int j = 0; j < curSelectors.count; j ++) {
             struct css_selector_info selector = curSelectors.selectors[j];
-            if (selector.tagName) free(selector.tagName);
-            if (selector.id) free(selector.id);
-            for (int k = 0; k < selector.numClasses; k ++) {
-                free(selector.classes[k]);
-            }
-            if (selector.classes) free(selector.classes);
+            CSS_freeSelector(selector);
         }
         free(curSelectors.selectors);
     }

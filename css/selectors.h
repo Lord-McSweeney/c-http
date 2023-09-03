@@ -5,6 +5,9 @@
 #include "../xml/html.h"
 
 int CSS_selectorMatchesElement(struct css_selector_info selector, struct xml_node *node, struct xml_attributes *attribs) {
+    if (selector.any) return 1;
+    if (selector.matches_nothing) return 0;
+
     if (selector.tagName) {
         if (strcmp(selector.tagName, node->name)) {
             return 0;
@@ -43,20 +46,17 @@ int CSS_selectorMatchesElement(struct css_selector_info selector, struct xml_nod
     return 1;
 }
 
-int isSelectorSimple(char *selector) {
-    // technically this also includes everything from isSelectorUnsupported, but that stuff was already checked
-    return !stringContainsAny(selector, ".#()\"");
-}
+int CSS_doesSelectorMatchList(struct css_selector_info selector, struct xml_list list) {
+    int elemCount = list.count;
+    for (int i = 0; i < elemCount; i ++) {
+        struct xml_attrib_result res = XML_parseAttributes(list.nodes[i].attribute_content);
+        if (res.error) continue;
 
-int isSelectorUnsupported(char *selector) {
-    return stringContainsAny(selector, " |:+~>^$[]*=");
-}
-
-int doesSelectorMatchNode(struct css_selector_info selector, struct xml_node *node, struct xml_attributes *attribs) {
-    if (selector.any) return 1;
-    if (selector.matches_nothing) return 0;
-
-    return CSS_selectorMatchesElement(selector, node, attribs);
+        if (CSS_selectorMatchesElement(selector, &list.nodes[i], res.attribs)) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 void CSS_getCSSTextForNode(struct css_styles *styles, struct xml_node *node, struct xml_attributes *attribs, struct css_persistent_styles *persistentStyles) {
@@ -65,7 +65,7 @@ void CSS_getCSSTextForNode(struct css_styles *styles, struct xml_node *node, str
         struct css_selectors curSelectors = persistentStyles->selectors[i];
         for (int j = 0; j < curSelectors.count; j ++) {
             struct css_selector_info selector = curSelectors.selectors[j];
-            if (doesSelectorMatchNode(selector, node, attribs)) {
+            if (CSS_selectorMatchesElement(selector, node, attribs)) {
                 CSS_parseInlineStyles(styles, curSelectors.styleContent);
             }
         }

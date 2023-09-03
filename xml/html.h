@@ -43,7 +43,10 @@ struct xml_node {
     char *name;         // should only be present for element nodes
     char *text_content; // should only be present for text nodes/doctype nodes
     char *attribute_content;
+
+    struct xml_node *parent;
     struct xml_list children;
+
     enum xml_node_type type;
 };
 
@@ -54,7 +57,7 @@ struct xml_response {
     int closes_two;
 };
 
-struct xml_node XML_createXMLElement(char *name) {
+struct xml_node XML_createXMLElement(char *name, struct xml_node *parent) {
     struct xml_node node;
     node.name = name;
     node.text_content = NULL;
@@ -65,11 +68,12 @@ struct xml_node XML_createXMLElement(char *name) {
     children.nodes = NULL;
 
     node.children = children;
+    node.parent = parent;
     node.type = NODE_ELEMENT;
     return node;
 }
 
-struct xml_node XML_createXMLText(char *text_content) {
+struct xml_node XML_createXMLText(char *text_content, struct xml_node *parent) {
     struct xml_node node;
     node.name = NULL;
     node.text_content = text_content;
@@ -80,11 +84,12 @@ struct xml_node XML_createXMLText(char *text_content) {
     children.nodes = NULL;
 
     node.children = children;
+    node.parent = parent;
     node.type = NODE_TEXT;
     return node;
 }
 
-struct xml_node XML_createDoctype(char *text_content) {
+struct xml_node XML_createDoctype(char *text_content, struct xml_node *parent) {
     struct xml_node node;
     node.name = NULL;
     node.text_content = text_content;
@@ -95,11 +100,12 @@ struct xml_node XML_createDoctype(char *text_content) {
     children.nodes = NULL;
 
     node.children = children;
+    node.parent = parent;
     node.type = NODE_DOCTYPE;
     return node;
 }
 
-struct xml_node XML_createComment(char *text_content) {
+struct xml_node XML_createComment(char *text_content, struct xml_node *parent) {
     struct xml_node node;
     node.name = NULL;
     node.text_content = text_content;
@@ -110,6 +116,7 @@ struct xml_node XML_createComment(char *text_content) {
     children.nodes = NULL;
 
     node.children = children;
+    node.parent = parent;
     node.type = NODE_COMMENT;
     return node;
 }
@@ -122,9 +129,24 @@ struct xml_list XML_createEmptyXMLList() {
 }
 
 void XML_appendChild(struct xml_list *parent, struct xml_node child) {
+    // TODO: Check that child is not in ancestors/descendants of parent
     parent->count ++;
     parent->nodes = (struct xml_node *) realloc(parent->nodes, sizeof(struct xml_node) * parent->count);
     parent->nodes[parent->count - 1] = child;
+}
+
+struct xml_list XML_ancestors(struct xml_node *node) {
+    struct xml_list response = XML_createEmptyXMLList();
+    int loop_guard = 0;
+    while (node->parent) {
+        if (loop_guard > 8192) {
+            log_err("Too high recursion (>8192) in XML_ancestors! Possible recursive XML");
+            return response;
+        }
+        XML_appendChild(&response, *node->parent);
+        loop_guard ++;
+    }
+    return response;
 }
 
 char *XML_nodeTypeToString(enum xml_node_type type) {
@@ -206,7 +228,7 @@ error codes:
 3: xml parsing failure: encountered a `...</`
 */
 
-struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *closingTag, char *parentClosingTag) {
+struct xml_response recursive_parse_xml_node(struct xml_node *parent, struct xml_data xml_string, char *closingTag, char *parentClosingTag) {
     struct xml_response error_xml;
     error_xml.error = 1;
 
@@ -272,7 +294,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
 
                     // why, HTML?
                     if ((strcmp(closingTag, "script") || isScriptTag) && (strcmp(closingTag, "style") || isStyleTag) && (strcmp(closingTag, "title") || isTitleTag)) {
-                        struct xml_node node = XML_createXMLText(makeStrCpy(currentTextContent));
+                        struct xml_node node = XML_createXMLText(makeStrCpy(currentTextContent), parent);
                         XML_appendChild(&response, node);
                         currentTextContentUsage = 0;
                         clrStr(currentTextContent);
@@ -391,7 +413,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                         free(lowerName);
                         free(lowerCurName);
                         if (html_isVoidElement(currentElementName)) {
-                            struct xml_node node = XML_createXMLElement(makeStrCpy(currentElementName));
+                            struct xml_node node = XML_createXMLElement(makeStrCpy(currentElementName), parent);
                             node.attribute_content = makeStrCpy(currentAttributeContent);
 
                             currentAttributeContentUsage = 0;
@@ -405,12 +427,16 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                             break;
                         }
 
+                        struct xml_node *node = (struct xml_node *) calloc(1, sizeof(struct xml_node));
+                        struct xml_node cnode = XML_createXMLElement(makeStrCpy(currentElementName), parent);
+                        memcpy(node, &cnode, sizeof(struct xml_node));
+
                         struct xml_data newData;
                         newData.data = xml_string.data + i + 1;
                         newData.length = xml_string.length - i;
 
                         char *copy = makeStrCpy(currentElementName);
-                        struct xml_response childResponse = recursive_parse_xml_node(newData, copy, closingTag);
+                        struct xml_response childResponse = recursive_parse_xml_node(node, newData, copy, closingTag);
                         free(copy);
 
                         i += childResponse.bytesParsed;
@@ -426,14 +452,12 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                             return error_xml;
                         }
 
-                        struct xml_node node = XML_createXMLElement(makeStrCpy(currentElementName));
-
-                        node.attribute_content = makeStrCpy(currentAttributeContent);
+                        node->attribute_content = makeStrCpy(currentAttributeContent);
                         currentAttributeContentUsage = 0;
                         clrStr(currentAttributeContent);
 
-                        node.children = childResponse.list;
-                        XML_appendChild(&response, node);
+                        node->children = childResponse.list;
+                        XML_appendChild(&response, *node);
                         currentElementNameUsage = 0;
                         clrStr(currentElementName);
                         currentIndex = 0;
@@ -483,7 +507,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                 break;
             case PARSE_ELEMENT_END_SLASH:
                 if (curChar == '>') {
-                    struct xml_node node = XML_createXMLElement(makeStrCpy(currentElementName));
+                    struct xml_node node = XML_createXMLElement(makeStrCpy(currentElementName), parent);
 
                     node.attribute_content = makeStrCpy(currentAttributeContent);
                     currentAttributeContentUsage = 0;
@@ -515,7 +539,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                         return error_xml;
                     }
                     if (html_isVoidElement(currentElementName)) {
-                        struct xml_node node = XML_createXMLElement(makeStrCpy(currentElementName));
+                        struct xml_node node = XML_createXMLElement(makeStrCpy(currentElementName), parent);
                         XML_appendChild(&response, node);
                         currentElementNameUsage = 0;
                         clrStr(currentElementName);
@@ -554,7 +578,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
 
                         return realResponse;
                     } else if (strcmp(lowerClose, "p") && !strcmp(lowerName, "p")) {
-                        struct xml_node elem = XML_createXMLElement(makeStrCpy(currentElementName));
+                        struct xml_node elem = XML_createXMLElement(makeStrCpy(currentElementName), parent);
                         XML_appendChild(&response, elem);
 
                         currentElementNameUsage = 0;
@@ -592,7 +616,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
             case PARSE_DOCTYPE:
                 if (curChar == '>') {
                     char *doctypeContent = makeStrCpy(currentDoctypeContent);
-                    struct xml_node node = XML_createDoctype(doctypeContent);
+                    struct xml_node node = XML_createDoctype(doctypeContent, parent);
                     XML_appendChild(&response, node);
                     currentDoctypeContentUsage = 0;
                     clrStr(currentDoctypeContent);
@@ -614,7 +638,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
                 break;
             case PARSE_COMMENT:
                 if (curChar == '-' && nextChar == '-' && nextChar2 == '>') {
-                    struct xml_node node = XML_createComment(makeStrCpy(currentTextContent));
+                    struct xml_node node = XML_createComment(makeStrCpy(currentTextContent), parent);
                     XML_appendChild(&response, node);
                     currentTextContentUsage = 0;
                     clrStr(currentTextContent);
@@ -654,7 +678,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
     }
 
     if (strlen(currentTextContent)) {
-        struct xml_node node = XML_createXMLText(makeStrCpy(currentTextContent));
+        struct xml_node node = XML_createXMLText(makeStrCpy(currentTextContent), parent);
         XML_appendChild(&response, node);
         currentTextContentUsage = 0;
         clrStr(currentTextContent);
@@ -675,7 +699,7 @@ struct xml_response recursive_parse_xml_node(struct xml_data xml_string, char *c
 }
 
 struct xml_response XML_parseXmlNodes(struct xml_data xml_string) {
-    return recursive_parse_xml_node(xml_string, "", "");
+    return recursive_parse_xml_node(NULL, xml_string, "", "");
 }
 
 #endif

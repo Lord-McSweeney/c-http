@@ -115,13 +115,13 @@ char *getInputRendered(char *text, int width) {
 }
 
 char *recursiveXMLToText(
-    struct xml_node *parent,
     struct xml_list xml,
     struct html2nc_state *state,
     int originalHTMLLen,
     int uppercase,
     int listNestAmount,
     int *jhiibwt,
+    int preformatted,
     struct css_persistent_styles *persistentStyles,
     char *baseURL,
     void *ptr,
@@ -143,7 +143,12 @@ char *recursiveXMLToText(
         if (node.type == NODE_DOCTYPE || node.type == NODE_COMMENT) {
             // ignore
         } else if (node.type == NODE_TEXT) {
-            char *text = getXMLTrimmedTextContent(node.text_content, justHadInlineInsideBlockWithText);
+            char *text;
+            if (preformatted) {
+                text = makeStrCpy(node.text_content);
+            } else {
+                text = getXMLTrimmedTextContent(node.text_content, justHadInlineInsideBlockWithText);
+            }
             char *allocated_no_double = XML_parseHTMLEscapes(text);
             char *allocated = doubleStringBackslashes(allocated_no_double);
             free(allocated_no_double);
@@ -171,10 +176,10 @@ char *recursiveXMLToText(
             }
 
             struct xml_attributes *parent_attributes;
-            if (parent == NULL) {
+            if (node.parent == NULL) {
                 parent_attributes = XML_makeEmptyAttributes();
             } else {
-                struct xml_attrib_result parent_attrib_result = XML_parseAttributes(parent->attribute_content);
+                struct xml_attrib_result parent_attrib_result = XML_parseAttributes(node.parent->attribute_content);
                 if (parent_attrib_result.error) {
                     parent_attributes = XML_makeEmptyAttributes();
                 } else {
@@ -184,8 +189,8 @@ char *recursiveXMLToText(
 
             struct css_styling elementStyling = CSS_getDefaultStylesFromElement(node, attributes, persistentStyles);
             struct css_styling parentStyling;
-            if (parent) {
-                parentStyling = CSS_getDefaultStylesFromElement(*parent, parent_attributes, persistentStyles);
+            if (node.parent) {
+                parentStyling = CSS_getDefaultStylesFromElement(*node.parent, parent_attributes, persistentStyles);
             } else {
                 parentStyling = CSS_getDefaultStyles();
             }
@@ -212,7 +217,7 @@ char *recursiveXMLToText(
                 !(
                     i == 0
                      && 
-                    parent
+                    node.parent
                      && 
                     CSS_isStyleBlock(parentStyling) // If we already had a block-level element as our parent and this is the first child, it doesn't count
                 )
@@ -223,13 +228,13 @@ char *recursiveXMLToText(
             // Only the first <title> is taken into account- the rest aren't special
             if (!strcmp(lower, "title") && state->title == NULL) {
                 state->title = recursiveXMLToText(
-                    &node,
                     node.children,
                     state,
                     originalHTMLLen,
                     0,
                     0,
                     (int *) calloc(1, sizeof(int)),
+                    0,
                     persistentStyles,
                     baseURL,
                     ptr,
@@ -246,7 +251,7 @@ char *recursiveXMLToText(
             }
 
             if (!strcmp(lower, "style")) {
-                char *lowerParent = !parent ? makeStrCpy("no parent") : toLowerCase(parent->name);
+                char *lowerParent = !node.parent ? makeStrCpy("no parent") : toLowerCase(node.parent->name);
                 if (strcmp(lowerParent, "head") && strcmp(lowerParent, "noscript")) {
                     log_warn("<style> tag in invalid place (%s)\n", lowerParent);
                 }
@@ -355,10 +360,10 @@ char *recursiveXMLToText(
                     free(tabs);
                     listNestAmount ++;
 
-                    if (parent == NULL) {
+                    if (node.parent == NULL) {
                         strcat(alloc, "\n - ");
                     } else {
-                        char *parentName = toLowerCase(parent->name);
+                        char *parentName = toLowerCase(node.parent->name);
                         if (!strcmp(parentName, "ol")) {
                             if (!alreadySetOrderedListNum) {
                                 char *startString = XML_getAttributeByName(parent_attributes, "start");
@@ -382,13 +387,13 @@ char *recursiveXMLToText(
                 int had = justHadInlineInsideBlockWithText;
 
                 char *text = recursiveXMLToText(
-                    &node,
                     node.children,
                     state,
                     originalHTMLLen,
                     (hLevel >= 2) || uppercase,
                     listNestAmount,
                     jhiibwt,
+                    !strcmp(lower, "pre") || preformatted,
                     persistentStyles,
                     baseURL,
                     ptr,
@@ -575,13 +580,13 @@ struct html2nc_result htmlToText(
 
     struct html2nc_result result;
     result.text = recursiveXMLToText(
-        NULL,
         xml,
         &state,
         strlen(originalHTML),
         0,
         0,
         (int *) calloc(1, sizeof(int)),
+        0,
         &persistentStyles,
         baseURL,
         ptr,
