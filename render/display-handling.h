@@ -101,8 +101,31 @@ struct nc_state {
 
     char *currentPageUrl;
 
+    char **scrollPointTexts;
+    int *scrollPointScrolls;
+    int numScrollPoints;
+
     // todo: add a forward/back buffer
 };
+
+void addScrollPoint(struct nc_state *state, char *name, int amount) {
+    state->numScrollPoints ++;
+
+    state->scrollPointTexts = (char **) realloc(state->scrollPointTexts, state->numScrollPoints * sizeof(char *));
+    state->scrollPointTexts[state->numScrollPoints - 1] = makeStrCpy(name);
+
+    state->scrollPointScrolls = (int *) realloc(state->scrollPointScrolls, state->numScrollPoints * sizeof(int));
+    state->scrollPointScrolls[state->numScrollPoints - 1] = amount;
+}
+
+int *getScrollPoint(struct nc_state *state, char *name) {
+    for (int i = 0; i < state->numScrollPoints; i ++) {
+        if (!strcmp(state->scrollPointTexts[i], name)) {
+            return &state->scrollPointScrolls[i];
+        }
+    }
+    return NULL;
+}
 
 struct nc_button *getButtonByDescriptor(struct nc_state *state, char *descriptor) {
     int num = state->numButtons;
@@ -424,6 +447,16 @@ void nc_templinkpresshandler(void *state, char *url) {}
 
 void nc_noopbuttonhandler(void *state, char *url) {}
 
+void nc_gotoscrollpoint(void *ptr, char *name) {
+    struct nc_state *state = (struct nc_state *) ptr;
+
+    name = name + 16; // Skip over extra information in the descriptor.
+    int *scrollPoint = getScrollPoint(state, name);
+    if (scrollPoint) {
+        state->globalScrollY = -(*scrollPoint);
+    }
+}
+
 void printText(struct nc_state *state, int y, int x, char *text, int invertColors, int overrideMinX, int hasDynamicButtons) {
     int mx;
     int my;
@@ -577,7 +610,12 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                                     linkButton->y = posy;
                                     free(linkDescriptor);
                                 } else {
-                                    createNewButton(state, posx, posy, makeStrCpy(buttonSpace), nc_templinkpresshandler, linkDescriptor);
+                                    if (result[0] == '#') {
+                                        // Fragment: Don't run through all the "goto page" logic
+                                        createNewButton(state, posx, posy, makeStrCpy(buttonSpace), nc_gotoscrollpoint, linkDescriptor);
+                                    } else {
+                                        createNewButton(state, posx, posy, makeStrCpy(buttonSpace), nc_templinkpresshandler, linkDescriptor);
+                                    }
                                     struct nc_button *linkButton = getButtonByDescriptor(state, linkDescriptor);
                                     linkButton->overrideMinX = minX;
                                 }
@@ -586,7 +624,17 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                             clrStr(buttonSpace);
                             i += safeGetEncodedStringLength(addr) + 1;
                             break;
-                        case 'N': // NO-OP
+                        case 'P': // Scroll point
+                            {
+                                char *addr = text + i + 2;
+                                char *result = safeDecodeString(addr);
+                                addScrollPoint(state, result, realPosY);
+
+                                free(result);
+                                i += safeGetEncodedStringLength(addr) + 1;
+                            }
+                            break;
+                        case 'N': // No-op button
                             aboutToCreateButton = 0;
                             buttonSpace[buttonSpaceLen] = 0; // remove \ 
                             buttonSpace[buttonSpaceLen - 1] = 0; // remove n

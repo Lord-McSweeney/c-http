@@ -376,6 +376,9 @@ int main(int argc, char **argv) {
     browserState.globalScrollY = 0;
     browserState.shouldCheckAutoScroll = 0;
     browserState.currentPageUrl = NULL;
+    browserState.scrollPointTexts = NULL;
+    browserState.scrollPointScrolls = NULL;
+    browserState.numScrollPoints = 0;
 
     browserState.buttons = (struct nc_button *) calloc(1, sizeof(struct nc_button));
 

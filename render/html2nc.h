@@ -311,6 +311,16 @@ char *recursiveXMLToText(
                 }
             }
 
+            char *id = XML_getAttributeByName(attributes, "id");
+            if (id) {
+                char *encoded = safeEncodeString(id);
+
+                strcat(alloc, "\\nP");
+                strcat(alloc, encoded);
+
+                free(encoded);
+            }
+
             if (!strcmp(lower, "br") && !CSS_isStyleHidden(elementStyling)) {
                 strcat(alloc, "\n");
             } else if (!strcmp(lower, "hr") && !CSS_isStyleHidden(elementStyling)) {
