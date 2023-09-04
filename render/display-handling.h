@@ -807,6 +807,8 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
 }
 
 void render_nc(struct nc_state *browserState) {
+    const double linkAddressScreenPercentage = 75; // The amount of space that the bottom text showing where a URL will go to can take up on the screen.
+
     int my;
     int mx;
 
@@ -832,20 +834,6 @@ void render_nc(struct nc_state *browserState) {
                 btn.overrideMinX,
                 0
             );
-            if (btn.selected && !strncmp(btn.descriptor, "_temp_linkto_", 13)) {
-                getmaxyx(stdscr, my, mx);
-                char *lnk = btn.descriptor + 15;
-                char *resolvedLnk = http_resolveRelativeURL(http_url_from_string(browserState->currentPageUrl), browserState->currentPageUrl, lnk);
-                printText(
-                    browserState,
-                    (my - browserState->globalScrollY) - 1,
-                    (mx - browserState->globalScrollX) - strlen(resolvedLnk),
-                    doubleStringBackslashes(resolvedLnk),
-                    1,
-                    -1,
-                    0
-                );
-            }
         }
     }
 
@@ -883,6 +871,27 @@ void render_nc(struct nc_state *browserState) {
                     browserState->text_areas[i].x + browserState->globalScrollX + strlen(browserState->text_areas[i].currentText) - browserState->text_areas[i].scrolledAmount
                 );
                 curs_set(1);
+            }
+        }
+    }
+
+    for (int i = 0; i < numButtons; i ++) {
+        if (browserState->buttons[i].visible) {
+            struct nc_button btn = browserState->buttons[i];
+            if (btn.selected && !strncmp(btn.descriptor, "_temp_linkto_", 13)) {
+                getmaxyx(stdscr, my, mx);
+                char *lnk = btn.descriptor + 15;
+                char *resolvedLnk = http_resolveRelativeURL(http_url_from_string(browserState->currentPageUrl), browserState->currentPageUrl, lnk);
+                char *shortenedLink = shortenStringWithEllipses(resolvedLnk, mx*(linkAddressScreenPercentage/100.0));
+                printText(
+                    browserState,
+                    (my - browserState->globalScrollY) - 1,
+                    (mx - browserState->globalScrollX) - strlen(shortenedLink),
+                    doubleStringBackslashes(shortenedLink),
+                    1,
+                    -1,
+                    0
+                );
             }
         }
     }

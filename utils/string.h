@@ -195,6 +195,19 @@ int stringContainsAny(char *string, char *possibilities) {
     return 0;
 }
 
+char *shortenStringWithEllipses(const char *string, unsigned int amount) {
+    int len = strlen(string);
+    char *cpy = makeStrCpy(string);
+    if (amount >= len - 2) {
+        return cpy;
+    }
+    cpy[amount] = '.';
+    cpy[amount + 1] = '.';
+    cpy[amount + 2] = '.';
+    cpy[amount + 3] = '\0';
+    return cpy;
+}
+
 char *toLowerCase(const char *text) {
     int len = strlen(text);
     char *allocated = (char *) calloc(len + 1, sizeof(char));
