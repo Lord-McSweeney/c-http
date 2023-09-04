@@ -114,8 +114,11 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
 
     // Should these be set from some sort of embedded stylesheet rather than being hard-coded in?
     if (!strcmp(lower, "a")) {
-        styling.color = CSS_COLOR_BLUE;
-        styling.underline = 1;
+        char *href = XML_getAttributeByName(attribs, "href");
+        if (href) {
+            styling.color = CSS_COLOR_BLUE;
+            styling.underline = 1;
+        }
     }
     if (!strcmp(lower, "b") || !strcmp(lower, "strong")) {
         styling.bold = 1;
