@@ -170,6 +170,21 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
     }
 
 
+    char *fontWeightStyle = CSS_getStyleByName(styles, "font-weight");
+    if (fontWeightStyle != NULL) {
+        // FIXME: This isn't entirely correct, changing bold to 0 inside a block of bold = 1
+        // should actually remove bolding, but this implementation doesn't do that
+
+        if (!strcmp(fontWeightStyle, "bold")) {
+            styling.bold = 1;
+        } else if (!strcmp(fontWeightStyle, "normal")) {
+            styling.bold = 0;
+        } else {
+            log_warn("Unsupported font-weight \"%s\"\n", fontWeightStyle);
+        }
+    }
+
+
     char *colorStyle = CSS_getStyleByName(styles, "color");
     if (colorStyle != NULL) {
         if (!strcmp(colorStyle, "blue")) {
@@ -180,6 +195,8 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
             styling.color = CSS_COLOR_RED;
         } else if (!strcmp(colorStyle, "wheat")) {
             styling.color = CSS_COLOR_WHEAT;
+        } else {
+            log_warn("Unsupported color \"%s\"\n", colorStyle);
         }
     }
 

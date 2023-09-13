@@ -274,40 +274,48 @@ char *recursiveXMLToText(
 
             if (!strcmp(lower, "link")) {
                 char *rel = XML_getAttributeByName(attributes, "rel");
-                if (rel && !strcmp(rel, "stylesheet")) {
-                    char *type = XML_getAttributeByName(attributes, "type");
-                    if (!type || (!strcmp(type, "text/css") || !strcmp(type, ""))) {
-                        char *href = XML_getAttributeByName(attributes, "href");
-                        if (href) {
-                            onStart(ptr, href);
-                            struct http_url *url = http_url_from_string(baseURL);
+                if (rel) {
+                    char *lowerRel = toLowerCase(rel);
+                    if (!strcmp(lowerRel, "stylesheet")) {
+                        char *type = XML_getAttributeByName(attributes, "type");
+                        if (!type || (!strcmp(type, "text/css") || !strcmp(type, ""))) {
+                            char *href = XML_getAttributeByName(attributes, "href");
+                            if (href) {
+                                onStart(ptr, href);
+                                struct http_url *url = http_url_from_string(baseURL);
 
-                            char *absoluteURL = http_resolveRelativeURL(url, baseURL, href);
+                                char *absoluteURL = http_resolveRelativeURL(url, baseURL, href);
 
-                            struct http_response initialResponse = downloadPage(
-                                ptr,
-                                "uqers",
-                                &absoluteURL,
-                                onProgress,
-                                NULL,
-                                0,
-                                onError,
-                                defaultonredirecthandler,
-                                defaultonredirectsuccesshandler,
-                                defaultonredirecterrorhandler
-                            );
-                            // Should this check the content type of the response?
+                                struct http_response initialResponse = downloadPage(
+                                    ptr,
+                                    "uqers",
+                                    &absoluteURL,
+                                    onProgress,
+                                    NULL,
+                                    0,
+                                    onError,
+                                    defaultonredirecthandler,
+                                    defaultonredirectsuccesshandler,
+                                    defaultonredirecterrorhandler
+                                );
+                                // Should this check the content type of the response?
 
-                            char *styling = initialResponse.response_body.data;
-                            CSS_applyStyleData(persistentStyles, styling);
+                                char *styling = initialResponse.response_body.data;
+                                CSS_applyStyleData(persistentStyles, styling);
 
-                            onComplete(ptr);
+                                onComplete(ptr);
+                            } else {
+                                log_warn("<link rel=\"stylesheet\"> with no href attribute\n");
+                            }
                         } else {
-                            log_warn("<link rel=\"stylesheet\"> with no href attribute\n");
+                            log_warn("<link rel=\"stylesheet\"> with invalid type attribute (%s)\n", type);
                         }
                     } else {
-                        log_warn("<link rel=\"stylesheet\"> with invalid type attribute (%s)\n", type);
+                        log_warn("<link> with unknown rel attribute (%s)\n", rel);
                     }
+                    free(lowerRel);
+                } else {
+                    log_warn("<link> without rel attribute\n");
                 }
             }
 
@@ -497,6 +505,32 @@ char *recursiveXMLToText(
                     justHadInlineInsideBlockWithText = 1;
                     *jhiibwt = 1;
                     hasBlocked = 0;
+
+                    if (elementStyling.bold || hLevel >= 1) {
+                        strcat(alloc, "\\c");
+                    }
+                    switch (elementStyling.color) {
+                        case CSS_COLOR_RED:
+                        case CSS_COLOR_GREEN:
+                        case CSS_COLOR_BLUE:
+                        case CSS_COLOR_WHEAT:
+                            strcat(alloc, "\\0");
+                            break;
+                    }
+                    if (elementStyling.underline) {
+                        strcat(alloc, "\\r");
+                    }
+                    if (elementStyling.italic) {
+                        strcat(alloc, "\\j");
+                    }
+                    if (elementStyling.tabbed) {
+                        strcat(alloc, "\\u");
+                    }
+
+                    if (elementStyling.pointer_events == POINTER_EVENTS_ALL || elementStyling.pointer_events == POINTER_EVENTS_NONE) {
+                        strcat(alloc, "\\f");
+                    }
+
                     continue;
                 }
 
