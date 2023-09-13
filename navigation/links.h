@@ -252,12 +252,9 @@ void ongotourl(void *state, char *_) {
         render_nc(realState);
 
         struct http_url *finalURL = http_url_from_string(realState->currentPageUrl);
-        log_err("Checking fragment... (cpu: %s)\n", realState->currentPageUrl);
         if (finalURL->had_explicit_fragment && finalURL->fragment[0]) {
-            log_err("Existed! frag was %s\n", finalURL->fragment);
             int *scrollPoint = getScrollPoint(realState, finalURL->fragment);
             if (scrollPoint) {
-                log_err("It existed!");
                 realState->globalScrollY = -(*scrollPoint);
             }
         }

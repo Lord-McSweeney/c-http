@@ -260,7 +260,7 @@ void onKeyPress(struct nc_state *browserState, int ch) {
             }
         }
     }
-    
+
     struct nc_button *button = getCurrentSelectedButton(browserState);
     if (button != NULL) {
         if (ch == 10) {
