@@ -602,7 +602,9 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                             linkDescriptor[strlen(linkDescriptor)] = linkIdx1;
                             linkDescriptor[strlen(linkDescriptor)] = linkIdx2;
                             strcat(linkDescriptor, result);
-                            if (!clickableStack[clickableStackNum - 1]) {
+
+                            // pointer-events: none; is a little glitchy due to unsupported styles, ignore it for now
+                            if (1 || !clickableStack[clickableStackNum - 1]) {
                                 if (getButtonByDescriptor(state, linkDescriptor)) {
                                     // Already exists, don't create again, but do update position
                                     struct nc_button *linkButton = getButtonByDescriptor(state, linkDescriptor);
@@ -643,7 +645,9 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                             noopDescriptor[strlen(noopDescriptor)] = linkIdx1;
                             noopDescriptor[strlen(noopDescriptor)] = linkIdx2;
                             strcat(noopDescriptor, "NOOP");
-                            if (!clickableStack[clickableStackNum - 1]) {
+
+                            // pointer-events: none; is a little glitchy due to unsupported styles, ignore it for now
+                            if (1 || !clickableStack[clickableStackNum - 1]) {
                                 if (getButtonByDescriptor(state, noopDescriptor)) {
                                     // Already exists, don't create again, but do update position
                                     struct nc_button *noopButton = getButtonByDescriptor(state, noopDescriptor);
