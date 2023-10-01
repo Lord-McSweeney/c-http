@@ -103,8 +103,8 @@ struct http_response http_makeNetworkHTTPRequest(
     errorResponse.error = 1;
 
     int curBufLen = maxInitialResponseSize;
-    char *buffer = (char *) calloc(maxInitialResponseSize, sizeof(char)); // this should be dynamically returned by rwsocket, but 1mb is probably good for now
-    char *ipBuffer = (char *) calloc(4096, sizeof(char)); // this should be dynamic, but 4kb is probably good
+    char *buffer = (char *) calloc(maxInitialResponseSize, sizeof(char)); // this should be dynamically returned by rwsocket, but 8kb is probably good for now
+    char *ipBuffer = (char *) calloc(2048, sizeof(char)); // this should be dynamic, but 2kb is probably good
 
     char *cookieString = HTTP_cookieStoreToString(HTTP_globalCookieStore, url->hostname);
     char *baseString = (char *) calloc(64 + strlen(url->path) + strlen(url->hostname) + strlen(userAgent) + strlen(cookieString), sizeof(char));
@@ -268,6 +268,7 @@ struct http_response http_makeNetworkHTTPRequest(
             free(parsedResponse.response_body.data);
             parsedResponse.response_body = chunkedResponse.current_parsed_data;
         }
+        free(chunkedResponse.current_chunked_data.data);
         if (finishHandler != NULL) finishHandler(chunkArg);
     } else if (parsedResponse.content_length == -2) {
         // This is pretty normal, no reason to warn

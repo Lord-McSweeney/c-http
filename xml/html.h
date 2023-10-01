@@ -390,6 +390,8 @@ struct xml_response recursive_parse_xml_node(struct xml_node *parent, struct xml
                         int isParagraphClose = (!strcmp(lowerName, "p") || !strcmp(lowerNameParent, "p")) && CSS_isDefaultBlock(currentElementName);
                         int isListClose = !strcmp(lowerName, "li") && !strcmp(lowerCurName, "li");
 
+                        free(lowerNameParent);
+
                         if (isParagraphClose || isListClose) {
                             int amt = strlen(currentElementName) + 1;
                             if (currentAttributeContent[0] != 0) {

@@ -64,6 +64,9 @@ struct css_selector_info CSS_parseSelector(char *string) {
             result.id = NULL;
             result.numClasses = 0;
             result.matches_nothing = 1;
+
+            free(currentContent);
+
             return result;
         }
 
@@ -325,6 +328,8 @@ void CSS_applyStyleData(struct css_persistent_styles *originalStyles, char *cont
                 break;
         }
     }
+
+    free(currentDataContent);
 }
 
 #endif

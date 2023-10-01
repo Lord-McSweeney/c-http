@@ -39,9 +39,18 @@ int CSS_selectorMatchesElement(struct css_selector_info selector, struct xml_nod
             }
 
             if (!matched) {
+                for (int i = 0; i < classes.count; i ++) {
+                    free(classes.result[i]);
+                }
+                free(classes.result);
                 return 0;
             }
         }
+
+        for (int i = 0; i < classes.count; i ++) {
+            free(classes.result[i]);
+        }
+        free(classes.result);
     }
     return 1;
 }
