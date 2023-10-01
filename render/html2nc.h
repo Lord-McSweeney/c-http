@@ -344,6 +344,9 @@ char *recursiveXMLToText(
                 if (isVisible && !strcmp(lower, "a") && XML_getAttributeByName(attributes, "href")) {
                     strcat(alloc, "\\m");
                 }
+                if (isVisible && !strcmp(lower, "button")) {
+                    strcat(alloc, "\\m");
+                }
 
                 if (elementStyling.tabbed) {
                     strcat(alloc, "\\t");
@@ -450,7 +453,16 @@ char *recursiveXMLToText(
                 }
 
                 if (!strcmp(lower, "select") && isVisible) {
+                    strcat(alloc, "\\m");
+
                     strcat(alloc, "[SELECT]");
+
+                    char *encoded = safeEncodeString("Select an option");
+
+                    strcat(alloc, "\\nN");
+                    strcat(alloc, encoded);
+                    free(encoded);
+
                     free(text);
                     free(lower);
                     freeXMLAttributes(attributes);
@@ -464,39 +476,91 @@ char *recursiveXMLToText(
                 if (!strcmp(lower, "input") && isVisible) {
                     char *type = XML_getAttributeByName(attributes, "type");
                     if (type) {
-                        if (!strcmp(type, "checkbox")) {
+                            if (!strcmp(type, "checkbox")) {
+                            strcat(alloc, "\\m");
+
                             char *checked = XML_getAttributeByName(attributes, "checked");
                             if (!checked) {
                                 strcat(alloc, "[\\q \\r]");
                             } else {
                                 strcat(alloc, "[\\qX\\r]");
                             }
+
+                            char *encoded = safeEncodeString("Checkbox");
+
+                            strcat(alloc, "\\nN");
+                            strcat(alloc, encoded);
+                            free(encoded);
                         } else if (!strcmp(type, "text")) {
-                            strcat(alloc, "|_________|");
+                            char *isReadOnly = XML_getAttributeByName(attributes, "readonly");
+                            strcat(alloc, "\\m");
+
+                            strcat(alloc, "[_________]");
+
+                            char *encoded = NULL;
+                            if (isReadOnly) {
+                                encoded = safeEncodeString("Text input (read-only)");
+                            } else {
+                                encoded = safeEncodeString("Text input");
+                            }
+
+                            strcat(alloc, "\\nN");
+                            strcat(alloc, encoded);
+                            free(encoded);
                         } else if (!strcmp(type, "hidden")) {
                             // nothing
                         } else if (!strcmp(type, "submit") || !strcmp(type, "button")) {
+                            strcat(alloc, "\\m");
+
                             char *value = XML_getAttributeByName(attributes, "value");
                             if (value && *value) {
                                 strcat(alloc, "[");
                                 strcat(alloc, value);
                                 strcat(alloc, "]");
                             }
+
+                            char *encoded = safeEncodeString("Submit form");
+
+                            strcat(alloc, "\\nN");
+                            strcat(alloc, encoded);
+                            free(encoded);
                         } else if (!strcmp(type, "file")) {
+                            strcat(alloc, "\\m");
+
                             strcat(alloc, "[UPLOAD]");
+
+                            char *encoded = safeEncodeString("File upload");
+
+                            strcat(alloc, "\\nN");
+                            strcat(alloc, encoded);
+                            free(encoded);
                         } else if (!strcmp(type, "number")) {
+                            strcat(alloc, "\\m");
+
                             char *value = XML_getAttributeByName(attributes, "value");
                             if (!value) {
                                 value = "";
                             }
-                            strcat(alloc, "|");
+                            strcat(alloc, "[");
                             strcat(alloc, getInputRendered(value, 9));
-                            strcat(alloc, "|");
+                            strcat(alloc, "]");
+
+                            char *encoded = safeEncodeString("Numerical input");
+
+                            strcat(alloc, "\\nN");
+                            strcat(alloc, encoded);
+                            free(encoded);
                         } else {
                             strcat(alloc, "[INPUT]");
                         }
                     } else {
-                        strcat(alloc, "|_________|");
+                        strcat(alloc, "\\m");
+                        strcat(alloc, "[_________]");
+                        char *encoded = safeEncodeString("Text input");
+
+                        strcat(alloc, "\\nN");
+                        strcat(alloc, encoded);
+                        free(encoded);
                     }
                     free(text);
                     free(lower);
@@ -566,6 +630,15 @@ char *recursiveXMLToText(
                     strcat(alloc, encoded);
                     free(encoded);
                 }
+
+                if (!strcmp(lower, "button") && isVisible) {
+                    char *encoded = safeEncodeString("Button");
+
+                    strcat(alloc, "\\nN");
+                    strcat(alloc, encoded);
+                    free(encoded);
+                }
+
                 if (elementStyling.pointer_events == POINTER_EVENTS_ALL || elementStyling.pointer_events == POINTER_EVENTS_NONE) {
                     strcat(alloc, "\\f");
                 }

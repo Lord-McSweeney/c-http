@@ -514,10 +514,36 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
             int doContinue = 0;
             switch (text[i]) {
                 case 'h':
+                    if (invertColors) {
+                        if (colorStackNum) {
+                            attron(COLOR_PAIR(256 - colorsP[colorStackNum - 1]));
+                        } else {
+                            attron(COLOR_PAIR(255));
+                        }
+                    } else {
+                        if (colorStackNum) {
+                            attron(COLOR_PAIR(colorsP[colorStackNum - 1]));
+                        } else {
+                            attron(COLOR_PAIR(1));
+                        }
+                    }
                     mvaddstr(realPosY + state->globalScrollY, realPosX + state->globalScrollX, horizontalRow);
                     realPosX = mx;
                     break;
                 case 'H':
+                    if (invertColors) {
+                        if (colorStackNum) {
+                            attron(COLOR_PAIR(256 - colorsP[colorStackNum - 1]));
+                        } else {
+                            attron(COLOR_PAIR(255));
+                        }
+                    } else {
+                        if (colorStackNum) {
+                            attron(COLOR_PAIR(colorsP[colorStackNum - 1]));
+                        } else {
+                            attron(COLOR_PAIR(1));
+                        }
+                    }
                     mvaddstr(realPosY + state->globalScrollY, realPosX + state->globalScrollX, fullHorizontalRow);
                     realPosX = mx;
                     break;
@@ -640,11 +666,14 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                             aboutToCreateButton = 0;
                             buttonSpace[buttonSpaceLen] = 0; // remove \ 
                             buttonSpace[buttonSpaceLen - 1] = 0; // remove n
+                            char *addr2 = text + i + 2;
+                            char *result2 = safeDecodeString(addr2);
+
                             char *noopDescriptor = (char *) calloc(32, sizeof(char));
                             strcpy(noopDescriptor, "_temp_noop_");
                             noopDescriptor[strlen(noopDescriptor)] = linkIdx1;
                             noopDescriptor[strlen(noopDescriptor)] = linkIdx2;
-                            strcat(noopDescriptor, "NOOP");
+                            strcat(noopDescriptor, result2);
 
                             // pointer-events: none; is a little glitchy due to unsupported styles, ignore it for now
                             if (1 || !clickableStack[clickableStackNum - 1]) {
@@ -661,7 +690,7 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                                 }
                             }
                             clrStr(buttonSpace);
-                            i += 1;
+                            i += safeGetEncodedStringLength(addr2) + 1;
                             break;
                     }
                     break;
@@ -882,20 +911,34 @@ void render_nc(struct nc_state *browserState) {
     for (int i = 0; i < numButtons; i ++) {
         if (browserState->buttons[i].visible) {
             struct nc_button btn = browserState->buttons[i];
-            if (btn.selected && !strncmp(btn.descriptor, "_temp_linkto_", 13)) {
-                getmaxyx(stdscr, my, mx);
-                char *lnk = btn.descriptor + 15;
-                char *resolvedLnk = http_resolveRelativeURL(http_url_from_string(browserState->currentPageUrl), browserState->currentPageUrl, lnk);
-                char *shortenedLink = shortenStringWithEllipses(resolvedLnk, mx*(linkAddressScreenPercentage/100.0));
-                printText(
-                    browserState,
-                    (my - browserState->globalScrollY) - 1,
-                    (mx - browserState->globalScrollX) - strlen(shortenedLink),
-                    doubleStringBackslashes(shortenedLink),
-                    1,
-                    -1,
-                    0
-                );
+            if (btn.selected) {
+                if (!strncmp(btn.descriptor, "_temp_linkto_", 13)) {
+                    getmaxyx(stdscr, my, mx);
+                    char *lnk = btn.descriptor + 15;
+                    char *resolvedLnk = http_resolveRelativeURL(http_url_from_string(browserState->currentPageUrl), browserState->currentPageUrl, lnk);
+                    char *shortenedLink = shortenStringWithEllipses(resolvedLnk, mx*(linkAddressScreenPercentage/100.0));
+                    printText(
+                        browserState,
+                        (my - browserState->globalScrollY) - 1,
+                        (mx - browserState->globalScrollX) - strlen(shortenedLink),
+                        doubleStringBackslashes(shortenedLink),
+                        1,
+                        -1,
+                        0
+                    );
+                } else if (!strncmp(btn.descriptor, "_temp_noop_", 11)) {
+                    getmaxyx(stdscr, my, mx);
+                    char *lnk = btn.descriptor + 13;
+                    printText(
+                        browserState,
+                        (my - browserState->globalScrollY) - 1,
+                        (mx - browserState->globalScrollX) - strlen(lnk),
+                        doubleStringBackslashes(lnk),
+                        1,
+                        -1,
+                        0
+                    );
+                }
             }
         }
     }
