@@ -4,6 +4,7 @@
 #include <ncurses.h>
 
 #include "../http/url.h"
+#include "../utils/log.h"
 #include "../utils/string.h"
 
 typedef void (*clickHandler)(void *, char *);
@@ -457,10 +458,14 @@ void nc_gotoscrollpoint(void *ptr, char *name) {
     }
 }
 
-void printText(struct nc_state *state, int y, int x, char *text, int invertColors, int overrideMinX, int hasDynamicButtons) {
+void printText(struct nc_state *state, int y, int x, char *badlyTypedText, int invertColors, int overrideMinX, int hasDynamicButtons) {
     int mx;
     int my;
     getmaxyx(stdscr, my, mx);
+
+    // char * is the "standard" type, but `unsigned char` is better for working with UTF-8 data
+    unsigned char *text = badlyTypedText;
+    int wasFine = 0;
 
     int realPosY = y;
     int realPosX = x;
@@ -787,17 +792,17 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
         }
         if (realPosY + state->globalScrollY < my) {
             if (realPosY + state->globalScrollY >= 0 && realPosX + state->globalScrollX >= 0) {
-                int toPrint = text[i];
+                int style = 0;
                 if (italics) {
-                    toPrint = toPrint | A_ITALIC;
+                    style = A_ITALIC;
                 }
 
                 if (bold) {
-                    toPrint = toPrint | A_BOLD;
+                    style = style | A_BOLD;
                 }
 
                 if (underline) {
-                    toPrint = toPrint | A_UNDERLINE;
+                    style = style | A_UNDERLINE;
                 }
 
                 if (strikethrough) {
@@ -818,7 +823,86 @@ void printText(struct nc_state *state, int y, int x, char *text, int invertColor
                     }
                 }
 
-                mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, toPrint);
+                if (text[i] < 0x80) {
+                    mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, text[i] | style);
+                } else {
+                    // FIXME: These branches should only activate after a `meta charset='utf-8'` tag has been found
+                    if (i < len - 2) {
+                        if (!strncmp(text + i, "\xe2\x80\x9c", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '"' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x80\x99", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '\'' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x80\x9d", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '"' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x80\xa6", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '.' | style);
+                            realPosX ++;
+                            if (realPosX >= mx) {
+                                realPosX = minX;
+                                realPosY ++;
+                                if (doIndent) {
+                                    mvaddstr(realPosY, realPosX, "    ");
+                                    realPosX += 4;
+                                }
+                            }
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '.' | style);
+                            realPosX ++;
+                            if (realPosX >= mx) {
+                                realPosX = minX;
+                                realPosY ++;
+                                if (doIndent) {
+                                    mvaddstr(realPosY, realPosX, "    ");
+                                    realPosX += 4;
+                                }
+                            }
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '.' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x86\x92", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '-' | style);
+                            realPosX ++;
+                            if (realPosX >= mx) {
+                                realPosX = minX;
+                                realPosY ++;
+                                if (doIndent) {
+                                    mvaddstr(realPosY, realPosX, "    ");
+                                    realPosX += 4;
+                                }
+                            }
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '-' | style);
+                            realPosX ++;
+                            if (realPosX >= mx) {
+                                realPosX = minX;
+                                realPosY ++;
+                                if (doIndent) {
+                                    mvaddstr(realPosY, realPosX, "    ");
+                                    realPosX += 4;
+                                }
+                            }
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '>' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x96\xbe", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, 'V' | style);
+                            i += 2;
+                        } else {
+                            if (text[i] != 0xc2 && text[i] != 0xc3 && !wasFine) {
+                                log_warn("Unknown UTF-8 sequence: \\x%x\\x%x\\x%x\n", text[i], text[i + 1], text[i + 2]);
+                                wasFine = 0;
+                            } else {
+                                wasFine = 1;
+                            }
+                            if ((i != 0 && (text[i - 1] == 0xc2 || text[i - 1] == 0xc3)) || text[i] == 0xc2 || text[i] == 0xc3) {
+                                mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, text[i] | style);
+                            } else {
+                                mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '?' | style);
+                            }
+                        }
+                    } else {
+                        mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, text[i] | style);
+                    }
+                }
             }
         } else if (!hasDynamicButtons) {
             break;
