@@ -541,6 +541,36 @@ struct xml_response recursive_parse_xml_node(struct xml_node *parent, struct xml
                         return error_xml;
                     }
                     if (html_isVoidElement(currentElementName)) {
+                        // Early bail- read below comments
+                        if (response.count) {
+                            char *lastName = toLowerCase(response.nodes[response.count - 1].name);
+                            char *currentLowerName = toLowerCase(currentElementName);
+                            if (!strcmp(lastName, currentLowerName)) {
+                                // We were just parsing an element with the same name as this one-
+                                // for example, <br></br> or <param></param>. Browsers seem to
+                                // ignore the second tag, and only count the first (but only
+                                // for void elements).
+                                if (strcmp(currentLowerName, "br")) {
+                                    // For some reason, <br></br> appears as
+                                    // two separate <br> tags. None of the
+                                    // other void elements seem to do this.
+
+                                    // Just ignore the </element-name> tag.
+                                    free(lastName);
+                                    free(currentLowerName);
+
+                                    currentElementNameUsage = 0;
+                                    clrStr(currentElementName);
+                                    currentIndex = 0;
+                                    currentState = PARSE_UNKNOWN;
+                                    break;
+                                }
+                            }
+
+                            free(lastName);
+                            free(currentLowerName);
+                        }
+
                         struct xml_node node = XML_createXMLElement(makeStrCpy(currentElementName), parent);
                         XML_appendChild(&response, node);
                         currentElementNameUsage = 0;
