@@ -472,6 +472,75 @@ char *recursiveXMLToText(
                     continue;
                 }
 
+                if (!strcmp(lower, "embed") && isVisible) {
+                    fprintf(stderr, "Handling embed\n");
+                    strcat(alloc, "\\m");
+
+                    strcat(alloc, "[EMBED]");
+
+                    char *src = XML_getAttributeByName(attributes, "src");
+                    char *type = XML_getAttributeByName(attributes, "type");
+
+                    int len = strlen("Plugin <embed>; source: '%s'; MIME type: '%s'");
+
+                    if (src) {
+                        len += strlen(src);
+                    }
+                    if (type) {
+                        len += strlen(type);
+                    }
+
+                    char *allocated = (char *) calloc(len, sizeof(char));
+                    strcat(allocated, "Plugin <embed>");
+                    if (src) {
+                        strcat(allocated, "; source: '");
+                        strcat(allocated, src);
+                        strcat(allocated, "'");
+                    }
+                    if (type) {
+                        strcat(allocated, "; MIME type: '");
+                        strcat(allocated, type);
+                        strcat(allocated, "'");
+                    }
+
+                    char *encoded = safeEncodeString(allocated);
+
+                    strcat(alloc, "\\nN");
+                    strcat(alloc, encoded);
+                    free(encoded);
+                    free(allocated);
+
+                    free(text);
+                    free(lower);
+                    freeXMLAttributes(attributes);
+                    freeXMLAttributes(parent_attributes);
+                    justHadInlineInsideBlockWithText = 1;
+                    *jhiibwt = 1;
+                    hasBlocked = 0;
+                    continue;
+                }
+
+                if (!strcmp(lower, "object") && isVisible) {
+                    strcat(alloc, "\\m");
+
+                    strcat(alloc, "[OBJECT]");
+
+                    char *encoded = safeEncodeString("Plugin <object>");
+
+                    strcat(alloc, "\\nN");
+                    strcat(alloc, encoded);
+                    free(encoded);
+
+                    free(text);
+                    free(lower);
+                    freeXMLAttributes(attributes);
+                    freeXMLAttributes(parent_attributes);
+                    justHadInlineInsideBlockWithText = 1;
+                    *jhiibwt = 1;
+                    hasBlocked = 0;
+                    continue;
+                }
+
                 if (!strcmp(lower, "input") && isVisible) {
                     char *type = XML_getAttributeByName(attributes, "type");
                     if (type) {
