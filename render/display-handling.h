@@ -824,7 +824,26 @@ void printText(struct nc_state *state, int y, int x, char *badlyTypedText, int i
                 }
 
                 if (text[i] < 0x80) {
-                    mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, text[i] | style);
+                    if (text[i] == '\t') {
+                        int j = 0;
+                        while (j < 4) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, ' ' | style);
+
+                            realPosX ++;
+                            if (realPosX >= mx) {
+                                realPosX = minX;
+                                realPosY ++;
+                                if (doIndent) {
+                                    mvaddstr(realPosY, realPosX, "    ");
+                                    realPosX += 4;
+                                }
+                            }
+
+                            j ++;
+                        }
+                    } else {
+                        mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, text[i] | style);
+                    }
                 } else {
                     // FIXME: These branches should only activate after a `meta charset='utf-8'` tag has been found
                     if (i < len - 2) {
