@@ -674,7 +674,7 @@ void printText(struct nc_state *state, int y, int x, char *badlyTypedText, int i
                             char *addr2 = text + i + 2;
                             char *result2 = safeDecodeString(addr2);
 
-                            char *noopDescriptor = (char *) calloc(32, sizeof(char));
+                            char *noopDescriptor = (char *) calloc(strlen(result2) + 20, sizeof(char));
                             strcpy(noopDescriptor, "_temp_noop_");
                             noopDescriptor[strlen(noopDescriptor)] = linkIdx1;
                             noopDescriptor[strlen(noopDescriptor)] = linkIdx2;
