@@ -431,12 +431,11 @@ char *recursiveXMLToText(
 
                 if (!strcmp(lower, "img") && isVisible) {
                     char *altText = XML_getAttributeByName(attributes, "alt");
-                    if (altText) {
-                        if (strlen(altText)) {
-                            strcat(alloc, "[");
-                            strcat(alloc, altText);
-                            strcat(alloc, "]");
-                        }
+                    if (altText && strlen(altText)) {
+                        strcat(alloc, "[");
+                        strcat(alloc, altText);
+                        strcat(alloc, "]");
+
                         // DO NOT free(altText) here! getAttributeByName returns a reference to the attribute value,
                         // not a copy of the attribute value! freeXMLAttributes will free it anyway!
                     } else {
