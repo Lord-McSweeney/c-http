@@ -643,7 +643,10 @@ void printText(struct nc_state *state, int y, int x, char *badlyTypedText, int i
                                     linkButton->y = posy;
                                     free(linkDescriptor);
                                 } else {
-                                    if (result[0] == '#') {
+                                    if (!strncmp(result, "javascript:", 11)) {
+                                        // "javascript" protocol: Don't do anything.
+                                        createNewButton(state, posx, posy, makeStrCpy(buttonSpace), nc_noopbuttonhandler, linkDescriptor);
+                                    } else if (result[0] == '#') {
                                         // Fragment: Don't run through all the "goto page" logic
                                         createNewButton(state, posx, posy, makeStrCpy(buttonSpace), nc_gotoscrollpoint, linkDescriptor);
                                     } else {
