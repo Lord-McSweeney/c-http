@@ -195,6 +195,9 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
             styling.color = CSS_COLOR_RED;
         } else if (!strcmp(colorStyle, "wheat")) {
             styling.color = CSS_COLOR_WHEAT;
+        } else if (!strcmp(colorStyle, "#C00")) {
+            // A darker red
+            styling.color = CSS_COLOR_RED;
         } else {
             log_warn("Unsupported color \"%s\"\n", colorStyle);
         }
