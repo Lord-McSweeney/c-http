@@ -243,7 +243,12 @@ void ongotourl(void *state, char *_) {
         getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
         strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");
         render_nc(realState);
-        char *data = downloadAndOpenPage(realState, getTextAreaByDescriptor(realState, "urltextarea")->currentText, onReceiveData, onFinishData, 0);
+
+        char *copiedURL = makeStrCpy(getTextAreaByDescriptor(realState, "urltextarea")->currentText);
+        char *data = downloadAndOpenPage(realState, copiedURL, onReceiveData, onFinishData, 0);
+
+        setTextOf(getTextAreaByDescriptor(realState, "urlField"), copiedURL);
+
         free(getTextByDescriptor(realState, "documentText")->text);
         getTextByDescriptor(realState, "documentText")->text = data;
         if (data == NULL) {
@@ -313,7 +318,13 @@ void onlinkpressed(void *state, char *url) {
         getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
         strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");
         render_nc(realState);
-        char *data = downloadAndOpenPage(realState, absoluteURL, onReceiveData, onFinishData, 0);
+
+        char *copiedURL = makeStrCpy(absoluteURL);
+        char *data = downloadAndOpenPage(realState, copiedURL, onReceiveData, onFinishData, 0);
+
+        realState->currentPageUrl = copiedURL;
+        setTextOf(getTextAreaByDescriptor(realState, "urlField"), copiedURL);
+
         free(getTextByDescriptor(realState, "documentText")->text);
         getTextByDescriptor(realState, "documentText")->text = data;
         if (data == NULL) {
