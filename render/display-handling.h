@@ -847,7 +847,10 @@ void printText(struct nc_state *state, int y, int x, char *badlyTypedText, int i
                 } else {
                     // FIXME: These branches should only activate after a `meta charset='utf-8'` tag has been found
                     if (i < len - 2) {
-                        if (!strncmp(text + i, "\xe2\x80\x9c", 3)) {
+                        if (!strncmp(text + i, "\xe2\x80\x93", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '-' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x80\x9c", 3)) {
                             mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '"' | style);
                             i += 2;
                         } else if (!strncmp(text + i, "\xe2\x80\x99", 3)) {
