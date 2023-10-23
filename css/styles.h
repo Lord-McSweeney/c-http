@@ -42,6 +42,12 @@ enum css_pointer_events {
     POINTER_EVENTS_ALL,
 };
 
+enum css_white_space {
+    WHITE_SPACE_NORMAL, // default
+    WHITE_SPACE_PRE,
+    WHITE_SPACE_UNKNOWN,
+};
+
 struct css_styling {
     int bold;
     int italic;
@@ -52,6 +58,7 @@ struct css_styling {
     enum css_color color;
     enum css_display display;
     enum css_pointer_events pointer_events;
+    enum css_white_space white_space;
 };
 
 int CSS_isStyleBlock(struct css_styling style) {
@@ -77,6 +84,8 @@ enum css_display CSS_styleNameToDisplay(char *name) {
 
 struct css_styling CSS_getDefaultStyles() {
     struct css_styling styling;
+    styling.white_space = WHITE_SPACE_NORMAL;
+    styling.pointer_events = POINTER_EVENTS_DEFAULT;
     styling.display = DISPLAY_UNKNOWN;
     styling.color = CSS_COLOR_BLACK;
     styling.position = POSITION_STATIC;
@@ -95,6 +104,7 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
     styling.color = CSS_COLOR_BLACK;
     styling.position = POSITION_STATIC;
     styling.pointer_events = POINTER_EVENTS_DEFAULT;
+    styling.white_space = WHITE_SPACE_NORMAL;
     styling.bold = 0;
     styling.italic = 0;
     styling.underline = 0;
@@ -230,6 +240,18 @@ struct css_styling CSS_getDefaultStylesFromElement(struct xml_node node, struct 
             styling.pointer_events = POINTER_EVENTS_ALL;
         } else {
             styling.pointer_events = POINTER_EVENTS_UNKNOWN;
+        }
+    }
+
+
+    char *whiteSpaceStyle = CSS_getStyleByName(styles, "white-space");
+    if (whiteSpaceStyle != NULL) {
+        if (!strcmp(whiteSpaceStyle, "normal")) {
+            styling.white_space = WHITE_SPACE_NORMAL;
+        } else if (!strcmp(whiteSpaceStyle, "pre")) {
+            styling.white_space = WHITE_SPACE_PRE;
+        } else {
+            styling.white_space = WHITE_SPACE_UNKNOWN;
         }
     }
 

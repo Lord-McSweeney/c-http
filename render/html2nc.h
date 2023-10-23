@@ -407,6 +407,14 @@ char *recursiveXMLToText(
 
                 int had = justHadInlineInsideBlockWithText;
 
+                int is_current_element_preformatted = 0;
+                if (!strcmp(lower, "pre")) {
+                    is_current_element_preformatted = 1;
+                }
+                if (elementStyling.white_space == WHITE_SPACE_PRE) {
+                    is_current_element_preformatted = 1;
+                }
+
                 char *text = recursiveXMLToText(
                     node.children,
                     state,
@@ -414,7 +422,7 @@ char *recursiveXMLToText(
                     (hLevel >= 2) || uppercase,
                     listNestAmount,
                     jhiibwt,
-                    !strcmp(lower, "pre") || preformatted,
+                    is_current_element_preformatted || preformatted,
                     persistentStyles,
                     baseURL,
                     ptr,
