@@ -29,7 +29,7 @@ struct http_cookie_store *HTTP_getGlobalCookieStore() {
 
 typedef void (*dataReceiveHandler)(void *);
 
-typedef struct socket_info (*socketConnecter)(const char *, int, char *, char *, int);
+typedef struct socket_info (*socketConnecter)(const char *, const char *, int, char *, char *, int);
 
 typedef struct socket_info (*socketReader)(struct socket_info, char *, int);
 
@@ -140,7 +140,7 @@ struct http_response http_makeNetworkHTTPRequest(
     }
 
     errno = 0;
-    struct socket_info tcpResult = rwsocket(ipBuffer, url->port, requestString, buffer, maxInitialResponseSize);
+    struct socket_info tcpResult = rwsocket(ipBuffer, url->hostname, url->port, requestString, buffer, maxInitialResponseSize);
     free(ipBuffer);
     free(url->protocol);
     // Don't free url->hostname or url as the hostname is required for header parsing

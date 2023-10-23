@@ -14,7 +14,7 @@ struct socket_info {
     void *extra;
 };
 
-struct socket_info rwsocket(const char *address, int portnum, char *senddata, char *towrite, int amount) {
+struct socket_info rwsocket(const char *address, const char *_hostname, int portnum, char *senddata, char *towrite, int amount) {
     struct socket_info errorStruct;
     errorStruct.descriptor = -1;
     errorStruct.bytesRead = -1;

@@ -9,7 +9,7 @@
 #include <openssl/err.h>
 #include "socket.h"
 
-struct socket_info secure_rwsocket(const char *address, int port, char *senddata, char *towrite, int amount) {
+struct socket_info secure_rwsocket(const char *address, const char *hostname, int port, char *senddata, char *towrite, int amount) {
     struct socket_info errorStruct;
     errorStruct.descriptor = -1;
     errorStruct.bytesRead = -1;
@@ -47,13 +47,36 @@ struct socket_info secure_rwsocket(const char *address, int port, char *senddata
     SSL *ssl = SSL_new(ctx);
     SSL_set_fd(ssl, socket_desc);
 
+    // Send hostname data- some sites don't accept the
+    // connection without this
+    SSL_set_tlsext_host_name(ssl, hostname);
+
+    // Clear the error queue to avoid leaving old errors in it
+    ERR_clear_error();
+
     int conn = SSL_connect(ssl);
     if (conn != 1) {
+        if (conn == -1) {
+            int err = SSL_get_error(ssl, conn);
+            if (err == 1) {
+                unsigned long err = ERR_get_error();
+                fprintf(stderr, "Error while securely connecting to server. Error code: %ld", err);
+                char *buf = (char *) calloc(256, sizeof(char));
+                ERR_error_string(err, buf);
+                fprintf(stderr, " (%s)\n", buf);
+                free(buf);
+            } else {
+                fprintf(stderr, "Error while securely connecting to server. Error code: %d\n", err);
+            }
+        } else {
+            fprintf(stderr, "Error while securely connecting to server. Error code: \"%d\"\n", conn);
+        }
         errorStruct.error = -7;
         return errorStruct;
     }
 
     if (SSL_write(ssl, senddata, strlen(senddata)) <= 0) {
+        fprintf(stderr, "Error while writing data to server.\n");
         errorStruct.error = -3;
         return errorStruct;
     }
@@ -62,7 +85,7 @@ struct socket_info secure_rwsocket(const char *address, int port, char *senddata
     int bytesRead = SSL_read(ssl, server_reply, amount);
 
     if (bytesRead < 0) {
-        printf("Error while recieving response from server. Error code: \"%d\"\n", errno);
+        fprintf(stderr, "Error while receiving response from server.\n");
         errorStruct.error = -4;
         return errorStruct;
     }
@@ -89,7 +112,7 @@ struct socket_info secure_rsocket(struct socket_info info, char *towrite, int am
     char *server_reply = (char *) calloc(amount + 1, sizeof(char));
     int bytesRead = SSL_read((SSL *) info.extra, server_reply, amount);
     if (bytesRead <= 0) {
-        printf("Error while recieving additional response from server. Error code: \"%d\"\n", errno);
+        fprintf(stderr, "Error while receiving additional response from server.\n");
         return errorStruct;
     }
 
