@@ -73,7 +73,7 @@ void freeXMLAttributes(struct xml_attributes *attribs) {
 }
 
 char *XML_parseHTMLEscapes(const char *content) {
-    int numEscapes = 41;
+    int numEscapes = 42;
     char entities[][8] = {
         "lt",     "<",
         "gt",     ">",
@@ -94,6 +94,7 @@ char *XML_parseHTMLEscapes(const char *content) {
         "rarr",   "-->",
         "apos",   "'",
         "#x27",   "'",
+        "#x2F",   "/",
         "#32",    " ",
         "#39",    "'",
         "#039",   "'",
