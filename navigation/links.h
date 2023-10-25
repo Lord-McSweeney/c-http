@@ -9,7 +9,7 @@
 #include "../render/display-handling.h"
 #include "../render/html2nc.h"
 #include "../utils/string.h"
-#include "../xml/html.h"
+#include "../xml/nodes.h"
 
 #include "download.h"
 

@@ -2,7 +2,7 @@
 #include "parse-selectors.h"
 #include "parse.h"
 #include "../xml/attributes.h"
-#include "../xml/html.h"
+#include "../xml/nodes.h"
 
 int CSS_selectorMatchesElement(struct css_selector_info selector, struct xml_node *node, struct xml_attributes *attribs) {
     if (selector.any) return 1;

@@ -7,8 +7,9 @@
 #include "../navigation/download.h"
 #include "../utils/log.h"
 #include "../utils/string.h"
-#include "../xml/html.h"
 #include "../xml/attributes.h"
+#include "../xml/entities.h"
+#include "../xml/nodes.h"
 
 // Ptr passed, along with URL of stylesheet
 typedef void (*onStyleSheetDownloadStart)(void *, char *);
@@ -149,7 +150,7 @@ char *recursiveXMLToText(
             } else {
                 text = getXMLTrimmedTextContent(node.text_content, justHadInlineInsideBlockWithText);
             }
-            char *allocated_no_double = XML_parseHTMLEscapes(text);
+            char *allocated_no_double = XML_parseHTMLEntities(text);
             char *allocated = doubleStringBackslashes(allocated_no_double);
             free(allocated_no_double);
 
