@@ -850,17 +850,29 @@ void printText(struct nc_state *state, int y, int x, char *badlyTypedText, int i
                 } else {
                     // FIXME: These branches should only activate after a `meta charset='utf-8'` tag has been found
                     if (i < len - 2) {
-                        if (!strncmp(text + i, "\xe2\x80\x93", 3)) {
+                        if (!strncmp(text + i, "\xcb\x90", 2)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, ':' | style);
+                            i += 1;
+                        } else if (!strncmp(text + i, "\xe2\x80\x93", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '-' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x80\x94", 3)) {
                             mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '-' | style);
                             i += 2;
                         } else if (!strncmp(text + i, "\xe2\x80\x9c", 3)) {
                             mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '"' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x80\x98", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '\'' | style);
                             i += 2;
                         } else if (!strncmp(text + i, "\xe2\x80\x99", 3)) {
                             mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '\'' | style);
                             i += 2;
                         } else if (!strncmp(text + i, "\xe2\x80\x9d", 3)) {
                             mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '"' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x80\xa2", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '*' | style);
                             i += 2;
                         } else if (!strncmp(text + i, "\xe2\x80\xa6", 3)) {
                             mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '.' | style);
@@ -885,6 +897,9 @@ void printText(struct nc_state *state, int y, int x, char *badlyTypedText, int i
                             }
                             mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '.' | style);
                             i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x80\xbe", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '-' | style);
+                            i += 2;
                         } else if (!strncmp(text + i, "\xe2\x86\x92", 3)) {
                             mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '-' | style);
                             realPosX ++;
@@ -908,6 +923,51 @@ void printText(struct nc_state *state, int y, int x, char *badlyTypedText, int i
                             }
                             mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '>' | style);
                             i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x88\x92", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '-' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x94\x80", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '-' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x94\x82", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '|' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x94\x90", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '+' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x94\xbc", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '+' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x95\x90", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '-' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x95\x91", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '|' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x95\x94", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '+' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x95\xa0", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '+' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x95\xa6", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '+' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x95\xad", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '+' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x95\xae", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '+' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x95\xb1", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '/' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x95\xb2", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '\\' | style);
+                            i += 2;
+                        } else if (!strncmp(text + i, "\xe2\x95\xb3", 3)) {
+                            mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, 'X' | style);
+                            i += 2;
                         } else if (!strncmp(text + i, "\xe2\x96\xbe", 3)) {
                             mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, 'V' | style);
                             i += 2;
@@ -922,6 +982,9 @@ void printText(struct nc_state *state, int y, int x, char *badlyTypedText, int i
                                 mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, text[i] | style);
                             } else {
                                 mvaddch(realPosY + state->globalScrollY, realPosX + state->globalScrollX, '?' | style);
+                                if (text[i] == 0xe2 && text[i + 1] && text[i + 2]) {
+                                    i += 2;
+                                }
                             }
                         }
                     } else {
