@@ -4,7 +4,7 @@
     #define _HTML_ENTITY 1
 
 char *XML_parseHTMLEntities(const char *content) {
-    int numEscapes = 44;
+    int numEscapes = 46;
     char entities[][8] = {
         "lt",     "<",
         "gt",     ">",
@@ -44,6 +44,8 @@ char *XML_parseHTMLEntities(const char *content) {
         "#8212",  "---",
         "#8216",  "'",
         "#8217",  "'",
+        "#8220",  "\"",
+        "#8221",  "\"",
         "#8226",  "-",
         "#8230",  "...",
         "#8250",  ">",
