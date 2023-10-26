@@ -683,6 +683,8 @@ void printText(struct nc_state *state, int y, int x, char *badlyTypedText, int i
                             noopDescriptor[strlen(noopDescriptor)] = linkIdx2;
                             strcat(noopDescriptor, result2);
 
+                            free(result2);
+
                             // pointer-events: none; is a little glitchy due to unsupported styles, ignore it for now
                             if (1 || !clickableStack[clickableStackNum - 1]) {
                                 if (getButtonByDescriptor(state, noopDescriptor)) {

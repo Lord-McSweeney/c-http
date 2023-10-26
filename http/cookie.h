@@ -84,7 +84,14 @@ struct http_cookie HTTP_parseCookieString(char *string, char *hostname) {
             }
         }
     }
-    return HTTP_makeCookie(makeStrCpy(name), makeStrCpy(value), makeStrCpy(hostname));
+
+    char *nameCpy = makeStrCpy(name);
+    free(name);
+
+    char *valueCpy = makeStrCpy(value);
+    free(value);
+
+    return HTTP_makeCookie(nameCpy, valueCpy, makeStrCpy(hostname));
 }
 
 char *HTTP_cookieStoreToString(struct http_cookie_store *store, char *hostname) {

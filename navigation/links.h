@@ -238,7 +238,12 @@ void ongotourl(void *state, char *_) {
         free(total);
         setTextOf(getTextAreaByDescriptor(realState, "urlField"), realState->currentPageUrl);
     } else {
-        setTextOf(getTextAreaByDescriptor(realState, "urlField"), http_urlToString(http_url_from_string(realState->currentPageUrl)));
+        struct http_url *from = http_url_from_string(realState->currentPageUrl);
+        char *copied = http_urlToString(from);
+        setTextOf(getTextAreaByDescriptor(realState, "urlField"), copied);
+
+        free(from);
+        free(copied);
 
         getTextByDescriptor(realState, "documentText")->text = (char *) calloc(8192, sizeof(char));
         strcpy(getTextByDescriptor(realState, "documentText")->text, "The document is downloading...");
@@ -248,6 +253,8 @@ void ongotourl(void *state, char *_) {
         char *data = downloadAndOpenPage(realState, copiedURL, onReceiveData, onFinishData, 0);
 
         setTextOf(getTextAreaByDescriptor(realState, "urlField"), copiedURL);
+
+        free(copiedURL);
 
         free(getTextByDescriptor(realState, "documentText")->text);
         getTextByDescriptor(realState, "documentText")->text = data;
@@ -264,6 +271,12 @@ void ongotourl(void *state, char *_) {
             }
         }
     }
+
+    free(curURL->protocol);
+    free(curURL->hostname);
+    free(curURL->path);
+    free(curURL->fragment);
+    free(curURL);
 
     getTextAreaByDescriptor(realState, "urlField")->visible = 1;
     getButtonByDescriptor(state, "smallgobutton")->visible = 1;

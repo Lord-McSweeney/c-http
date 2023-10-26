@@ -7,11 +7,17 @@
 
 char *safeEncodeString(char *string) {
     char *result = (char *) calloc(strlen(string) + 16, sizeof(char));
+
     char *len = (char *) calloc(16, sizeof(char));
     sprintf(len, "%ld", strlen(string));
+
+
     sprintf(result, "%ld", strlen(len));
+    free(len);
+
     sprintf(result + strlen(result), "%ld", strlen(string));
     sprintf(result + strlen(result), "%s", string);
+
     return result;
 }
 

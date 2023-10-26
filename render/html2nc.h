@@ -772,6 +772,8 @@ struct html2nc_result htmlToText(
     struct html2nc_state state;
     state.title = NULL;
 
+    int *jhiibwt = (int *) calloc(1, sizeof(int));
+
     struct html2nc_result result;
     result.text = recursiveXMLToText(
         xml,
@@ -779,7 +781,7 @@ struct html2nc_result htmlToText(
         strlen(originalHTML),
         0,
         0,
-        (int *) calloc(1, sizeof(int)),
+        jhiibwt,
         0,
         &persistentStyles,
         baseURL,
@@ -789,6 +791,8 @@ struct html2nc_result htmlToText(
         onComplete,
         onError
     );
+
+    free(jhiibwt);
 
     // Default title, if title wasn't set
     if (state.title == NULL) {

@@ -325,6 +325,8 @@ struct http_response http_makeNetworkHTTPRequest(
         if (!strcmp(name, "set-cookie")) {
             HTTP_addCookieToStore(HTTP_globalCookieStore, HTTP_parseCookieString(header.value, url->hostname));
         }
+
+        free(name);
     }
     free(url->hostname);
     free(url);

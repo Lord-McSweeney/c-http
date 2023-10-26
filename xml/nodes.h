@@ -466,11 +466,17 @@ struct xml_response recursive_parse_xml_node(struct xml_node *parent, struct xml
                         currentState = PARSE_UNKNOWN;
 
                         if (childResponse.closes_two) {
+                            free(currentTextContent);
+                            free(currentDoctypeContent);
+                            free(currentElementName);
+                            free(currentAttributeContent);
+
                             struct xml_response realResponse;
                             realResponse.error = 0;
                             realResponse.bytesParsed = bytesParsed;
                             realResponse.list = response;
                             realResponse.closes_two = 0;
+
                             return realResponse;
                         }
                     } else {
@@ -537,6 +543,11 @@ struct xml_response recursive_parse_xml_node(struct xml_node *parent, struct xml
                 }
                 if (curChar == '>') {
                     if (!startedParsingName) {
+                        free(currentTextContent);
+                        free(currentDoctypeContent);
+                        free(currentElementName);
+                        free(currentAttributeContent);
+
                         error_xml.error = 1;
                         return error_xml;
                     }
