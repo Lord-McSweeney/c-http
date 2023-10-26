@@ -107,11 +107,11 @@ char *onredirecterrorhandler(void *ptr, char *to, int num) {
     return makeStrCpy("Invalid redirected URL.");
 }
 
-char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler handler, dataReceiveHandler finishHandler, int redirect_depth) {
+char *downloadAndOpenPage(struct nc_state *state, char **url, dataReceiveHandler handler, dataReceiveHandler finishHandler, int redirect_depth) {
     struct http_response parsedResponse = downloadPage(
         (void *) state,
         getTextAreaByDescriptor(state, "userAgent")->currentText,
-        &url,
+        url,
         handler,
         finishHandler,
         0,
@@ -132,7 +132,7 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
             free(parsedResponse.response_description);
             free(lowerData);
 
-            char *total = (char *) calloc(parsedResponse.response_body.length + strlen(url) + 32, sizeof(char));
+            char *total = (char *) calloc(parsedResponse.response_body.length + strlen(*url) + 32, sizeof(char));
             strcpy(total, "Page has no title\n\n\\H\n");
             strcat(total, doubleStringBackslashes(parsedResponse.response_body.data));
             return total;
@@ -163,14 +163,14 @@ char *downloadAndOpenPage(struct nc_state *state, char *url, dataReceiveHandler 
     struct html2nc_result result = htmlToText(
         xml.list,
         parsedResponse.response_body.data,
-        url,
+        *url,
         (void *) state,
         onStyleSheetStart,
         onStyleSheetProgress,
         onStyleSheetComplete,
         onStyleSheetError
     );
-    char *total = (char *) calloc(strlen(result.text) + strlen(url) + strlen(result.title) + 8, sizeof(char));
+    char *total = (char *) calloc(strlen(result.text) + strlen(*url) + strlen(result.title) + 8, sizeof(char));
     strcpy(total, result.title);
     strcat(total, "\n\n\\H\n");
     strcat(total, result.text);
@@ -250,7 +250,7 @@ void ongotourl(void *state, char *_) {
         render_nc(realState);
 
         char *copiedURL = makeStrCpy(getTextAreaByDescriptor(realState, "urltextarea")->currentText);
-        char *data = downloadAndOpenPage(realState, copiedURL, onReceiveData, onFinishData, 0);
+        char *data = downloadAndOpenPage(realState, &copiedURL, onReceiveData, onFinishData, 0);
 
         setTextOf(getTextAreaByDescriptor(realState, "urlField"), copiedURL);
 
@@ -333,7 +333,7 @@ void onlinkpressed(void *state, char *url) {
         render_nc(realState);
 
         char *copiedURL = makeStrCpy(absoluteURL);
-        char *data = downloadAndOpenPage(realState, copiedURL, onReceiveData, onFinishData, 0);
+        char *data = downloadAndOpenPage(realState, &copiedURL, onReceiveData, onFinishData, 0);
 
         realState->currentPageUrl = copiedURL;
         setTextOf(getTextAreaByDescriptor(realState, "urlField"), copiedURL);

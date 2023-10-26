@@ -1059,7 +1059,7 @@ void render_nc(struct nc_state *browserState) {
             mvprintw(
                 browserState->text_areas[i].y + browserState->globalScrollY,
                 browserState->text_areas[i].x + browserState->globalScrollX,
-                renderResult
+                escapePercentages(renderResult)
             );
             free(renderResult);
             attron(COLOR_PAIR(1));
