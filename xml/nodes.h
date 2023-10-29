@@ -389,10 +389,12 @@ struct xml_response recursive_parse_xml_node(struct xml_node *parent, struct xml
                         char *lowerCurName = toLowerCase(currentElementName);
                         int isParagraphClose = (!strcmp(lowerName, "p") || !strcmp(lowerNameParent, "p")) && CSS_isDefaultBlock(currentElementName);
                         int isListClose = !strcmp(lowerName, "li") && !strcmp(lowerCurName, "li");
+                        int isDtClose = !strcmp(lowerName, "dt") && !strcmp(lowerCurName, "dd");
+                        int isDdClose = !strcmp(lowerName, "dd") && !strcmp(lowerCurName, "dt");
 
                         free(lowerNameParent);
 
-                        if (isParagraphClose || isListClose) {
+                        if (isParagraphClose || isListClose || isDtClose || isDdClose) {
                             int amt = strlen(currentElementName) + 1;
                             if (currentAttributeContent[0] != 0) {
                                 amt += strlen(currentAttributeContent) + 1;
