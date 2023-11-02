@@ -584,6 +584,16 @@ char *recursiveXMLToText(
                             strcat(alloc, "\\nN");
                             strcat(alloc, encoded);
                             free(encoded);
+                        } else if (!strcmp(type, "password")) {
+                            strcat(alloc, "\\m");
+
+                            strcat(alloc, "[_________]");
+
+                            char *encoded = safeEncodeString("Password input");
+
+                            strcat(alloc, "\\nN");
+                            strcat(alloc, encoded);
+                            free(encoded);
                         } else if (!strcmp(type, "hidden")) {
                             // nothing
                         } else if (!strcmp(type, "submit") || !strcmp(type, "button")) {
