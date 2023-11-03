@@ -228,7 +228,7 @@ error codes:
 3: xml parsing failure: encountered a `...</`
 */
 
-struct xml_response recursive_parse_xml_node(struct xml_node *parent, struct xml_data xml_string, char *closingTag, char *parentClosingTag) {
+struct xml_response recursive_parse_xml_node(struct xml_node *parent, struct xml_data xml_string, char *closingTag, char *parentClosingTag, int is_svg) {
     struct xml_response error_xml;
     error_xml.error = 1;
 
@@ -378,7 +378,11 @@ struct xml_response recursive_parse_xml_node(struct xml_node *parent, struct xml
                         //bytesParsed --;
                         break;
                     }
-                    currentState = PARSE_ELEMENT_END_SLASH;
+
+                    if (is_svg) {
+                        // SVG follows normal XML processing rules, including treating <tag/> as a self-closing tag.
+                        currentState = PARSE_ELEMENT_END_SLASH;
+                    }
                 }
                 if (curChar == '>' && !isInsideString && !isInsideSingleQuoteString) {
                     if (startedParsingName) {
@@ -440,7 +444,9 @@ struct xml_response recursive_parse_xml_node(struct xml_node *parent, struct xml
                         newData.length = xml_string.length - i;
 
                         char *copy = makeStrCpy(currentElementName);
-                        struct xml_response childResponse = recursive_parse_xml_node(node, newData, copy, closingTag);
+                        char *lowerCopy = toLowerCase(currentElementName);
+                        struct xml_response childResponse = recursive_parse_xml_node(node, newData, copy, closingTag, !strcmp(lowerCopy, "svg") || is_svg);
+                        free(lowerCopy);
                         free(copy);
 
                         i += childResponse.bytesParsed;
@@ -744,7 +750,7 @@ struct xml_response recursive_parse_xml_node(struct xml_node *parent, struct xml
 }
 
 struct xml_response XML_parseXmlNodes(struct xml_data xml_string) {
-    return recursive_parse_xml_node(NULL, xml_string, "", "");
+    return recursive_parse_xml_node(NULL, xml_string, "", "", 0);
 }
 
 #endif
