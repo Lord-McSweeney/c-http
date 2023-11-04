@@ -104,6 +104,39 @@ char *trimString(char *string) {
     return makeStrCpy(res);
 }
 
+char *trimStringOnlySpaces(char *string) {
+    int isAtStringYet = 0;
+    int len = strlen(string);
+
+    char *res = (char *) calloc(len + 1, sizeof(char));
+    int idx = 0;
+
+    for (int i = 0; i < len; i ++) {
+        if (!isWhiteSpace(string[i])) {
+            isAtStringYet = 1;
+        }
+        if (isAtStringYet) {
+            int foundChars = 1;
+            if (isWhiteSpace(string[i])) {
+                foundChars = 0;
+                for (int j = i; j < len; j ++) {
+                    if (string[j] != ' ') {
+                        foundChars = 1;
+                    }
+                }
+            }
+            if (foundChars) {
+                res[idx] = string[i];
+                idx ++;
+            } else {
+                break;
+            }
+        }
+    }
+
+    return makeStrCpy(res);
+}
+
 struct split_string {
     char **result;
     int count;

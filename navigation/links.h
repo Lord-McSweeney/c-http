@@ -107,7 +107,7 @@ char *onredirecterrorhandler(void *ptr, char *to, int num) {
     return makeStrCpy("Invalid redirected URL.");
 }
 
-char *downloadAndOpenPage(struct nc_state *state, char **url, dataReceiveHandler handler, dataReceiveHandler finishHandler, int redirect_depth) {
+void downloadAndOpenPage(struct nc_state *state, char **url, dataReceiveHandler handler, dataReceiveHandler finishHandler, int redirect_depth) {
     struct http_response parsedResponse = downloadPage(
         (void *) state,
         getTextAreaByDescriptor(state, "userAgent")->currentText,
@@ -135,7 +135,11 @@ char *downloadAndOpenPage(struct nc_state *state, char **url, dataReceiveHandler
             char *total = (char *) calloc(parsedResponse.response_body.length + strlen(*url) + 32, sizeof(char));
             strcpy(total, "Page has no title\n\n\\H\n");
             strcat(total, doubleStringBackslashes(parsedResponse.response_body.data));
-            return total;
+
+            free(getTextByDescriptor(state, "documentText")->text);
+            getTextByDescriptor(state, "documentText")->text = total;
+            render_nc(state);
+            return;
         }
         free(lowerData);
     }
@@ -157,7 +161,11 @@ char *downloadAndOpenPage(struct nc_state *state, char **url, dataReceiveHandler
     if (xml.error) {
         char *t = (char *) calloc(strlen("Encountered an error while parsing the page. Error code: %d.") + 1, sizeof(char));
         sprintf(t, "Encountered an error while parsing the page. Error code: %d.", xml.error);
-        return t;
+
+        free(getTextByDescriptor(state, "documentText")->text);
+        getTextByDescriptor(state, "documentText")->text = t;
+        render_nc(state);
+        return;
     }
 
     struct html2nc_result result = htmlToText(
@@ -170,6 +178,15 @@ char *downloadAndOpenPage(struct nc_state *state, char **url, dataReceiveHandler
         onStyleSheetComplete,
         onStyleSheetError
     );
+
+    if (result.finish_status == HTML2NC_REDIRECT) {
+        *url = makeStrCpy(result.redirect_url);
+        free(result.redirect_url);
+
+        downloadAndOpenPage(state, url, handler, finishHandler, redirect_depth);
+        return;
+    }
+
     char *total = (char *) calloc(strlen(result.text) + strlen(*url) + strlen(result.title) + 8, sizeof(char));
     strcpy(total, result.title);
     strcat(total, "\n\n\\H\n");
@@ -190,7 +207,13 @@ char *downloadAndOpenPage(struct nc_state *state, char **url, dataReceiveHandler
     if (parsedResponse.redirect) free(parsedResponse.redirect);
 
     recursiveFreeXML(xml.list);
-    return total;
+
+    free(getTextByDescriptor(state, "documentText")->text);
+    getTextByDescriptor(state, "documentText")->text = total;
+    if (total == NULL) {
+        getTextByDescriptor(state, "documentText")->text = makeStrCpy("ERROR: Serialized document was NULL!");
+    }
+    render_nc(state);
 }
 
 // gets called with current state pointer and pressed button's descriptor
@@ -250,18 +273,11 @@ void ongotourl(void *state, char *_) {
         render_nc(realState);
 
         char *copiedURL = makeStrCpy(getTextAreaByDescriptor(realState, "urltextarea")->currentText);
-        char *data = downloadAndOpenPage(realState, &copiedURL, onReceiveData, onFinishData, 0);
+        downloadAndOpenPage(realState, &copiedURL, onReceiveData, onFinishData, 0);
 
         setTextOf(getTextAreaByDescriptor(realState, "urlField"), copiedURL);
 
         free(copiedURL);
-
-        free(getTextByDescriptor(realState, "documentText")->text);
-        getTextByDescriptor(realState, "documentText")->text = data;
-        if (data == NULL) {
-            getTextByDescriptor(realState, "documentText")->text = makeStrCpy("ERROR: Serialized document was NULL!");
-        }
-        render_nc(realState);
 
         struct http_url *finalURL = http_url_from_string(realState->currentPageUrl);
         if (finalURL->had_explicit_fragment && finalURL->fragment[0]) {
@@ -333,17 +349,10 @@ void onlinkpressed(void *state, char *url) {
         render_nc(realState);
 
         char *copiedURL = makeStrCpy(absoluteURL);
-        char *data = downloadAndOpenPage(realState, &copiedURL, onReceiveData, onFinishData, 0);
+        downloadAndOpenPage(realState, &copiedURL, onReceiveData, onFinishData, 0);
 
         realState->currentPageUrl = copiedURL;
         setTextOf(getTextAreaByDescriptor(realState, "urlField"), copiedURL);
-
-        free(getTextByDescriptor(realState, "documentText")->text);
-        getTextByDescriptor(realState, "documentText")->text = data;
-        if (data == NULL) {
-            getTextByDescriptor(realState, "documentText")->text = makeStrCpy("ERROR: Serialized document was NULL!");
-        }
-        render_nc(realState);
 
         struct http_url *finalURL = http_url_from_string(realState->currentPageUrl);
         if (finalURL->had_explicit_fragment && finalURL->fragment[0]) {

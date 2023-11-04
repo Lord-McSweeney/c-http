@@ -85,14 +85,24 @@ char *getXMLTrimmedTextContent(const char *content, int removeStart) {
     return newText;
 }
 
+enum html2nc_finish_status {
+    HTML2NC_SUCCESS,
+    HTML2NC_REDIRECT,
+};
 
 struct html2nc_state {
     char *title;
+
+    enum html2nc_finish_status finish_status;
+    char *redirect_url;
 };
 
 struct html2nc_result {
     char *text;
     char *title;
+
+    enum html2nc_finish_status finish_status;
+    char *redirect_url;
 };
 
 // This function duplicates getTextAreaRendered in display-handling: it will be unnecessary once input is actually implemented.
@@ -320,6 +330,45 @@ char *recursiveXMLToText(
                 }
             }
 
+            if (!strcmp(lower, "meta")) {
+                char *httpEquiv = XML_getAttributeByName(attributes, "http-equiv");
+                if (httpEquiv) {
+                    char *content = XML_getAttributeByName(attributes, "content");
+                    char *lowerHttpEquiv = toLowerCase(httpEquiv);
+                    char *lowerContent = toLowerCase(content);
+
+                    if (!strcmp(lowerHttpEquiv, "refresh") && content && state->finish_status == HTML2NC_SUCCESS) {
+                        int firstSemicolonIndex = -1;
+                        int contentLen = strlen(content);
+                        for (int j = 0; j < contentLen; j ++) {
+                            if (content[j] == ';') {
+                                firstSemicolonIndex = j;
+                                break;
+                            }
+                        }
+
+                        if (firstSemicolonIndex > 0) {
+                            char *realUrl = trimStringOnlySpaces(content + firstSemicolonIndex + 1);
+                            char *lowerRealUrl = toLowerCase(realUrl);
+                            if (!strncmp(lowerRealUrl, "url=", 4)) {
+                                // Skip over the `url=`
+                                char *newRealUrl = makeStrCpy(realUrl + 4);
+                                free(realUrl);
+                                realUrl = newRealUrl;
+                            }
+
+                            state->finish_status = HTML2NC_REDIRECT;
+                            state->redirect_url = realUrl;
+
+                            free(lowerRealUrl);
+                        }
+                    }
+
+                    free(lowerHttpEquiv);
+                    free(lowerContent);
+                }
+            }
+
             char *id = XML_getAttributeByName(attributes, "id");
             if (id) {
                 char *encoded = safeEncodeString(id);
@@ -482,7 +531,6 @@ char *recursiveXMLToText(
                 }
 
                 if (!strcmp(lower, "embed") && isVisible) {
-                    fprintf(stderr, "Handling embed\n");
                     strcat(alloc, "\\m");
 
                     strcat(alloc, "[EMBED]");
@@ -781,6 +829,8 @@ struct html2nc_result htmlToText(
 
     struct html2nc_state state;
     state.title = NULL;
+    state.finish_status = HTML2NC_SUCCESS;
+    state.redirect_url = NULL;
 
     int *jhiibwt = (int *) calloc(1, sizeof(int));
 
@@ -814,6 +864,9 @@ struct html2nc_result htmlToText(
     CSS_freePersistentStyles(&persistentStyles);
 
     free(state.title);
+
+    result.finish_status = state.finish_status;
+    result.redirect_url = state.redirect_url;
 
     return result;
 }
