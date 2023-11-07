@@ -245,7 +245,7 @@ void ongotourl(void *state, char *_) {
     getTextAreaByDescriptor(realState, "userAgent")->visible = 0;
     getTextByDescriptor(realState, "documentText")->visible = 1;
     getTextAreaByDescriptor(realState, "urlField")->visible = 0;
-    getButtonByDescriptor(state, "smallgobutton")->visible = 0;
+    getButtonByDescriptor(realState, "smallgobutton")->visible = 0;
     getTextByDescriptor(realState, "helpText")->visible = 0;
 
     realState->currentPageUrl = getTextAreaByDescriptor(realState, "urltextarea")->currentText;
@@ -295,13 +295,14 @@ void ongotourl(void *state, char *_) {
     free(curURL);
 
     getTextAreaByDescriptor(realState, "urlField")->visible = 1;
-    getButtonByDescriptor(state, "smallgobutton")->visible = 1;
+    getButtonByDescriptor(realState, "smallgobutton")->visible = 1;
 }
 
 void ongotourlfield(void *state, char *_) {
     struct nc_state *realState = (struct nc_state *) state;
+
     setTextOf(getTextAreaByDescriptor(realState, "urltextarea"), getTextAreaByDescriptor(realState, "urlField")->currentText);
-    ongotourl(state, _);
+    ongotourl(realState, _);
 }
 
 void onlinkpressed(void *state, char *url) {
@@ -323,7 +324,7 @@ void onlinkpressed(void *state, char *url) {
     getTextAreaByDescriptor(realState, "userAgent")->visible = 0;
     getTextByDescriptor(realState, "documentText")->visible = 1;
     getTextAreaByDescriptor(realState, "urlField")->visible = 0;
-    getButtonByDescriptor(state, "smallgobutton")->visible = 0;
+    getButtonByDescriptor(realState, "smallgobutton")->visible = 0;
     getTextByDescriptor(realState, "helpText")->visible = 0;
 
     char *realURL = url + 15;
@@ -364,7 +365,7 @@ void onlinkpressed(void *state, char *url) {
     }
 
     getTextAreaByDescriptor(realState, "urlField")->visible = 1;
-    getButtonByDescriptor(state, "smallgobutton")->visible = 1;
+    getButtonByDescriptor(realState, "smallgobutton")->visible = 1;
 }
 
 #endif
