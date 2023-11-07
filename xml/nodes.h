@@ -1,4 +1,5 @@
 #include "../css/block-inline.h"
+#include "../utils/log.h"
 #include "../utils/string.h"
 
 #ifndef _XML_HTML
