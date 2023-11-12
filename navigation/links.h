@@ -108,6 +108,13 @@ char *onredirecterrorhandler(void *ptr, char *to, int num) {
 }
 
 void downloadAndOpenPage(struct nc_state *state, char **url, dataReceiveHandler handler, dataReceiveHandler finishHandler, int redirect_depth) {
+    if (redirect_depth > 15) {
+        free(getTextByDescriptor(state, "documentText")->text);
+        getTextByDescriptor(state, "documentText")->text = makeStrCpy("Too many redirects.");
+        render_nc(state);
+        return;
+    }
+
     struct http_response parsedResponse = downloadPage(
         (void *) state,
         getTextAreaByDescriptor(state, "userAgent")->currentText,
@@ -147,8 +154,6 @@ void downloadAndOpenPage(struct nc_state *state, char **url, dataReceiveHandler 
     strcat(getTextByDescriptor(state, "documentText")->text, "\nBeginning to parse page as HTML...");
     render_nc(state);
 
-    // todo: handle headers
-
     struct xml_response xml = XML_parseXmlNodes(
                                   XML_xmlDataFromString(
                                       parsedResponse.response_body.data
@@ -180,10 +185,31 @@ void downloadAndOpenPage(struct nc_state *state, char **url, dataReceiveHandler 
     );
 
     if (result.finish_status == HTML2NC_REDIRECT) {
-        *url = makeStrCpy(result.redirect_url);
+        // Ensure base URL is valid
+        struct http_url *curURL = http_url_from_string(*url);
+        if (curURL == NULL) {
+            free(getTextByDescriptor(state, "documentText")->text);
+            getTextByDescriptor(state, "documentText")->text = makeStrCpy("Invalid base URL.");
+            render_nc(state);
+            return;
+        }
+
+        char *absoluteURL = http_resolveRelativeURL(curURL, *url, result.redirect_url);
         free(result.redirect_url);
 
-        downloadAndOpenPage(state, url, handler, finishHandler, redirect_depth);
+        // Ensure resulting absolute URL is valid
+        struct http_url *absURL = http_url_from_string(absoluteURL);
+        if (absURL == NULL) {
+            free(getTextByDescriptor(state, "documentText")->text);
+            getTextByDescriptor(state, "documentText")->text = makeStrCpy("Encountered redirect to invalid URL.");
+            render_nc(state);
+            return;
+        }
+
+        // Now we know that this is valid
+        *url = absoluteURL;
+
+        downloadAndOpenPage(state, url, handler, finishHandler, redirect_depth + 1);
         return;
     }
 

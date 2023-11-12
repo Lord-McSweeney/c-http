@@ -287,7 +287,7 @@ char *http_urlToString(struct http_url *url) {
 char* http_resolveRelativeURL(struct http_url *base, char *baseString, char *string) {
     // NOTE: This function duplicates a lot of "build string from struct http_url" code. Could that be extracted into a new function?
     if (strlen(string) == 0) {
-        return baseString;
+        return makeStrCpy(baseString);
     }
     if (string[0] == '/') {
         if (string[1] == '/') {
@@ -336,7 +336,7 @@ char* http_resolveRelativeURL(struct http_url *base, char *baseString, char *str
             return newAlloc;
     } else if (string[0] == '?') {
         // TODO
-        return baseString;
+        return makeStrCpy(baseString);
     } else {
         int isAbsolute = 0;
         int wasNotAbsolute = 0;
@@ -350,7 +350,7 @@ char* http_resolveRelativeURL(struct http_url *base, char *baseString, char *str
             }
         }
         if (isAbsolute) {
-            return string;
+            return makeStrCpy(string);
         } else {
             char *resultPath = (char *) calloc(strlen(baseString) + strlen(string) + 2, sizeof(char));
             int lastSlashPos = 0;
