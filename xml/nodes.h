@@ -37,7 +37,6 @@ enum _xml_internal_node_parser_state {
 struct xml_list {
     struct xml_node *nodes;
     int count;
-    int error;
 };
 
 struct xml_node {
@@ -136,18 +135,11 @@ void XML_appendChild(struct xml_list *parent, struct xml_node child) {
     parent->nodes[parent->count - 1] = child;
 }
 
-struct xml_list XML_ancestors(struct xml_node *node) {
-    struct xml_list response = XML_createEmptyXMLList();
-    int loop_guard = 0;
-    while (node->parent) {
-        if (loop_guard > 8192) {
-            log_err("Too high recursion (>8192) in XML_ancestors! Possible recursive XML");
-            return response;
-        }
-        XML_appendChild(&response, *node->parent);
-        loop_guard ++;
+void XML_descendants(struct xml_list *list, struct xml_node node) {
+    for (int i = 0; i < node.children.count; i ++) {
+        XML_descendants(list, node.children.nodes[i]);
     }
-    return response;
+    XML_appendChild(list, node);
 }
 
 char *XML_nodeTypeToString(enum xml_node_type type) {
@@ -198,6 +190,13 @@ struct xml_data XML_xmlDataFromString(char *string) {
     struct xml_data data;
     data.data = string;
     data.length = strlen(string);
+    return data;
+}
+
+struct xml_data XML_xmlDataFromStringAndLength(char *string, int length) {
+    struct xml_data data;
+    data.data = string;
+    data.length = length;
     return data;
 }
 
