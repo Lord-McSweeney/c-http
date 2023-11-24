@@ -241,7 +241,7 @@ void onKeyPress(struct nc_state *browserState, int ch) {
     if (textarea != NULL) {
         if (isCharAllowed(textarea->allowMoreChars, ch)) {
             appendCharTo(textarea, ch);
-        } else if (ch == KEY_BACKSPACE) { // backspace
+        } else if (ch == KEY_BACKSPACE || ch == 8 || ch == 127) { // backspace
             popCharFrom(textarea);
         }
         if (ch != KEY_UP && ch != KEY_DOWN) {
