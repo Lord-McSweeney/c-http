@@ -12,7 +12,9 @@ struct xml_node *XML_getElementById(struct xml_node node, const char *id) {
     XML_descendants(&list, node);
     for (int i = 0; i < list.count; i ++) {
         struct xml_node current_node = list.nodes[i];
-        struct xml_attrib_result attribs = XML_parseAttributes(node.attribute_content);
+        if (!current_node.attribute_content) continue;
+
+        struct xml_attrib_result attribs = XML_parseAttributes(current_node.attribute_content);
 
         if (!attribs.error) {
             struct xml_attributes *attributes = attribs.attribs;
