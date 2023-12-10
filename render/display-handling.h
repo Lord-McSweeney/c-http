@@ -1,7 +1,11 @@
 #ifndef _DSP_HANDLING
     #define _DSP_HANDLING 1
 
-#include <ncurses.h>
+#ifdef unix
+    #include <ncurses.h>
+#else
+    #error No TUI rendering support on non-Unix compilation target
+#endif
 
 #include "../http/url.h"
 #include "../utils/log.h"

@@ -1,3 +1,5 @@
+#include <errno.h>
+
 #include "../utils/string.h"
 
 #ifndef _HTTP_URL

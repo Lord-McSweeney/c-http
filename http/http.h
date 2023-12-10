@@ -1,7 +1,18 @@
-#include <errno.h>
-
 #ifndef _HTTP_HTTP
+    #define _HTTP_HTTP 1
 
+    #ifndef HOST_NOT_FOUND
+        #define HOST_NOT_FOUND 1
+    #endif
+
+    #ifndef TRY_AGAIN
+        #define TRY_AGAIN 2
+    #endif
+
+
+    #include <errno.h>
+
+    #include "../socket/domain.h"
     #include "../socket/secure-socket.h"
     #include "../socket/socket.h"
     #include "../utils/string.h"
@@ -13,7 +24,6 @@
 
 // see https://aticleworld.com/ssl-server-client-using-openssl-in-c/ for TLS 1.2 example
 
-    #define _HTTP_HTTP 1
     #define maxInitialResponseSize 8192
     #define maxSegmentLength 4096
 
