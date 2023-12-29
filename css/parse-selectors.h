@@ -43,7 +43,8 @@ struct css_selector_info CSS_parseSelector(char *string) {
     int currentState = PARSE_SELECTOR_UNKNOWN;
     int len = strlen(string);
     int currentIndex = 1;
-    char *currentContent = (char *) calloc(512, sizeof(char));
+    int maxContentUsage = 512;
+    char *currentContent = (char *) calloc(maxContentUsage, sizeof(char));
     int currentContentUsage = 0;
     for (int i = 0; i < len; i ++) {
         char curChar = string[i];
@@ -87,7 +88,7 @@ struct css_selector_info CSS_parseSelector(char *string) {
                     currentState = PARSE_SELECTOR_CLASS_NAME;
                     currentIndex = 0;
                 } else {
-                    if (currentContentUsage > 510) {
+                    if (currentContentUsage > maxContentUsage - 2) {
                         log_warn("Content usage exceeded maximum content usage while recording a class!");
                     } else {
                         currentContent[currentContentUsage] = curChar;
@@ -116,7 +117,7 @@ struct css_selector_info CSS_parseSelector(char *string) {
                     currentState = PARSE_SELECTOR_CLASS_NAME;
                     currentIndex = 0;
                 } else {
-                    if (currentContentUsage > 510) {
+                    if (currentContentUsage > maxContentUsage - 2) {
                         log_warn("Content usage exceeded maximum content usage while recording a class!");
                     } else {
                         currentContent[currentContentUsage] = curChar;
@@ -148,7 +149,7 @@ struct css_selector_info CSS_parseSelector(char *string) {
                     currentState = PARSE_SELECTOR_CLASS_NAME;
                     currentIndex = 0;
                 } else {
-                    if (currentContentUsage > 510) {
+                    if (currentContentUsage > maxContentUsage - 2) {
                         log_warn("Content usage exceeded maximum content usage while recording ID!");
                     } else {
                         currentContent[currentContentUsage] = curChar;
@@ -251,21 +252,22 @@ void CSS_freePersistentStyles(struct css_persistent_styles *originalStyles) {
     free(originalStyles->selectors);
 }
 
-void CSS_applyStyleData(struct css_persistent_styles *originalStyles, char *content) {
+void CSS_applyStyleData(struct css_persistent_styles *originalStyles, const char *content) {
+    int contentStrLen = strlen(content);
     int currentState = CSS_PARSE_OUTSIDE_BRACKET_WHITESPACE;
 
     struct css_selectors currentSelector;
     currentSelector.selectors = NULL;
     currentSelector.count = 0;
-    currentSelector.styleContent = (char *) calloc(strlen(content) + 1, sizeof(char));
+    currentSelector.styleContent = (char *) calloc(contentStrLen + 1, sizeof(char));
+    int currentSelectorStyleContentLen = 0;
 
     int maxDataUsage = 256;
     char *currentDataContent = (char *) calloc(maxDataUsage, sizeof(char));
     int currentDataUsage = 0;
 
-    int len = strlen(content);
     int bracketNum = 0;
-    for (int i = 0; i < len; i ++) {
+    for (int i = 0; i < contentStrLen; i ++) {
         char curChar = content[i];
 
         switch (currentState) {
@@ -307,17 +309,19 @@ void CSS_applyStyleData(struct css_persistent_styles *originalStyles, char *cont
                 if (curChar == '}') {
                     bracketNum --;
                     if (!bracketNum) {
-                        currentSelector.styleContent[strlen(currentSelector.styleContent)] = 0; // just to make sure
+                        currentSelector.styleContent[currentSelectorStyleContentLen] = 0; // just to make sure
                         CSS_addStyleTo(originalStyles, currentSelector);
                         currentState = CSS_PARSE_OUTSIDE_BRACKET_WHITESPACE;
                         currentSelector.selectors = NULL;
                         currentSelector.count = 0;
-                        currentSelector.styleContent = (char *) calloc(strlen(content) + 1, sizeof(char));
+                        currentSelector.styleContent = (char *) calloc(contentStrLen + 1, sizeof(char));
+                        currentSelectorStyleContentLen = 0;
                     }
                 } else if (curChar == '{') {
                     bracketNum ++;
                 } else {
-                    currentSelector.styleContent[strlen(currentSelector.styleContent)] = curChar;
+                    currentSelector.styleContent[currentSelectorStyleContentLen] = curChar;
+                    currentSelectorStyleContentLen ++;
                 }
                 break;
             case CSS_PARSE_COMMENT_OUTSIDE_BRACKET:
