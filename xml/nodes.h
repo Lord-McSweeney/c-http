@@ -247,10 +247,10 @@ struct xml_response recursive_parse_xml_node(struct xml_node *parent, struct xml
     int currentState = PARSE_UNKNOWN;
     int currentIndex = 1;
 
-    int maxTextContent = 256; // This will be dynamically resized
+    int maxTextContent = 64; // This will be dynamically resized
     int maxDoctypeContent = 256;
     int maxElementName = 256;
-    int maxAttributeContent = 256; // This will be dynamically resized
+    int maxAttributeContent = 32; // This will be dynamically resized
 
     char *currentTextContent = (char *) calloc(maxTextContent, sizeof(char));
     char *currentDoctypeContent = (char *) calloc(maxDoctypeContent, sizeof(char));
